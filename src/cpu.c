@@ -12,6 +12,10 @@ static void prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
 static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg);
 
 static void prv_cpu_decode_execute(vm_state_t *vm);
+static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
+static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
+
+static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry);
 
 void cpu_init(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
@@ -96,6 +100,18 @@ static void prv_cpu_decode_execute(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
 
     uint8_t opcode = prv_cpu_fetch_u8(vm);
+    uint8_t opcode_kind = opcode & CPU_OP_KIND_MASK;
+    bool ok = false;
+    if (opcode_kind == CPU_OP_KIND_DATA) {
+        ok = prv_cpu_decode_execute_data(vm, opcode);
+    } else if (opcode_kind == CPU_OP_KIND_ALU) {
+        ok = prv_cpu_decode_execute_alu(vm, opcode);
+    }
+
+    D_ASSERTM(ok, "invalid opcode");
+}
+
+static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
     switch (opcode) {
         // Data movement
     case CPU_OP_MOV_RR: {
@@ -243,5 +259,208 @@ static void prv_cpu_decode_execute(vm_state_t *vm) {
         *p_reg_dst = dword;
         break;
     }
+
+    default:
+        return false;
+    }
+    return true;
+}
+
+static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
+    uint32_t *p_reg = NULL;
+    uint32_t op_val;
+
+    // Fetch and decode the operands.
+    if ((opcode & 1) == 0) {
+        // Even opcodes require two register operands.
+        uint8_t c_reg_dst;
+        uint8_t c_reg_src;
+        prv_cpu_fetch_regs(vm, &c_reg_dst, &c_reg_src);
+
+        p_reg = prv_cpu_decode_reg(vm, c_reg_dst);
+        uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
+
+        D_ASSERT(p_reg_src != NULL);
+        op_val = *p_reg_src;
+    } else if (opcode == CPU_OP_NOT_R) {
+        // Only one register operand.
+        uint8_t c_reg_dst;
+        prv_cpu_fetch_reg(vm, &c_reg_dst);
+        p_reg = prv_cpu_decode_reg(vm, c_reg_dst);
+        D_ASSERT(p_reg != NULL);
+    } else {
+        // Odd opcodes require a register operand and an imm32 value, except for
+        // some opcodes.
+        uint8_t c_reg_dst;
+        prv_cpu_fetch_reg(vm, &c_reg_dst);
+        p_reg = prv_cpu_decode_reg(vm, c_reg_dst);
+        D_ASSERT(p_reg != NULL);
+
+        if (opcode == CPU_OP_SHL_RV || opcode == CPU_OP_SHR_RV ||
+            opcode == CPU_OP_ROL_RV || opcode == CPU_OP_ROR_RV) {
+            // Second operand is an imm5.
+            uint8_t op2 = prv_cpu_fetch_u8(vm);
+            D_ASSERTM((op2 & ~31) == 0x00, "garbage bits in an imm5 value");
+            op_val = (uint32_t)op2;
+        } else {
+            // Second operand is an imm32.
+            uint32_t op2 = prv_cpu_fetch_u32(vm);
+            op_val = op2;
+        }
+    }
+
+    // Execute the instruction.
+    bool flag_zero = false;
+    bool flag_sign = false;
+    bool flag_carry = false;
+    D_ASSERT(p_reg != NULL);
+    switch (opcode) {
+    case CPU_OP_ADD_RR:
+    case CPU_OP_ADD_RV: {
+        uint64_t res = (uint64_t)*p_reg + op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = (res & ~0xFFFFFFFFL) != 0;
+        *p_reg = (uint32_t)res;
+    } break;
+    case CPU_OP_SUB_RR:
+    case CPU_OP_SUB_RV: {
+        uint32_t res = *p_reg - op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = flag_sign;
+        *p_reg = res;
+        break;
+    }
+    case CPU_OP_MUL_RR:
+    case CPU_OP_MUL_RV: {
+        uint64_t res = (uint64_t)*p_reg * op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = (res & ~0xFFFFFFFFL) != 0;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_DIV_RR:
+    case CPU_OP_DIV_RV: {
+        uint32_t res = *p_reg / op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        *p_reg /= op_val;
+        break;
+    }
+    case CPU_OP_IDIV_RR:
+    case CPU_OP_IDIV_RV: {
+        int32_t res = (int32_t)*p_reg / (int32_t)op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_AND_RR:
+    case CPU_OP_AND_RV: {
+        uint32_t res = *p_reg & op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_OR_RR:
+    case CPU_OP_OR_RV: {
+        uint32_t res = *p_reg | op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_XOR_RR:
+    case CPU_OP_XOR_RV: {
+        uint32_t res = *p_reg ^ op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_NOT_R: {
+        uint32_t res = ~(*p_reg);
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_SHL_RR:
+    case CPU_OP_SHL_RV: {
+        uint32_t numbits = op_val & 31;
+        uint32_t res = *p_reg << numbits;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = (*p_reg & (1 << (32 - numbits))) != 0;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_SHR_RR:
+    case CPU_OP_SHR_RV: {
+        uint32_t numbits = op_val & 31;
+        uint32_t res = *p_reg >> numbits;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = (*p_reg & (1 << (-1 + numbits))) != 0;
+        *p_reg = (uint32_t)res;
+        break;
+    }
+    case CPU_OP_ROL_RR:
+    case CPU_OP_ROL_RV:
+        D_TODO();
+        break;
+    case CPU_OP_ROR_RR:
+    case CPU_OP_ROR_RV:
+        D_TODO();
+        break;
+    case CPU_OP_CMP_RR: {
+        int32_t res = op_val - *p_reg;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = res >= 0;
+        break;
+    }
+    case CPU_OP_TST_RR:
+    case CPU_OP_TST_RV: {
+        uint32_t res = *p_reg & op_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        flag_carry = false;
+        break;
+    }
+    default:
+        return false;
+    }
+
+    prv_cpu_set_flags(vm, flag_zero, flag_sign, flag_carry);
+    return true;
+}
+
+static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign,
+                              bool carry) {
+    D_ASSERT(vm != NULL);
+    if (zero) {
+        vm->flags |= CPU_FLAG_ZERO;
+    } else {
+        vm->flags &= ~CPU_FLAG_ZERO;
+    }
+    if (sign) {
+        vm->flags |= CPU_FLAG_SIGN;
+    } else {
+        vm->flags &= ~CPU_FLAG_SIGN;
+    }
+    if (carry) {
+        vm->flags |= CPU_FLAG_CARRY;
+    } else {
+        vm->flags &= ~CPU_FLAG_CARRY;
     }
 }
