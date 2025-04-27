@@ -10,6 +10,7 @@ typedef struct {
 
 ram_t *ram_init(uint32_t size);
 ram_t *ram_load(void *buf, size_t buf_size);
+void ram_clear(ram_t *ram);
 void ram_free(void *ctx_ram);
 
 size_t ram_state_size(const void *ctx_ram);

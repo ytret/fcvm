@@ -13,6 +13,7 @@ class CPUTest : public testing::Test {
     CPUTest() {
         _vm = vm_new();
         _ram1 = ram_init(RAM_SIZE);
+        ram_clear(_ram1);
 
         mmio_t ram1_mmio = {
             .loaded = true,

@@ -37,6 +37,12 @@ ram_t *ram_load(void *v_buf, size_t buf_size) {
     return ram;
 }
 
+void ram_clear(ram_t *ram) {
+    D_ASSERT(ram != NULL);
+    D_ASSERT(ram->buf != NULL);
+    memset(ram->buf, 0, ram->size);
+}
+
 void ram_free(void *ctx_ram) {
     D_ASSERT(ctx_ram != NULL);
     ram_t *ram = (ram_t *)ctx_ram;
