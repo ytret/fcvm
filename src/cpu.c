@@ -10,11 +10,15 @@ static void prv_cpu_fetch_reg(vm_state_t *vm, uint8_t *p_reg);
 static void prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
                                uint8_t *p_reg_dst);
 
+static void prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val);
+static uint32_t prv_cpu_stack_pop_u32(vm_state_t *vm);
+
 static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg);
 
 static void prv_cpu_decode_execute(vm_state_t *vm);
 static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
+static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode);
 
 static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,
                               bool overflow);
@@ -83,6 +87,19 @@ static void prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
     *p_reg_dst = (byte >> 0) & 0x0F;
 }
 
+static void prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val) {
+    D_ASSERT(vm != NULL);
+    vm->reg_sp -= 4;
+    vm_write_u32(vm, vm->reg_sp, val);
+}
+
+static uint32_t prv_cpu_stack_pop_u32(vm_state_t *vm) {
+    D_ASSERT(vm != NULL);
+    D_ASSERT(vm->reg_sp >= 4);
+    return vm_read_u32(vm, vm->reg_sp);
+    vm->reg_sp += 4;
+}
+
 static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg) {
     D_ASSERT(vm != NULL);
     uint32_t *code_addr_map[0xFF] = {
@@ -108,6 +125,8 @@ static void prv_cpu_decode_execute(vm_state_t *vm) {
         ok = prv_cpu_decode_execute_data(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_ALU) {
         ok = prv_cpu_decode_execute_alu(vm, opcode);
+    } else if (opcode_kind == CPU_OP_KIND_FLOW) {
+        ok = prv_cpu_decode_execute_flow(vm, opcode);
     }
 
     D_ASSERTM(ok, "invalid opcode");
@@ -459,6 +478,88 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
     }
 
     prv_cpu_set_flags(vm, flag_zero, flag_sign, flag_carry, flag_ovf);
+    return true;
+}
+
+static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode) {
+    uint32_t instr_addr = vm->reg_pc - 1;
+    uint32_t jump_addr = 0;
+    if (opcode != CPU_OP_RET) {
+        uint8_t opcode_type = opcode & 0b11;
+        if (opcode_type == 0b00) { // imm8
+            int8_t offset = (int8_t)prv_cpu_fetch_u8(vm);
+            jump_addr = instr_addr + offset;
+        } else if (opcode_type == 0b01) { // imm32
+            jump_addr = prv_cpu_fetch_u32(vm);
+        } else if (opcode_type == 0b10) { // register
+            uint8_t c_reg;
+            prv_cpu_fetch_reg(vm, &c_reg);
+            uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
+            D_ASSERT(p_reg != NULL);
+            jump_addr = *p_reg;
+        } else {
+            return false;
+        }
+    }
+
+    bool flag_zero = (vm->flags & CPU_FLAG_ZERO) != 0;
+    bool flag_S_xor_V = (((vm->flags & CPU_FLAG_SIGN) != 0) ^
+                         ((vm->flags & CPU_FLAG_OVERFLOW) != 0));
+    switch (opcode) {
+    case CPU_OP_JMPR_V8:
+    case CPU_OP_JMPA_V32:
+    case CPU_OP_JMPA_R:
+        vm->reg_pc = jump_addr;
+        break;
+    case CPU_OP_JEQR_V8:
+    case CPU_OP_JEQA_V32:
+    case CPU_OP_JEQA_R:
+        if (flag_zero) { vm->reg_pc = jump_addr; }
+        break;
+    case CPU_OP_JNER_V8:
+    case CPU_OP_JNEA_V32:
+    case CPU_OP_JNEA_R:
+        if (!flag_zero) { vm->reg_pc = jump_addr; }
+        break;
+    case CPU_OP_JGTR_V8:
+    case CPU_OP_JGTA_V32:
+    case CPU_OP_JGTA_R:
+        if (!flag_zero && !flag_S_xor_V) { vm->reg_pc = jump_addr; }
+        break;
+    case CPU_OP_JGER_V8:
+    case CPU_OP_JGEA_V32:
+    case CPU_OP_JGEA_R:
+        if (!flag_S_xor_V) { vm->reg_pc = jump_addr; }
+        break;
+    case CPU_OP_JLTR_V8:
+    case CPU_OP_JLTA_V32:
+    case CPU_OP_JLTA_R:
+        if (flag_S_xor_V) { vm->reg_pc = jump_addr; }
+        break;
+    case CPU_OP_JLER_V8:
+    case CPU_OP_JLEA_V32:
+    case CPU_OP_JLEA_R:
+        if (flag_zero || flag_S_xor_V) { vm->reg_pc = jump_addr; }
+        break;
+    case CPU_OP_CALLA_V32: {
+        uint32_t instr_size = 5;
+        prv_cpu_stack_push_u32(vm, instr_addr + instr_size);
+        vm->reg_pc = jump_addr;
+    } break;
+    case CPU_OP_CALLA_R: {
+        uint32_t instr_size = 2;
+        prv_cpu_stack_push_u32(vm, instr_addr + instr_size);
+        vm->reg_pc = jump_addr;
+        break;
+    }
+    case CPU_OP_RET: {
+        jump_addr = prv_cpu_stack_pop_u32(vm);
+        vm->reg_pc = jump_addr;
+        break;
+    }
+    default:
+        return false;
+    }
     return true;
 }
 

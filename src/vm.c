@@ -160,7 +160,7 @@ static mmio_t *prv_vm_find_mmio(vm_state_t *vm, uint32_t addr,
         bool has_end =
             mmio->base <= access_end_excl && access_end_excl <= mmio_end_excl;
         if (has_start && has_end) {
-            D_ASSERTM(mmio->loaded, "mmio is found, but it's not loaded");
+            D_ASSERTM(mmio->loaded, "MMIO is found, but it's not loaded");
             return mmio;
         }
     }

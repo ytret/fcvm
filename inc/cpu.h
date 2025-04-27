@@ -65,6 +65,44 @@
 #define CPU_OP_ROR_RV 0x5B
 /// @}
 
+/**
+ * \name Control flow opcodes (0b011x_xxxx)
+ * Lower 2 bits indicate the operand type:
+ * - `0b00` - imm8,
+ * - `0b01` - imm32,
+ * - `0b10` - register.
+ * Except for #CPU_OP_RET, which does not have any operands.
+ */
+#define CPU_OP_KIND_FLOW 0x60
+
+#define CPU_OP_JMPR_V8  (0x60 + 0)
+#define CPU_OP_JMPA_V32 (0x60 + 1)
+#define CPU_OP_JMPA_R   (0x60 + 2)
+#define CPU_OP_JEQR_V8  (0x64 + 0)
+#define CPU_OP_JEQA_V32 (0x64 + 1)
+#define CPU_OP_JEQA_R   (0x64 + 2)
+#define CPU_OP_JNER_V8  (0x68 + 0)
+#define CPU_OP_JNEA_V32 (0x68 + 1)
+#define CPU_OP_JNEA_R   (0x68 + 2)
+#define CPU_OP_JGTR_V8  (0x6C + 0)
+#define CPU_OP_JGTA_V32 (0x6C + 1)
+#define CPU_OP_JGTA_R   (0x6C + 2)
+#define CPU_OP_JGER_V8  (0x70 + 0)
+#define CPU_OP_JGEA_V32 (0x70 + 1)
+#define CPU_OP_JGEA_R   (0x70 + 2)
+#define CPU_OP_JLTR_V8  (0x74 + 0)
+#define CPU_OP_JLTA_V32 (0x74 + 1)
+#define CPU_OP_JLTA_R   (0x74 + 2)
+#define CPU_OP_JLER_V8  (0x78 + 0)
+#define CPU_OP_JLEA_V32 (0x78 + 1)
+#define CPU_OP_JLEA_R   (0x78 + 2)
+
+#define CPU_OP_CALLA_V32 (0x7C + 1)
+#define CPU_OP_CALLA_R   (0x7C + 2)
+
+#define CPU_OP_RET 0x7F
+/// @}
+
 static_assert(VM_NUM_GP_REGS == 8, "please update register codec");
 #define CPU_CODE_R0 0x00
 #define CPU_CODE_R1 0x01
