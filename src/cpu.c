@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <string.h>
 
 #include "cpu.h"
@@ -15,7 +16,8 @@ static void prv_cpu_decode_execute(vm_state_t *vm);
 static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
 
-static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry);
+static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,
+                              bool overflow);
 
 void cpu_init(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
@@ -313,22 +315,31 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
     bool flag_zero = false;
     bool flag_sign = false;
     bool flag_carry = false;
+    bool flag_ovf = false;
     D_ASSERT(p_reg != NULL);
     switch (opcode) {
     case CPU_OP_ADD_RR:
     case CPU_OP_ADD_RV: {
         uint64_t res = (uint64_t)*p_reg + op_val;
+        bool sign_op1 = (*p_reg & (1 << 31)) != 0;
+        bool sign_op2 = (op_val & (1 << 31)) != 0;
+        bool sign_res = (res & (1 << 31)) != 0;
         flag_zero = res == 0;
-        flag_sign = (res & (1 << 31)) != 0;
+        flag_sign = sign_res;
         flag_carry = (res & ~0xFFFFFFFFL) != 0;
+        flag_ovf = (sign_op1 == sign_op2) && (sign_res != sign_op1);
         *p_reg = (uint32_t)res;
     } break;
     case CPU_OP_SUB_RR:
     case CPU_OP_SUB_RV: {
         uint32_t res = *p_reg - op_val;
+        bool sign_op1 = (*p_reg & (1 << 31)) != 0;
+        bool sign_op2 = (op_val & (1 << 31)) != 0;
+        bool sign_res = (res & (1 << 31)) != 0;
         flag_zero = res == 0;
-        flag_sign = (res & (1 << 31)) != 0;
-        flag_carry = flag_sign;
+        flag_sign = sign_res;
+        flag_carry = *p_reg >= op_val;
+        flag_ovf = (sign_op1 != sign_op2) && (sign_res != sign_op1);
         *p_reg = res;
         break;
     }
@@ -343,6 +354,7 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
     }
     case CPU_OP_DIV_RR:
     case CPU_OP_DIV_RV: {
+        D_ASSERT(op_val != 0);
         uint32_t res = *p_reg / op_val;
         flag_zero = res == 0;
         flag_sign = (res & (1 << 31)) != 0;
@@ -352,6 +364,7 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
     }
     case CPU_OP_IDIV_RR:
     case CPU_OP_IDIV_RV: {
+        D_ASSERT(!((int32_t)*p_reg == INT_MIN && (int32_t)op_val == -1));
         int32_t res = (int32_t)*p_reg / (int32_t)op_val;
         flag_zero = res == 0;
         flag_sign = (res & (1 << 31)) != 0;
@@ -426,7 +439,7 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
         int32_t res = op_val - *p_reg;
         flag_zero = res == 0;
         flag_sign = (res & (1 << 31)) != 0;
-        flag_carry = res >= 0;
+        flag_carry = op_val >= *p_reg;
         break;
     }
     case CPU_OP_TST_RR:
@@ -441,12 +454,12 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
         return false;
     }
 
-    prv_cpu_set_flags(vm, flag_zero, flag_sign, flag_carry);
+    prv_cpu_set_flags(vm, flag_zero, flag_sign, flag_carry, flag_ovf);
     return true;
 }
 
-static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign,
-                              bool carry) {
+static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,
+                              bool overflow) {
     D_ASSERT(vm != NULL);
     if (zero) {
         vm->flags |= CPU_FLAG_ZERO;
@@ -462,5 +475,10 @@ static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign,
         vm->flags |= CPU_FLAG_CARRY;
     } else {
         vm->flags &= ~CPU_FLAG_CARRY;
+    }
+    if (overflow) {
+        vm->flags |= CPU_FLAG_OVERFLOW;
+    } else {
+        vm->flags &= ~CPU_FLAG_OVERFLOW;
     }
 }

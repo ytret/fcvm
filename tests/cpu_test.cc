@@ -266,6 +266,8 @@ TEST_F(CPUTest, Instr_ADD_RR) {
     constexpr uint32_t val2 = 0xCAFEBABE;
     constexpr uint32_t sum = val1 + val2; // truncated from 0x1_A9AC_79AD
     constexpr uint32_t flags = CPU_FLAG_SIGN | CPU_FLAG_CARRY;
+    // SIGN - bit 31 of sum is set
+    // CARRY - higher dword of 64-bit sum is non-zero
 
     _vm->regs_gp[0] = val1;
     _vm->regs_gp[1] = val2;
@@ -284,7 +286,7 @@ TEST_F(CPUTest, Instr_SUB_RR) {
     constexpr uint32_t val1 = 0xCAFEBABE;
     constexpr uint32_t val2 = 0xDEADBEEF;
     constexpr int32_t diff = val1 - val2;
-    constexpr uint32_t flags = CPU_FLAG_SIGN | CPU_FLAG_CARRY;
+    constexpr uint32_t flags = CPU_FLAG_SIGN;
 
     _vm->regs_gp[0] = val1;
     _vm->regs_gp[1] = val2;

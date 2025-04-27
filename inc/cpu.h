@@ -76,9 +76,10 @@ static_assert(VM_NUM_GP_REGS == 8, "please update register codec");
 #define CPU_CODE_R7 0x07
 #define CPU_CODE_SP 0x20
 
-#define CPU_FLAG_ZERO  (1 << 0)
-#define CPU_FLAG_SIGN  (1 << 1)
-#define CPU_FLAG_CARRY (1 << 2)
+#define CPU_FLAG_ZERO     (1 << 0)
+#define CPU_FLAG_SIGN     (1 << 1)
+#define CPU_FLAG_CARRY    (1 << 2)
+#define CPU_FLAG_OVERFLOW (1 << 3)
 
 void cpu_init(vm_state_t *vm);
 void cpu_deinit(vm_state_t *vm);
