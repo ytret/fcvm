@@ -26,4 +26,6 @@ function(my_add_test name)
 endfunction()
 
 my_add_test(vm_state_test)
-my_add_test(cpu_test)
+my_add_test(cpu_data_test)
+my_add_test(cpu_alu_test)
+my_add_test(cpu_control_flow_test)
