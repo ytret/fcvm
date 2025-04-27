@@ -25,4 +25,5 @@ function(my_add_test name)
     gtest_discover_tests(${name})
 endfunction()
 
+my_add_test(vm_state_test)
 my_add_test(cpu_test)

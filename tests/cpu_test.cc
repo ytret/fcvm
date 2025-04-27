@@ -21,13 +21,15 @@ class CPUTest : public testing::Test {
             .type = MMIO_RAM,
             .base = 0,
             .size = RAM_SIZE,
-
             .ctx = _ram1,
+
             .pf_read_u8 = ram_read_u8,
             .pf_write_u8 = ram_write_u8,
             .pf_read_u32 = ram_read_u32,
             .pf_write_u32 = ram_write_u32,
             .pf_deinit = ram_deinit,
+            .pf_state_size = ram_state_size,
+            .pf_state_save = ram_state_save,
         };
         vm_map_device(_vm, &ram1_mmio);
     }

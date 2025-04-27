@@ -7,6 +7,10 @@
 #define VM_NUM_GP_REGS      8
 #define VM_MAX_MMIO_REGIONS 32
 
+typedef size_t (*mmio_state_size_cb)(const void *ctx);
+typedef size_t (*mmio_state_save_cb)(const void *ctx, void *buf,
+                                     size_t buf_size);
+
 typedef uint8_t (*mmio_read_u8_cb)(void *ctx, uint32_t addr);
 typedef void (*mmio_write_u8_cb)(void *ctx, uint32_t addr, uint8_t val);
 typedef uint32_t (*mmio_read_u32_cb)(void *ctx, uint32_t addr);
@@ -18,6 +22,7 @@ typedef enum {
 } mmio_type_t;
 
 typedef struct {
+    bool loaded;
     mmio_type_t type;
     uint32_t base;
     uint32_t size;
@@ -28,6 +33,9 @@ typedef struct {
     mmio_read_u32_cb pf_read_u32;
     mmio_write_u32_cb pf_write_u32;
     mmio_deinit_cb pf_deinit;
+
+    mmio_state_size_cb pf_state_size;
+    mmio_state_save_cb pf_state_save;
 } mmio_t;
 
 typedef struct {
@@ -39,19 +47,22 @@ typedef struct {
     uint64_t cycles;
     uint8_t interrupt_depth;
 
-    // Memory map.
+    // Memory IO devices.
     mmio_t mmio_regions[VM_MAX_MMIO_REGIONS];
     uint32_t mmio_count;
 } vm_state_t;
 
 void vm_init(vm_state_t *vm);
+vm_state_t *vm_state_load(void *buf, size_t buf_size);
 void vm_deinit(vm_state_t *vm);
+
+size_t vm_state_size(const vm_state_t *vm);
+void vm_state_save(const vm_state_t *vm, void *buf, size_t buf_size);
 
 void vm_step(vm_state_t *vm);
 void vm_map_device(vm_state_t *vm, const mmio_t *mmio);
 
 uint8_t vm_read_u8(vm_state_t *vm, uint32_t addr);
 void vm_write_u8(vm_state_t *vm, uint32_t addr, uint8_t byte);
-
 uint32_t vm_read_u32(vm_state_t *vm, uint32_t addr);
 void vm_write_u32(vm_state_t *vm, uint32_t addr, uint32_t dword);

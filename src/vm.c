@@ -12,16 +12,67 @@ void vm_init(vm_state_t *vm) {
     memset(vm, 0, sizeof(vm_state_t));
 }
 
+vm_state_t *vm_state_load(void *v_buf, size_t buf_size) {
+    vm_state_t *vm = (vm_state_t *)malloc(sizeof(vm_state_t));
+    D_ASSERT(vm != NULL);
+
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t buf_offset = 0;
+
+    D_ASSERT(buf_size >= sizeof(vm_state_t));
+    memcpy(vm, &buf[buf_offset], sizeof(vm_state_t));
+    buf_offset += sizeof(vm_state_t);
+
+    for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
+        D_ASSERT(buf_offset < buf_size);
+        mmio_t *mmio = &vm->mmio_regions[idx];
+        memset(mmio, 0, sizeof(mmio_t));
+        mmio->loaded = false;
+    }
+
+    return vm;
+}
+
 void vm_deinit(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
 
     for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
         mmio_t *mmio = &vm->mmio_regions[idx];
-        D_ASSERT(mmio != NULL);
+        D_ASSERT(mmio->pf_deinit);
         mmio->pf_deinit(mmio->ctx);
     }
 
     free(vm);
+}
+
+size_t vm_state_size(const vm_state_t *vm) {
+    D_ASSERT(vm != NULL);
+    size_t size = sizeof(vm_state_t);
+    for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
+        const mmio_t *mmio = &vm->mmio_regions[idx];
+        D_ASSERT(mmio->pf_state_size);
+        size_t mmio_size = mmio->pf_state_size(mmio->ctx);
+        size += mmio_size;
+    }
+    return size;
+}
+
+void vm_state_save(const vm_state_t *vm, void *v_buf, size_t buf_size) {
+    D_ASSERT(vm != NULL);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t buf_offset = 0;
+
+    D_ASSERT(buf_size >= sizeof(vm_state_t));
+    memcpy(buf, vm, sizeof(vm_state_t));
+    buf_offset += sizeof(vm_state_t);
+
+    for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
+        const mmio_t *mmio = &vm->mmio_regions[idx];
+        D_ASSERT(mmio->pf_state_save);
+        D_ASSERT(buf_offset < buf_size);
+        buf_offset += mmio->pf_state_save(mmio->ctx, &buf[buf_offset],
+                                          buf_size - buf_offset);
+    }
 }
 
 void vm_step(vm_state_t *vm) {
@@ -106,7 +157,10 @@ static mmio_t *prv_vm_find_mmio(vm_state_t *vm, uint32_t addr,
             mmio->base <= access_start && access_start < mmio_end_excl;
         bool has_end =
             mmio->base <= access_end_excl && access_end_excl <= mmio_end_excl;
-        if (has_start && has_end) { return mmio; }
+        if (has_start && has_end) {
+            D_ASSERTM(mmio->loaded, "mmio is found, but it's not loaded");
+            return mmio;
+        }
     }
 
     return NULL;

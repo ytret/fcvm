@@ -17,11 +17,46 @@ void ram_init(ram_t *ram, uint32_t size) {
     D_ASSERT(ram->buf != NULL);
 }
 
+ram_t *ram_state_load(void *v_buf, size_t buf_size) {
+    ram_t *ram = (ram_t *)malloc(sizeof(ram_t));
+    D_ASSERT(ram != NULL);
+
+    D_ASSERT(v_buf != NULL);
+    uint8_t *buf = (uint8_t *)v_buf;
+
+    D_ASSERT(buf_size >= sizeof(ram->size));
+    memcpy(&ram->size, &buf[0], sizeof(ram->size));
+
+    ram->buf = malloc(ram->size);
+    D_ASSERT(ram->buf != NULL);
+    memcpy(ram->buf, &buf[sizeof(ram->size)], ram->size);
+
+    return ram;
+}
+
 void ram_deinit(void *ctx_ram) {
     D_ASSERT(ctx_ram != NULL);
     ram_t *ram = (ram_t *)ctx_ram;
     D_ASSERT(ram->buf != NULL);
     free(ram->buf);
+}
+
+size_t ram_state_size(const void *ctx_ram) {
+    D_ASSERT(ctx_ram != NULL);
+    ram_t *ram = (ram_t *)ctx_ram;
+    return sizeof(ram->size) + ram->size;
+}
+
+size_t ram_state_save(const void *ctx_ram, void *v_buf, size_t buf_size) {
+    D_ASSERT(ctx_ram != NULL);
+    D_ASSERT(v_buf != NULL);
+    D_ASSERT(buf_size >= ram_state_size(ctx_ram));
+    ram_t *ram = (ram_t *)ctx_ram;
+    uint8_t *buf = (uint8_t *)v_buf;
+
+    memcpy(&buf[0], &ram->size, sizeof(ram->size));
+    memcpy(&buf[sizeof(ram->size)], ram->buf, ram->size);
+    return sizeof(ram->size) + ram->size;
 }
 
 uint8_t ram_read_u8(void *ctx_ram, uint32_t addr) {
