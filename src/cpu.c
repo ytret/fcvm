@@ -3,6 +3,7 @@
 
 #include "cpu.h"
 #include "debugm.h"
+#include "mem.h"
 
 static uint8_t prv_cpu_fetch_u8(vm_state_t *vm);
 static uint32_t prv_cpu_fetch_u32(vm_state_t *vm);
@@ -46,7 +47,7 @@ void cpu_reset(vm_state_t *vm) {
     vm->interrupt_depth = 0;
 
     // Jump to the reset handler.
-    uint32_t reset_isr_addr = vm_read_u32(vm, 0);
+    uint32_t reset_isr_addr = mem_read_u32(vm, 0);
     vm->reg_pc = reset_isr_addr;
 }
 
@@ -60,14 +61,14 @@ void cpu_step(vm_state_t *vm) {
 
 static uint8_t prv_cpu_fetch_u8(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
-    uint8_t byte = vm_read_u8(vm, vm->reg_pc);
+    uint8_t byte = mem_read_u8(vm, vm->reg_pc);
     vm->reg_pc += 1;
     return byte;
 }
 
 static uint32_t prv_cpu_fetch_u32(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
-    uint32_t dword = vm_read_u32(vm, vm->reg_pc);
+    uint32_t dword = mem_read_u32(vm, vm->reg_pc);
     vm->reg_pc += 4;
     return dword;
 }
@@ -92,13 +93,13 @@ static void prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
 static void prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val) {
     D_ASSERT(vm != NULL);
     vm->reg_sp -= 4;
-    vm_write_u32(vm, vm->reg_sp, val);
+    mem_write_u32(vm, vm->reg_sp, val);
 }
 
 static uint32_t prv_cpu_stack_pop_u32(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
     D_ASSERT(vm->reg_sp >= 4);
-    uint32_t val = vm_read_u32(vm, vm->reg_sp);
+    uint32_t val = mem_read_u32(vm, vm->reg_sp);
     vm->reg_sp += 4;
     return val;
 }
@@ -178,7 +179,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
         D_ASSERT(p_vm_reg_dst_mem != NULL);
         uint32_t dword = *p_vm_reg_src;
         uint32_t dest_mem = *p_vm_reg_dst_mem;
-        vm_write_u32(vm, dest_mem, dword);
+        mem_write_u32(vm, dest_mem, dword);
         break;
     }
     case CPU_OP_STR_RV0: {
@@ -189,7 +190,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
         uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
         D_ASSERT(p_reg_src != NULL);
         uint32_t dword = *p_reg_src;
-        vm_write_u32(vm, dest_mem, dword);
+        mem_write_u32(vm, dest_mem, dword);
         break;
     }
     case CPU_OP_STR_RI8: {
@@ -205,7 +206,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
 
         uint32_t dword = *p_reg_src;
         uint32_t dest_mem = *p_reg_dst_mem + offset;
-        vm_write_u32(vm, dest_mem, dword);
+        mem_write_u32(vm, dest_mem, dword);
         break;
     }
     case CPU_OP_STR_RI32: {
@@ -221,7 +222,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
 
         uint32_t dword = *p_reg_src;
         uint32_t dest_mem = *p_reg_dst_mem + offset;
-        vm_write_u32(vm, dest_mem, dword);
+        mem_write_u32(vm, dest_mem, dword);
         break;
     }
     case CPU_OP_STR_RIR: {
@@ -241,7 +242,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
         uint32_t dword = *p_reg_src;
         int32_t offset = *p_reg_off;
         uint32_t dest_mem = *p_reg_dst_mem + offset;
-        vm_write_u32(vm, dest_mem, dword);
+        mem_write_u32(vm, dest_mem, dword);
         break;
     }
 
@@ -253,7 +254,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
         uint32_t *p_reg_dst = prv_cpu_decode_reg(vm, c_reg_dst);
         D_ASSERT(p_reg_dst != NULL);
 
-        *p_reg_dst = vm_read_u32(vm, mem_addr);
+        *p_reg_dst = mem_read_u32(vm, mem_addr);
         break;
     }
     case CPU_OP_LDR_RI0:
@@ -283,7 +284,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
         }
 
         uint32_t src_mem = *p_reg_src_mem + offset;
-        uint32_t dword = vm_read_u32(vm, src_mem);
+        uint32_t dword = mem_read_u32(vm, src_mem);
         *p_reg_dst = dword;
         break;
     }

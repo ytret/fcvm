@@ -20,6 +20,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 ##################
 add_library(fcvm STATIC
     src/cpu.c
+    src/mem.c
     src/ram.c
     src/vm.c
 )

@@ -2,6 +2,7 @@
 
 extern "C" {
 #include "cpu.h"
+#include "mem.h"
 #include "ram.h"
 #include "vm.h"
 }
@@ -343,10 +344,10 @@ TEST_F(CPUControlFlowTest, Instr_CALLA_V32) {
     constexpr uint32_t instr_size = 5;
 
     ASSERT_EQ(_vm->reg_pc, start_addr);
-    ASSERT_EQ(vm_read_u32(_vm, stack_pc_addr), 0);
+    ASSERT_EQ(mem_read_u32(_vm, stack_pc_addr), 0);
     cpu_step(_vm);
     ASSERT_EQ(_vm->reg_pc, fun_addr);
-    ASSERT_EQ(vm_read_u32(_vm, stack_pc_addr), start_addr + instr_size);
+    ASSERT_EQ(mem_read_u32(_vm, stack_pc_addr), start_addr + instr_size);
 }
 
 TEST_F(CPUControlFlowTest, Instr_CALLA_V32_Then_RET) {

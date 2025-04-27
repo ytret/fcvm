@@ -61,8 +61,4 @@ void vm_state_save(const vm_state_t *vm, void *buf, size_t buf_size);
 
 void vm_step(vm_state_t *vm);
 void vm_map_device(vm_state_t *vm, const mmio_t *mmio);
-
-uint8_t vm_read_u8(vm_state_t *vm, uint32_t addr);
-void vm_write_u8(vm_state_t *vm, uint32_t addr, uint8_t byte);
-uint32_t vm_read_u32(vm_state_t *vm, uint32_t addr);
-void vm_write_u32(vm_state_t *vm, uint32_t addr, uint32_t dword);
+mmio_t *vm_find_mmio(vm_state_t *vm, uint32_t addr, uint32_t access_size);
