@@ -436,10 +436,14 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
         D_TODO();
         break;
     case CPU_OP_CMP_RR: {
-        int32_t res = op_val - *p_reg;
+        uint32_t res = *p_reg - op_val;
+        bool sign_op1 = (*p_reg & (1 << 31)) != 0;
+        bool sign_op2 = (op_val & (1 << 31)) != 0;
+        bool sign_res = (res & (1 << 31)) != 0;
         flag_zero = res == 0;
-        flag_sign = (res & (1 << 31)) != 0;
-        flag_carry = op_val >= *p_reg;
+        flag_sign = sign_res;
+        flag_carry = *p_reg >= op_val;
+        flag_ovf = (sign_op1 != sign_op2) && (sign_res != sign_op1);
         break;
     }
     case CPU_OP_TST_RR:

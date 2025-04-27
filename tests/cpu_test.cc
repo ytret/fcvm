@@ -478,12 +478,76 @@ TEST_F(CPUTest, Instr_CMP_RR) {
     _vm->regs_gp[1] = val2;
     _vm->flags = 0;
 
-    _ram1->buf[0] = CPU_OP_CMP_RR; // R1 - R0, set flags
+    _ram1->buf[0] = CPU_OP_CMP_RR; // R0 - R1, set flags
     _ram1->buf[1] = (CPU_CODE_R0 << 4) | CPU_CODE_R1;
     cpu_step(_vm);
 
     EXPECT_EQ(_vm->regs_gp[0], val1);
     EXPECT_EQ(_vm->regs_gp[1], val2);
+    EXPECT_EQ(_vm->flags, flags);
+}
+
+TEST_F(CPUTest, Instr_CMP_RR_EQ) {
+    constexpr uint32_t val1 = -123;
+    constexpr uint32_t val2 = -123;
+    constexpr uint32_t flags = CPU_FLAG_ZERO | CPU_FLAG_CARRY;
+
+    _vm->regs_gp[0] = val1;
+    _vm->regs_gp[1] = val2;
+    _vm->flags = 0;
+
+    _ram1->buf[0] = CPU_OP_CMP_RR;
+    _ram1->buf[1] = (CPU_CODE_R0 << 4) | CPU_CODE_R1;
+    cpu_step(_vm);
+
+    EXPECT_EQ(_vm->flags, flags);
+}
+
+TEST_F(CPUTest, Instr_CMP_RR_NE) {
+    constexpr uint32_t val1 = -123;
+    constexpr uint32_t val2 = -122;
+    constexpr uint32_t flags = CPU_FLAG_SIGN;
+
+    _vm->regs_gp[0] = val1;
+    _vm->regs_gp[1] = val2;
+    _vm->flags = 0;
+
+    _ram1->buf[0] = CPU_OP_CMP_RR;
+    _ram1->buf[1] = (CPU_CODE_R0 << 4) | CPU_CODE_R1;
+    cpu_step(_vm);
+
+    EXPECT_EQ(_vm->flags, flags);
+}
+
+TEST_F(CPUTest, Instr_CMP_RR_GT) {
+    constexpr uint32_t val1 = -123;
+    constexpr uint32_t val2 = -124;
+    constexpr uint32_t flags = CPU_FLAG_CARRY;
+
+    _vm->regs_gp[0] = val1;
+    _vm->regs_gp[1] = val2;
+    _vm->flags = 0;
+
+    _ram1->buf[0] = CPU_OP_CMP_RR;
+    _ram1->buf[1] = (CPU_CODE_R0 << 4) | CPU_CODE_R1;
+    cpu_step(_vm);
+
+    EXPECT_EQ(_vm->flags, flags);
+}
+
+TEST_F(CPUTest, Instr_CMP_RR_LT) {
+    constexpr uint32_t val1 = -124;
+    constexpr uint32_t val2 = -123;
+    constexpr uint32_t flags = CPU_FLAG_SIGN;
+
+    _vm->regs_gp[0] = val1;
+    _vm->regs_gp[1] = val2;
+    _vm->flags = 0;
+
+    _ram1->buf[0] = CPU_OP_CMP_RR;
+    _ram1->buf[1] = (CPU_CODE_R0 << 4) | CPU_CODE_R1;
+    cpu_step(_vm);
+
     EXPECT_EQ(_vm->flags, flags);
 }
 
