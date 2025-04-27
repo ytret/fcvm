@@ -27,17 +27,6 @@ int main(void) {
     vm_map_device(vm, &ram1_mmio);
     D_PRINT("ram1 mapped");
 
-    {
-        D_PRINT("write to vm");
-        uint32_t addr = 4 * RAM_SIZE - 4;
-        uint32_t w_dword = 0xDEADBEEF;
-        vm_write_u32(vm, addr, w_dword);
-
-        D_PRINT("read from vm");
-        uint32_t r_dword = vm_read_u32(vm, addr);
-        D_PRINTF("r_dword = 0x%08X", r_dword);
-    }
-
     vm_deinit(vm);
     free(ram1);
     D_PRINT("vm deinitialized");
