@@ -20,6 +20,7 @@ static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode);
+static bool prv_cpu_decode_execute_other(vm_state_t *vm, uint8_t opcode);
 
 static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,
                               bool overflow);
@@ -131,6 +132,8 @@ static void prv_cpu_decode_execute(vm_state_t *vm) {
         ok = prv_cpu_decode_execute_flow(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_STACK) {
         ok = prv_cpu_decode_execute_stack(vm, opcode);
+    } else if (opcode_kind == CPU_OP_KIND_OTHER) {
+        ok = prv_cpu_decode_execute_other(vm, opcode);
     }
 
     D_ASSERTM(ok, "invalid opcode");
@@ -587,6 +590,20 @@ static bool prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode) {
         uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
         D_ASSERT(p_reg != NULL);
         *p_reg = prv_cpu_stack_pop_u32(vm);
+    } else {
+        return false;
+    }
+    return true;
+}
+
+static bool prv_cpu_decode_execute_other(vm_state_t *vm, uint8_t opcode) {
+    if (opcode == CPU_OP_NOP) {
+    } else if (opcode == CPU_OP_HALT) {
+        D_TODO();
+    } else if (opcode == CPU_OP_INT_V8) {
+        uint8_t int_num = prv_cpu_fetch_u8(vm);
+        D_PRINTF("INT 0x%02X", int_num);
+        D_TODO();
     } else {
         return false;
     }

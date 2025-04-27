@@ -66,6 +66,7 @@
 /// @}
 
 /**
+ * @{
  * \name Control flow opcodes (0b011x_xxxx)
  * Lower 2 bits indicate the operand type:
  * - `0b00` - imm8,
@@ -104,13 +105,25 @@
 /// @}
 
 /**
- * \name Stack instructions
+ * @{
+ * \name Stack instructions (0b100x_xxxx)
  */
 #define CPU_OP_KIND_STACK 0x80
 
 #define CPU_OP_PUSH_V32 0x80
 #define CPU_OP_PUSH_R   0x81
 #define CPU_OP_POP_R    0x82
+/// @}
+
+/**
+ * @{
+ * \name Other instructions (0b101x_xxxx)
+ */
+#define CPU_OP_KIND_OTHER 0xA0
+
+#define CPU_OP_NOP    0xA0
+#define CPU_OP_HALT   0xA1
+#define CPU_OP_INT_V8 0xA2
 /// @}
 
 static_assert(VM_NUM_GP_REGS == 8, "please update register codec");
