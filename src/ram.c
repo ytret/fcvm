@@ -7,7 +7,8 @@
 static void prv_ram_check_access(ram_t *ram, uint32_t addr,
                                  uint32_t access_size);
 
-void ram_init(ram_t *ram, uint32_t size) {
+ram_t *ram_init(uint32_t size) {
+    ram_t *ram = malloc(sizeof(ram_t));
     D_ASSERT(ram != NULL);
     D_ASSERT(size > 0);
 
@@ -15,9 +16,11 @@ void ram_init(ram_t *ram, uint32_t size) {
     ram->size = size;
     ram->buf = malloc(size);
     D_ASSERT(ram->buf != NULL);
+
+    return ram;
 }
 
-ram_t *ram_state_load(void *v_buf, size_t buf_size) {
+ram_t *ram_load(void *v_buf, size_t buf_size) {
     ram_t *ram = (ram_t *)malloc(sizeof(ram_t));
     D_ASSERT(ram != NULL);
 
@@ -34,7 +37,7 @@ ram_t *ram_state_load(void *v_buf, size_t buf_size) {
     return ram;
 }
 
-void ram_deinit(void *ctx_ram) {
+void ram_free(void *ctx_ram) {
     D_ASSERT(ctx_ram != NULL);
     ram_t *ram = (ram_t *)ctx_ram;
     D_ASSERT(ram->buf != NULL);

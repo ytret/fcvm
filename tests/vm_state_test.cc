@@ -18,16 +18,13 @@ class VMStateTest : public testing::Test {
     }
 
     vm_state_t *create_vm() {
-        vm_state_t *vm = (vm_state_t *)malloc(sizeof(vm_state_t));
-        vm_init(vm);
+        vm_state_t *vm = vm_new();
         return vm;
     }
 
     void create_rams(vm_state_t *vm, ram_t **out_ram1, ram_t **out_ram2) {
-        ram_t *ram1 = (ram_t *)malloc(sizeof(ram_t));
-        ram_t *ram2 = (ram_t *)malloc(sizeof(ram_t));
-        ram_init(ram1, RAM1_SIZE);
-        ram_init(ram2, RAM2_SIZE);
+        ram_t *ram1 = ram_init(RAM1_SIZE);
+        ram_t *ram2 = ram_init(RAM2_SIZE);
 
         mmio_t ram1_mmio = {
             .loaded = true,
@@ -40,7 +37,7 @@ class VMStateTest : public testing::Test {
             .pf_write_u8 = ram_write_u8,
             .pf_read_u32 = ram_read_u32,
             .pf_write_u32 = ram_write_u32,
-            .pf_deinit = ram_deinit,
+            .pf_deinit = ram_free,
             .pf_state_size = ram_state_size,
             .pf_state_save = ram_state_save,
         };
@@ -75,19 +72,18 @@ TEST_F(VMStateTest, SaveLoadRAM) {
         memset(ram2->buf, 0xEE, ram2->size);
 
         vm_state_save(vm, buf, buf_size);
-        vm_deinit(vm);
+        vm_free(vm);
     }
 
     {
-        vm_state_t *vm = vm_state_load(buf, buf_size);
+        vm_state_t *vm = vm_load(buf, buf_size);
         size_t buf_offset = 0;
 
         for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
             mmio_t *mmio = &vm->mmio_regions[idx];
             if (mmio->type == MMIO_RAM) {
                 mmio->loaded = true;
-                mmio->ctx =
-                    ram_state_load(&buf[buf_offset], buf_size - buf_offset);
+                mmio->ctx = ram_load(&buf[buf_offset], buf_size - buf_offset);
             }
         }
 

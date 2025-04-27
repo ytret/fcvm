@@ -8,9 +8,9 @@ typedef struct {
     uint8_t *buf;
 } ram_t;
 
-void ram_init(ram_t *ram, uint32_t size);
-ram_t *ram_state_load(void *buf, size_t buf_size);
-void ram_deinit(void *ctx_ram);
+ram_t *ram_init(uint32_t size);
+ram_t *ram_load(void *buf, size_t buf_size);
+void ram_free(void *ctx_ram);
 
 size_t ram_state_size(const void *ctx_ram);
 size_t ram_state_save(const void *ctx_ram, void *buf, size_t buf_size);

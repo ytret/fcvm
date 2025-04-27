@@ -52,9 +52,9 @@ typedef struct {
     uint32_t mmio_count;
 } vm_state_t;
 
-void vm_init(vm_state_t *vm);
-vm_state_t *vm_state_load(void *buf, size_t buf_size);
-void vm_deinit(vm_state_t *vm);
+vm_state_t *vm_new(void);
+vm_state_t *vm_load(void *buf, size_t buf_size);
+void vm_free(vm_state_t *vm);
 
 size_t vm_state_size(const vm_state_t *vm);
 void vm_state_save(const vm_state_t *vm, void *buf, size_t buf_size);

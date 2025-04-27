@@ -11,13 +11,11 @@ extern "C" {
 class CPUTest : public testing::Test {
   protected:
     CPUTest() {
-        _vm = (vm_state_t *)malloc(sizeof(vm_state_t));
-        vm_init(_vm);
-
-        _ram1 = (ram_t *)malloc(sizeof(ram_t));
-        ram_init(_ram1, RAM_SIZE);
+        _vm = vm_new();
+        _ram1 = ram_init(RAM_SIZE);
 
         mmio_t ram1_mmio = {
+            .loaded = true,
             .type = MMIO_RAM,
             .base = 0,
             .size = RAM_SIZE,
@@ -27,14 +25,14 @@ class CPUTest : public testing::Test {
             .pf_write_u8 = ram_write_u8,
             .pf_read_u32 = ram_read_u32,
             .pf_write_u32 = ram_write_u32,
-            .pf_deinit = ram_deinit,
+            .pf_deinit = ram_free,
             .pf_state_size = ram_state_size,
             .pf_state_save = ram_state_save,
         };
         vm_map_device(_vm, &ram1_mmio);
     }
     ~CPUTest() {
-        vm_deinit(_vm);
+        vm_free(_vm);
         free(_ram1);
     }
 

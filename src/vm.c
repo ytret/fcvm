@@ -7,12 +7,14 @@
 static mmio_t *prv_vm_find_mmio(vm_state_t *vm, uint32_t addr,
                                 uint32_t access_size);
 
-void vm_init(vm_state_t *vm) {
+vm_state_t *vm_new(void) {
+    vm_state_t *vm = malloc(sizeof(vm_state_t));
     D_ASSERT(vm != NULL);
     memset(vm, 0, sizeof(vm_state_t));
+    return vm;
 }
 
-vm_state_t *vm_state_load(void *v_buf, size_t buf_size) {
+vm_state_t *vm_load(void *v_buf, size_t buf_size) {
     vm_state_t *vm = (vm_state_t *)malloc(sizeof(vm_state_t));
     D_ASSERT(vm != NULL);
 
@@ -33,7 +35,7 @@ vm_state_t *vm_state_load(void *v_buf, size_t buf_size) {
     return vm;
 }
 
-void vm_deinit(vm_state_t *vm) {
+void vm_free(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
 
     for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {

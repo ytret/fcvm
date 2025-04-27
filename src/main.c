@@ -5,12 +5,10 @@
 #define RAM_SIZE 32
 
 int main(void) {
-    vm_state_t *vm = malloc(sizeof(vm_state_t));
-    vm_init(vm);
+    vm_state_t *vm = vm_new();
     D_PRINT("vm initialized");
 
-    ram_t *ram1 = malloc(sizeof(ram_t));
-    ram_init(ram1, RAM_SIZE);
+    ram_t *ram1 = ram_init(RAM_SIZE);
     D_PRINT("ram1 initialized");
 
     mmio_t ram1_mmio = {
@@ -21,13 +19,13 @@ int main(void) {
         .ctx = ram1,
         .pf_read_u32 = ram_read_u32,
         .pf_write_u32 = ram_write_u32,
-        .pf_deinit = ram_deinit,
+        .pf_deinit = ram_free,
     };
 
     vm_map_device(vm, &ram1_mmio);
     D_PRINT("ram1 mapped");
 
-    vm_deinit(vm);
+    vm_free(vm);
     free(ram1);
     D_PRINT("vm deinitialized");
     return 0;
