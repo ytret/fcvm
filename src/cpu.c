@@ -96,8 +96,9 @@ static void prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val) {
 static uint32_t prv_cpu_stack_pop_u32(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
     D_ASSERT(vm->reg_sp >= 4);
-    return vm_read_u32(vm, vm->reg_sp);
+    uint32_t val = vm_read_u32(vm, vm->reg_sp);
     vm->reg_sp += 4;
+    return val;
 }
 
 static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg) {
