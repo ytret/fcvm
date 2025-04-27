@@ -103,6 +103,16 @@
 #define CPU_OP_RET 0x7F
 /// @}
 
+/**
+ * \name Stack instructions
+ */
+#define CPU_OP_KIND_STACK 0x80
+
+#define CPU_OP_PUSH_V32 0x80
+#define CPU_OP_PUSH_R   0x81
+#define CPU_OP_POP_R    0x82
+/// @}
+
 static_assert(VM_NUM_GP_REGS == 8, "please update register codec");
 #define CPU_CODE_R0 0x00
 #define CPU_CODE_R1 0x01

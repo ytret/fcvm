@@ -19,6 +19,7 @@ static void prv_cpu_decode_execute(vm_state_t *vm);
 static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
 static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode);
+static bool prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode);
 
 static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,
                               bool overflow);
@@ -128,6 +129,8 @@ static void prv_cpu_decode_execute(vm_state_t *vm) {
         ok = prv_cpu_decode_execute_alu(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_FLOW) {
         ok = prv_cpu_decode_execute_flow(vm, opcode);
+    } else if (opcode_kind == CPU_OP_KIND_STACK) {
+        ok = prv_cpu_decode_execute_stack(vm, opcode);
     }
 
     D_ASSERTM(ok, "invalid opcode");
@@ -559,6 +562,32 @@ static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode) {
         break;
     }
     default:
+        return false;
+    }
+    return true;
+}
+
+static bool prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode) {
+    D_ASSERT(vm != NULL);
+    if (opcode == CPU_OP_PUSH_V32 || opcode == CPU_OP_PUSH_R) {
+        uint32_t val;
+        if (opcode == CPU_OP_PUSH_V32) {
+            val = prv_cpu_fetch_u32(vm);
+        } else {
+            uint8_t c_reg;
+            prv_cpu_fetch_reg(vm, &c_reg);
+            uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
+            D_ASSERT(p_reg != NULL);
+            val = *p_reg;
+        }
+        prv_cpu_stack_push_u32(vm, val);
+    } else if (opcode == CPU_OP_POP_R) {
+        uint8_t c_reg;
+        prv_cpu_fetch_reg(vm, &c_reg);
+        uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
+        D_ASSERT(p_reg != NULL);
+        *p_reg = prv_cpu_stack_pop_u32(vm);
+    } else {
         return false;
     }
     return true;
