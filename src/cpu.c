@@ -5,23 +5,70 @@
 #include "debugm.h"
 #include "mem.h"
 
-static uint8_t prv_cpu_fetch_u8(vm_state_t *vm);
-static uint32_t prv_cpu_fetch_u32(vm_state_t *vm);
-static void prv_cpu_fetch_reg(vm_state_t *vm, uint8_t *p_reg);
-static void prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
-                               uint8_t *p_reg_dst);
+#define FETCH_U8(TYPE_CAST, OUT_VAL)                                           \
+    TYPE_CAST OUT_VAL;                                                         \
+    {                                                                          \
+        vm_res_u8_t _imm8_res = prv_cpu_fetch_u8(vm);                          \
+        if (!_imm8_res.ok) {                                                   \
+            vm_res_t _res = {.ok = false, .exc = _imm8_res.exc};               \
+            return _res;                                                       \
+        }                                                                      \
+        OUT_VAL = (TYPE_CAST)_imm8_res.byte;                                   \
+    }
+#define FETCH_U32(TYPE_CAST, OUT_VAL)                                          \
+    TYPE_CAST OUT_VAL;                                                         \
+    {                                                                          \
+        vm_res_u32_t _imm32_res = prv_cpu_fetch_u32(vm);                       \
+        if (!_imm32_res.ok) {                                                  \
+            vm_res_t _res = {.ok = false, .exc = _imm32_res.exc};              \
+            return _res;                                                       \
+        }                                                                      \
+        OUT_VAL = (TYPE_CAST)_imm32_res.dword;                                 \
+    }
 
-static void prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val);
-static uint32_t prv_cpu_stack_pop_u32(vm_state_t *vm);
+#define FETCH_REG(OUT_A)                                                       \
+    uint8_t OUT_A;                                                             \
+    {                                                                          \
+        vm_res_t _reg_res = prv_cpu_fetch_reg(vm, &OUT_A);                     \
+        if (!_reg_res.ok) { return _reg_res; }                                 \
+    }
+#define FETCH_REGS(OUT_A, OUT_B)                                               \
+    uint8_t OUT_A;                                                             \
+    uint8_t OUT_B;                                                             \
+    {                                                                          \
+        vm_res_t _reg_res = prv_cpu_fetch_regs(vm, &OUT_A, &OUT_B);            \
+        if (!_reg_res.ok) { return _reg_res; }                                 \
+    }
 
-static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg);
+#define DECODE_REG(OUT_REG_PTR, IN_REG_CODE)                                   \
+    uint32_t *OUT_REG_PTR;                                                     \
+    {                                                                          \
+        vm_res_pu32_t _dec_res = prv_cpu_decode_reg(vm, IN_REG_CODE);          \
+        if (!_dec_res.ok) {                                                    \
+            vm_res_t _res = {.ok = false, .exc = _dec_res.exc};                \
+            return _res;                                                       \
+        }                                                                      \
+        OUT_REG_PTR = _dec_res.ptr;                                            \
+    }                                                                          \
+    D_ASSERT(OUT_REG_PTR != NULL);
 
-static void prv_cpu_decode_execute(vm_state_t *vm);
-static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
-static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
-static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode);
-static bool prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode);
-static bool prv_cpu_decode_execute_other(vm_state_t *vm, uint8_t opcode);
+static vm_res_u8_t prv_cpu_fetch_u8(vm_state_t *vm);
+static vm_res_u32_t prv_cpu_fetch_u32(vm_state_t *vm);
+static vm_res_t prv_cpu_fetch_reg(vm_state_t *vm, uint8_t *p_reg);
+static vm_res_t prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
+                                   uint8_t *p_reg_dst);
+
+static vm_res_t prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val);
+static vm_res_u32_t prv_cpu_stack_pop_u32(vm_state_t *vm);
+
+static vm_res_pu32_t prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg);
+
+static vm_res_t prv_cpu_decode_execute(vm_state_t *vm);
+static vm_res_t prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode);
+static vm_res_t prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode);
+static vm_res_t prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode);
+static vm_res_t prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode);
+static vm_res_t prv_cpu_decode_execute_other(vm_state_t *vm, uint8_t opcode);
 
 static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,
                               bool overflow);
@@ -47,8 +94,9 @@ void cpu_reset(vm_state_t *vm) {
     vm->interrupt_depth = 0;
 
     // Jump to the reset handler.
-    uint32_t reset_isr_addr = mem_read_u32(vm, 0);
-    vm->reg_pc = reset_isr_addr;
+    vm_res_u32_t reset_isr_addr = mem_read_u32(vm, 0);
+    D_ASSERT(reset_isr_addr.ok == true);
+    vm->reg_pc = reset_isr_addr.dword;
 }
 
 void cpu_step(vm_state_t *vm) {
@@ -59,53 +107,72 @@ void cpu_step(vm_state_t *vm) {
     vm->cycles++;
 }
 
-static uint8_t prv_cpu_fetch_u8(vm_state_t *vm) {
+static vm_res_u8_t prv_cpu_fetch_u8(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
-    uint8_t byte = mem_read_u8(vm, vm->reg_pc);
-    vm->reg_pc += 1;
-    return byte;
+    vm_res_u8_t res = mem_read_u8(vm, vm->reg_pc);
+    if (res.ok) { vm->reg_pc += 1; }
+    return res;
 }
 
-static uint32_t prv_cpu_fetch_u32(vm_state_t *vm) {
+static vm_res_u32_t prv_cpu_fetch_u32(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
-    uint32_t dword = mem_read_u32(vm, vm->reg_pc);
-    vm->reg_pc += 4;
-    return dword;
+    vm_res_u32_t res = mem_read_u32(vm, vm->reg_pc);
+    if (res.ok) { vm->reg_pc += 4; }
+    return res;
 }
 
-static void prv_cpu_fetch_reg(vm_state_t *vm, uint8_t *p_reg) {
+static vm_res_t prv_cpu_fetch_reg(vm_state_t *vm, uint8_t *p_reg) {
     D_ASSERT(vm != NULL);
     D_ASSERT(p_reg != NULL);
-    uint8_t byte = prv_cpu_fetch_u8(vm);
-    *p_reg = byte;
+    vm_res_u8_t in_res = prv_cpu_fetch_u8(vm);
+    if (in_res.ok) { *p_reg = in_res.byte; }
+    vm_res_t out_res = {.ok = in_res.ok, .exc = in_res.exc};
+    return out_res;
 }
 
-static void prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
-                               uint8_t *p_reg_dst) {
+static vm_res_t prv_cpu_fetch_regs(vm_state_t *vm, uint8_t *p_reg_src,
+                                   uint8_t *p_reg_dst) {
     D_ASSERT(vm != NULL);
     D_ASSERT(p_reg_src != NULL);
     D_ASSERT(p_reg_dst != NULL);
-    uint8_t byte = prv_cpu_fetch_u8(vm);
-    *p_reg_src = (byte >> 4) & 0x0F;
-    *p_reg_dst = (byte >> 0) & 0x0F;
+    vm_res_u8_t in_res = prv_cpu_fetch_u8(vm);
+    if (in_res.ok) {
+        *p_reg_src = (in_res.byte >> 4) & 0x0F;
+        *p_reg_dst = (in_res.byte >> 0) & 0x0F;
+    }
+    vm_res_t out_res = {.ok = in_res.ok, .exc = in_res.exc};
+    return out_res;
 }
 
-static void prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val) {
+static vm_res_t prv_cpu_stack_push_u32(vm_state_t *vm, uint32_t val) {
     D_ASSERT(vm != NULL);
-    vm->reg_sp -= 4;
-    mem_write_u32(vm, vm->reg_sp, val);
+    if (vm->reg_sp >= 4) {
+        vm->reg_sp -= 4;
+        return mem_write_u32(vm, vm->reg_sp, val);
+    } else {
+        vm_res_t res = {.ok = false, .exc = {.type = VM_EXC_STACK_OVERFLOW}};
+        return res;
+    }
 }
 
-static uint32_t prv_cpu_stack_pop_u32(vm_state_t *vm) {
+static vm_res_u32_t prv_cpu_stack_pop_u32(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
     D_ASSERT(vm->reg_sp >= 4);
-    uint32_t val = mem_read_u32(vm, vm->reg_sp);
-    vm->reg_sp += 4;
-    return val;
+    vm_res_u32_t res = mem_read_u32(vm, vm->reg_sp);
+    if (res.ok) {
+        if (vm->reg_sp <= 0xFFFFFFFF - 4) {
+            vm->reg_sp += 4;
+        } else {
+            res.ok = false;
+            res.exc.type = VM_EXC_STACK_OVERFLOW;
+        }
+    }
+    return res;
 }
 
-static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg) {
+static vm_res_pu32_t prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg) {
     D_ASSERT(vm != NULL);
+    vm_res_pu32_t res = {.ok = true};
     uint32_t *code_addr_map[0xFF] = {
         [CPU_CODE_R0] = &vm->regs_gp[0], [CPU_CODE_R1] = &vm->regs_gp[1],
         [CPU_CODE_R2] = &vm->regs_gp[2], [CPU_CODE_R3] = &vm->regs_gp[3],
@@ -113,227 +180,205 @@ static uint32_t *prv_cpu_decode_reg(vm_state_t *vm, uint8_t reg) {
         [CPU_CODE_R6] = &vm->regs_gp[6], [CPU_CODE_R7] = &vm->regs_gp[7],
         [CPU_CODE_SP] = &vm->reg_sp,
     };
-    // TODO: raise an exception
-    uint32_t *p_vm_reg = code_addr_map[reg];
-    D_ASSERTMF(p_vm_reg != NULL, "invalid register code: 0x%02X", reg);
-    return p_vm_reg;
+    res.ptr = code_addr_map[reg];
+    if (res.ptr == NULL) {
+        D_PRINTF("invalid register code: 0x%02X", reg);
+        res.ok = false;
+        res.exc.type = VM_EXC_BAD_OPCODE;
+    }
+    return res;
 }
 
-static void prv_cpu_decode_execute(vm_state_t *vm) {
+static vm_res_t prv_cpu_decode_execute(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
+    vm_res_t res = {.ok = true};
 
-    uint8_t opcode = prv_cpu_fetch_u8(vm);
+    FETCH_U8(uint8_t, opcode);
     uint8_t opcode_kind = opcode & CPU_OP_KIND_MASK;
-    bool ok = false;
     if (opcode_kind == CPU_OP_KIND_DATA) {
-        ok = prv_cpu_decode_execute_data(vm, opcode);
+        res = prv_cpu_decode_execute_data(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_ALU) {
-        ok = prv_cpu_decode_execute_alu(vm, opcode);
+        res = prv_cpu_decode_execute_alu(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_FLOW) {
-        ok = prv_cpu_decode_execute_flow(vm, opcode);
+        res = prv_cpu_decode_execute_flow(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_STACK) {
-        ok = prv_cpu_decode_execute_stack(vm, opcode);
+        res = prv_cpu_decode_execute_stack(vm, opcode);
     } else if (opcode_kind == CPU_OP_KIND_OTHER) {
-        ok = prv_cpu_decode_execute_other(vm, opcode);
+        res = prv_cpu_decode_execute_other(vm, opcode);
     }
 
-    D_ASSERTM(ok, "invalid opcode");
+    return res;
 }
 
-static bool prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
+static vm_res_t prv_cpu_decode_execute_data(vm_state_t *vm, uint8_t opcode) {
     switch (opcode) {
         // Data movement
     case CPU_OP_MOV_RR: {
-        uint8_t c_reg_src;
-        uint8_t c_reg_dst;
-        prv_cpu_fetch_regs(vm, &c_reg_src, &c_reg_dst);
-
-        uint32_t *p_vm_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-        uint32_t *p_vm_reg_dst = prv_cpu_decode_reg(vm, c_reg_dst);
-
-        D_ASSERT(p_vm_reg_src != NULL);
-        D_ASSERT(p_vm_reg_dst != NULL);
-        *p_vm_reg_dst = *p_vm_reg_src;
+        FETCH_REGS(c_reg_src, c_reg_dst);
+        DECODE_REG(p_reg_src, c_reg_src);
+        DECODE_REG(p_reg_dst, c_reg_dst);
+        *p_reg_dst = *p_reg_src;
         break;
     }
     case CPU_OP_MOV_VR: {
-        uint8_t c_reg_dst;
-        prv_cpu_fetch_reg(vm, &c_reg_dst);
-        uint32_t dword = prv_cpu_fetch_u32(vm);
-
-        uint32_t *p_vm_reg_dst = prv_cpu_decode_reg(vm, c_reg_dst);
-        D_ASSERT(p_vm_reg_dst != NULL);
-        *p_vm_reg_dst = dword;
+        FETCH_REG(c_reg_dst);
+        FETCH_U32(uint32_t, dword);
+        DECODE_REG(p_reg_dst, c_reg_dst);
+        *p_reg_dst = dword;
         break;
     }
 
     case CPU_OP_STR_RI0: {
-        uint8_t c_reg_src;
-        uint8_t c_reg_dst_mem;
-        prv_cpu_fetch_regs(vm, &c_reg_src, &c_reg_dst_mem);
-
-        uint32_t *p_vm_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-        uint32_t *p_vm_reg_dst_mem = prv_cpu_decode_reg(vm, c_reg_dst_mem);
-
-        D_ASSERT(p_vm_reg_src != NULL);
-        D_ASSERT(p_vm_reg_dst_mem != NULL);
-        uint32_t dword = *p_vm_reg_src;
-        uint32_t dest_mem = *p_vm_reg_dst_mem;
-        mem_write_u32(vm, dest_mem, dword);
+        FETCH_REGS(c_reg_src, c_reg_dst_mem);
+        DECODE_REG(p_reg_src, c_reg_src);
+        DECODE_REG(p_reg_dst_mem, c_reg_dst_mem);
+        uint32_t dword = *p_reg_src;
+        uint32_t dest_mem = *p_reg_dst_mem;
+        vm_res_t res = mem_write_u32(vm, dest_mem, dword);
+        if (!res.ok) { return res; }
         break;
     }
     case CPU_OP_STR_RV0: {
-        uint8_t c_reg_src;
-        prv_cpu_fetch_reg(vm, &c_reg_src);
-        uint32_t dest_mem = prv_cpu_fetch_u32(vm);
-
-        uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-        D_ASSERT(p_reg_src != NULL);
+        FETCH_REG(c_reg_src);
+        FETCH_U32(uint32_t, dest_mem);
+        DECODE_REG(p_reg_src, c_reg_src);
         uint32_t dword = *p_reg_src;
-        mem_write_u32(vm, dest_mem, dword);
+        vm_res_t res = mem_write_u32(vm, dest_mem, dword);
+        if (!res.ok) { return res; }
         break;
     }
     case CPU_OP_STR_RI8: {
-        uint8_t c_reg_src;
-        uint8_t c_reg_dst_mem;
-        prv_cpu_fetch_regs(vm, &c_reg_src, &c_reg_dst_mem);
-        int8_t offset = (int8_t)prv_cpu_fetch_u8(vm);
-
-        uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-        uint32_t *p_reg_dst_mem = prv_cpu_decode_reg(vm, c_reg_dst_mem);
-        D_ASSERT(p_reg_src != NULL);
-        D_ASSERT(p_reg_dst_mem != NULL);
-
+        FETCH_REGS(c_reg_src, c_reg_dst_mem);
+        FETCH_U8(int8_t, offset);
+        DECODE_REG(p_reg_src, c_reg_src);
+        DECODE_REG(p_reg_dst_mem, c_reg_dst_mem);
         uint32_t dword = *p_reg_src;
         uint32_t dest_mem = *p_reg_dst_mem + offset;
-        mem_write_u32(vm, dest_mem, dword);
+        vm_res_t res = mem_write_u32(vm, dest_mem, dword);
+        if (!res.ok) { return res; }
         break;
     }
     case CPU_OP_STR_RI32: {
-        uint8_t c_reg_src;
-        uint8_t c_reg_dst_mem;
-        prv_cpu_fetch_regs(vm, &c_reg_src, &c_reg_dst_mem);
-        int32_t offset = (int32_t)prv_cpu_fetch_u32(vm);
-
-        uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-        uint32_t *p_reg_dst_mem = prv_cpu_decode_reg(vm, c_reg_dst_mem);
-        D_ASSERT(p_reg_src != NULL);
-        D_ASSERT(p_reg_dst_mem != NULL);
-
+        FETCH_REGS(c_reg_src, c_reg_dst_mem);
+        FETCH_U32(int32_t, offset);
+        DECODE_REG(p_reg_src, c_reg_src);
+        DECODE_REG(p_reg_dst_mem, c_reg_dst_mem);
         uint32_t dword = *p_reg_src;
         uint32_t dest_mem = *p_reg_dst_mem + offset;
-        mem_write_u32(vm, dest_mem, dword);
+        vm_res_t res = mem_write_u32(vm, dest_mem, dword);
+        if (!res.ok) { return res; }
         break;
     }
     case CPU_OP_STR_RIR: {
-        uint8_t c_reg_src;
-        uint8_t c_reg_dst_mem;
-        prv_cpu_fetch_regs(vm, &c_reg_src, &c_reg_dst_mem);
-        uint8_t c_reg_off;
-        prv_cpu_fetch_reg(vm, &c_reg_off);
-
-        uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-        uint32_t *p_reg_dst_mem = prv_cpu_decode_reg(vm, c_reg_dst_mem);
-        uint32_t *p_reg_off = prv_cpu_decode_reg(vm, c_reg_off);
-        D_ASSERT(p_reg_src != NULL);
-        D_ASSERT(p_reg_dst_mem != NULL);
-        D_ASSERT(p_reg_off != NULL);
-
+        FETCH_REGS(c_reg_src, c_reg_dst_mem);
+        FETCH_REG(c_reg_off);
+        DECODE_REG(p_reg_src, c_reg_src);
+        DECODE_REG(p_reg_dst_mem, c_reg_dst_mem);
+        DECODE_REG(p_reg_off, c_reg_off);
         uint32_t dword = *p_reg_src;
         int32_t offset = *p_reg_off;
         uint32_t dest_mem = *p_reg_dst_mem + offset;
-        mem_write_u32(vm, dest_mem, dword);
+        vm_res_t res = mem_write_u32(vm, dest_mem, dword);
+        if (!res.ok) { return res; }
         break;
     }
 
     case CPU_OP_LDR_RV0: {
-        uint8_t c_reg_dst;
-        prv_cpu_fetch_reg(vm, &c_reg_dst);
-        uint32_t mem_addr = prv_cpu_fetch_u32(vm);
-
-        uint32_t *p_reg_dst = prv_cpu_decode_reg(vm, c_reg_dst);
-        D_ASSERT(p_reg_dst != NULL);
-
-        *p_reg_dst = mem_read_u32(vm, mem_addr);
+        FETCH_REG(c_reg_dst);
+        FETCH_U32(uint32_t, mem_addr);
+        DECODE_REG(p_reg_dst, c_reg_dst);
+        vm_res_u32_t mem_res = mem_read_u32(vm, mem_addr);
+        if (mem_res.ok) {
+            *p_reg_dst = mem_res.dword;
+        } else {
+            vm_res_t res = {.ok = false, .exc = mem_res.exc};
+            return res;
+        }
         break;
     }
     case CPU_OP_LDR_RI0:
     case CPU_OP_LDR_RI8:
     case CPU_OP_LDR_RI32:
     case CPU_OP_LDR_RIR: {
-        uint8_t c_reg_src_mem;
-        uint8_t c_reg_dst;
-        prv_cpu_fetch_regs(vm, &c_reg_src_mem, &c_reg_dst);
-
-        uint32_t *p_reg_src_mem = prv_cpu_decode_reg(vm, c_reg_src_mem);
-        uint32_t *p_reg_dst = prv_cpu_decode_reg(vm, c_reg_dst);
-        D_ASSERT(p_reg_src_mem != NULL);
-        D_ASSERT(p_reg_dst != NULL);
+        FETCH_REGS(c_reg_src_mem, c_reg_dst);
+        DECODE_REG(p_reg_src_mem, c_reg_src_mem);
+        DECODE_REG(p_reg_dst, c_reg_dst);
 
         int32_t offset = 0;
         if (opcode == CPU_OP_LDR_RI8) {
-            offset = (int8_t)prv_cpu_fetch_u8(vm);
+            FETCH_U8(int8_t, by_offset);
+            offset = (int32_t)by_offset;
         } else if (opcode == CPU_OP_LDR_RI32) {
-            offset = (int32_t)prv_cpu_fetch_u32(vm);
+            FETCH_U32(int32_t, dw_offset);
+            offset = dw_offset;
         } else if (opcode == CPU_OP_LDR_RIR) {
-            uint8_t c_reg_off;
-            prv_cpu_fetch_reg(vm, &c_reg_off);
-            uint32_t *p_reg_off = prv_cpu_decode_reg(vm, c_reg_off);
-            D_ASSERT(p_reg_off != NULL);
+            FETCH_REG(c_reg_off);
+            DECODE_REG(p_reg_off, c_reg_off);
             offset = (int32_t)*p_reg_off;
         }
 
         uint32_t src_mem = *p_reg_src_mem + offset;
-        uint32_t dword = mem_read_u32(vm, src_mem);
-        *p_reg_dst = dword;
+        vm_res_u32_t mem_res = mem_read_u32(vm, src_mem);
+        if (mem_res.ok) {
+            *p_reg_dst = mem_res.dword;
+        } else {
+            vm_res_t res = {.ok = false, .exc = mem_res.exc};
+            return res;
+        }
         break;
     }
 
-    default:
-        return false;
+    default: {
+        vm_res_t res = {};
+        res.ok = false;
+        res.exc.type = VM_EXC_BAD_OPCODE;
+        return res;
     }
-    return true;
+    }
+    vm_res_t res = {};
+    res.ok = true;
+    return res;
 }
 
-static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
+static vm_res_t prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
     uint32_t *p_reg = NULL;
     uint32_t op_val;
 
     // Fetch and decode the operands.
     if ((opcode & 1) == 0) {
         // Even opcodes require two register operands.
-        uint8_t c_reg_dst;
-        uint8_t c_reg_src;
-        prv_cpu_fetch_regs(vm, &c_reg_dst, &c_reg_src);
-
-        p_reg = prv_cpu_decode_reg(vm, c_reg_dst);
-        uint32_t *p_reg_src = prv_cpu_decode_reg(vm, c_reg_src);
-
-        D_ASSERT(p_reg_src != NULL);
+        FETCH_REGS(c_reg_dst, c_reg_src);
+        DECODE_REG(p_reg_dst, c_reg_dst);
+        DECODE_REG(p_reg_src, c_reg_src);
+        p_reg = p_reg_dst;
         op_val = *p_reg_src;
     } else if (opcode == CPU_OP_NOT_R) {
         // Only one register operand.
-        uint8_t c_reg_dst;
-        prv_cpu_fetch_reg(vm, &c_reg_dst);
-        p_reg = prv_cpu_decode_reg(vm, c_reg_dst);
-        D_ASSERT(p_reg != NULL);
+        FETCH_REG(c_reg_dst);
+        DECODE_REG(p_reg_dst, c_reg_dst);
+        p_reg = p_reg_dst;
     } else {
         // Odd opcodes require a register operand and an imm32 value, except for
         // some opcodes.
-        uint8_t c_reg_dst;
-        prv_cpu_fetch_reg(vm, &c_reg_dst);
-        p_reg = prv_cpu_decode_reg(vm, c_reg_dst);
-        D_ASSERT(p_reg != NULL);
+        FETCH_REG(c_reg_dst);
+        DECODE_REG(p_reg_dst, c_reg_dst);
+        p_reg = p_reg_dst;
 
         if (opcode == CPU_OP_SHL_RV || opcode == CPU_OP_SHR_RV ||
             opcode == CPU_OP_ROL_RV || opcode == CPU_OP_ROR_RV) {
             // Second operand is an imm5.
-            uint8_t op2 = prv_cpu_fetch_u8(vm);
-            D_ASSERTM((op2 & ~31) == 0x00, "garbage bits in an imm5 value");
+            FETCH_U8(uint8_t, op2);
+            if ((op2 & ~31) != 0x00) {
+                D_PRINT("garbage bits in an imm5 value");
+                vm_res_t res = {};
+                res.ok = false;
+                res.exc.type = VM_EXC_BAD_OPCODE;
+                return res;
+            }
             op_val = (uint32_t)op2;
         } else {
             // Second operand is an imm32.
-            uint32_t op2 = prv_cpu_fetch_u32(vm);
+            FETCH_U8(uint32_t, op2);
             op_val = op2;
         }
     }
@@ -481,32 +526,37 @@ static bool prv_cpu_decode_execute_alu(vm_state_t *vm, uint8_t opcode) {
         flag_carry = false;
         break;
     }
-    default:
-        return false;
+    default: {
+        vm_res_t res = {};
+        res.ok = false;
+        res.exc.type = VM_EXC_BAD_OPCODE;
+        return res;
+    }
     }
 
     prv_cpu_set_flags(vm, flag_zero, flag_sign, flag_carry, flag_ovf);
-    return true;
+    vm_res_t res = {.ok = true};
+    return res;
 }
 
-static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode) {
+static vm_res_t prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode) {
     uint32_t instr_addr = vm->reg_pc - 1;
     uint32_t jump_addr = 0;
     if (opcode != CPU_OP_RET) {
         uint8_t opcode_type = opcode & 0b11;
         if (opcode_type == 0b00) { // imm8
-            int8_t offset = (int8_t)prv_cpu_fetch_u8(vm);
+            FETCH_U8(int8_t, offset);
             jump_addr = instr_addr + offset;
         } else if (opcode_type == 0b01) { // imm32
-            jump_addr = prv_cpu_fetch_u32(vm);
+            FETCH_U32(uint32_t, abs_addr);
+            jump_addr = abs_addr;
         } else if (opcode_type == 0b10) { // register
-            uint8_t c_reg;
-            prv_cpu_fetch_reg(vm, &c_reg);
-            uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
-            D_ASSERT(p_reg != NULL);
+            FETCH_REG(c_reg);
+            DECODE_REG(p_reg, c_reg);
             jump_addr = *p_reg;
         } else {
-            return false;
+            vm_res_t res = {.ok = false, .exc.type = VM_EXC_BAD_OPCODE};
+            return res;
         }
     }
 
@@ -561,54 +611,74 @@ static bool prv_cpu_decode_execute_flow(vm_state_t *vm, uint8_t opcode) {
         break;
     }
     case CPU_OP_RET: {
-        jump_addr = prv_cpu_stack_pop_u32(vm);
+        vm_res_u32_t stack_res = prv_cpu_stack_pop_u32(vm);
+        if (stack_res.ok) {
+            jump_addr = stack_res.dword;
+        } else {
+            vm_res_t res = {};
+            res.ok = false;
+            res.exc = stack_res.exc;
+            return res;
+        }
         vm->reg_pc = jump_addr;
         break;
     }
-    default:
-        return false;
+    default: {
+        vm_res_t res = {};
+        res.ok = false;
+        res.exc.type = VM_EXC_BAD_OPCODE;
+        return res;
     }
-    return true;
+    }
+    vm_res_t res = {.ok = true};
+    return res;
 }
 
-static bool prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode) {
+static vm_res_t prv_cpu_decode_execute_stack(vm_state_t *vm, uint8_t opcode) {
     D_ASSERT(vm != NULL);
     if (opcode == CPU_OP_PUSH_V32 || opcode == CPU_OP_PUSH_R) {
         uint32_t val;
         if (opcode == CPU_OP_PUSH_V32) {
-            val = prv_cpu_fetch_u32(vm);
+            FETCH_U32(uint32_t, imm32);
+            val = imm32;
         } else {
-            uint8_t c_reg;
-            prv_cpu_fetch_reg(vm, &c_reg);
-            uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
-            D_ASSERT(p_reg != NULL);
+            FETCH_REG(c_reg);
+            DECODE_REG(p_reg, c_reg);
             val = *p_reg;
         }
         prv_cpu_stack_push_u32(vm, val);
     } else if (opcode == CPU_OP_POP_R) {
-        uint8_t c_reg;
-        prv_cpu_fetch_reg(vm, &c_reg);
-        uint32_t *p_reg = prv_cpu_decode_reg(vm, c_reg);
-        D_ASSERT(p_reg != NULL);
-        *p_reg = prv_cpu_stack_pop_u32(vm);
+        FETCH_REG(c_reg);
+        DECODE_REG(p_reg, c_reg);
+        vm_res_u32_t stack_res = prv_cpu_stack_pop_u32(vm);
+        if (stack_res.ok) {
+            *p_reg = stack_res.dword;
+        } else {
+            vm_res_t res = {.ok = false, .exc = stack_res.exc};
+            return res;
+        }
     } else {
-        return false;
+        vm_res_t res = {.ok = false, .exc.type = VM_EXC_BAD_OPCODE};
+        return res;
     }
-    return true;
+    vm_res_t res = {.ok = true};
+    return res;
 }
 
-static bool prv_cpu_decode_execute_other(vm_state_t *vm, uint8_t opcode) {
+static vm_res_t prv_cpu_decode_execute_other(vm_state_t *vm, uint8_t opcode) {
     if (opcode == CPU_OP_NOP) {
     } else if (opcode == CPU_OP_HALT) {
         D_TODO();
     } else if (opcode == CPU_OP_INT_V8) {
-        uint8_t int_num = prv_cpu_fetch_u8(vm);
+        FETCH_U8(uint8_t, int_num);
         D_PRINTF("INT 0x%02X", int_num);
         D_TODO();
     } else {
-        return false;
+        vm_res_t res = {.ok = false, .exc.type = VM_EXC_BAD_OPCODE};
+        return res;
     }
-    return true;
+    vm_res_t res = {.ok = true};
+    return res;
 }
 
 static void prv_cpu_set_flags(vm_state_t *vm, bool zero, bool sign, bool carry,

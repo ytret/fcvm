@@ -344,10 +344,12 @@ TEST_F(CPUControlFlowTest, Instr_CALLA_V32) {
     constexpr uint32_t instr_size = 5;
 
     ASSERT_EQ(_vm->reg_pc, start_addr);
-    ASSERT_EQ(mem_read_u32(_vm, stack_pc_addr), 0);
+    vm_res_u32_t mem_res = mem_read_u32(_vm, stack_pc_addr);
+    ASSERT_EQ(mem_res.dword, 0);
     cpu_step(_vm);
     ASSERT_EQ(_vm->reg_pc, fun_addr);
-    ASSERT_EQ(mem_read_u32(_vm, stack_pc_addr), start_addr + instr_size);
+    mem_res = mem_read_u32(_vm, stack_pc_addr);
+    ASSERT_EQ(mem_res.dword, start_addr + instr_size);
 }
 
 TEST_F(CPUControlFlowTest, Instr_CALLA_V32_Then_RET) {
