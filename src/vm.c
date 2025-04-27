@@ -1,0 +1,113 @@
+#include <string.h>
+
+#include "cpu.h"
+#include "debugm.h"
+#include "vm.h"
+
+static mmio_t *prv_vm_find_mmio(vm_state_t *vm, uint32_t addr,
+                                uint32_t access_size);
+
+void vm_init(vm_state_t *vm) {
+    D_ASSERT(vm != NULL);
+    memset(vm, 0, sizeof(vm_state_t));
+}
+
+void vm_deinit(vm_state_t *vm) {
+    D_ASSERT(vm != NULL);
+
+    for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
+        mmio_t *mmio = &vm->mmio_regions[idx];
+        D_ASSERT(mmio != NULL);
+        mmio->pf_deinit(mmio->ctx);
+    }
+
+    free(vm);
+}
+
+void vm_step(vm_state_t *vm) {
+    cpu_step(vm);
+}
+
+void vm_map_device(vm_state_t *vm, const mmio_t *mmio) {
+    D_ASSERT(vm != NULL);
+    D_ASSERT(vm->mmio_count < VM_MAX_MMIO_REGIONS);
+
+    D_ASSERT(mmio != NULL);
+    D_ASSERT(mmio->base % 4 == 0);
+    D_ASSERT(mmio->size % 4 == 0);
+
+    memcpy(&vm->mmio_regions[vm->mmio_count], mmio, sizeof(mmio_t));
+    vm->mmio_count++;
+}
+
+uint8_t vm_read_u8(vm_state_t *vm, uint32_t addr) {
+    D_ASSERT(vm != NULL);
+
+    mmio_t *mmio = prv_vm_find_mmio(vm, addr, 1);
+    // TODO: raise exception
+    D_ASSERTMF(mmio != NULL, "can't find MMIO for addr 0x%08X, read size 1",
+               addr);
+
+    uint32_t addr_in_mmio = addr - mmio->base;
+    D_ASSERT(mmio->pf_read_u8 != NULL);
+    return mmio->pf_read_u8(mmio->ctx, addr_in_mmio);
+}
+
+void vm_write_u8(vm_state_t *vm, uint32_t addr, uint8_t byte) {
+    D_ASSERT(vm != NULL);
+
+    mmio_t *mmio = prv_vm_find_mmio(vm, addr, 1);
+    // TODO: raise exception
+    D_ASSERTMF(mmio != NULL, "can't find MMIO for addr 0x%08X, write size 1",
+               addr);
+
+    uint32_t addr_in_mmio = addr - mmio->base;
+    D_ASSERT(mmio->pf_write_u8 != NULL);
+    mmio->pf_write_u8(mmio->ctx, addr_in_mmio, byte);
+}
+
+uint32_t vm_read_u32(vm_state_t *vm, uint32_t addr) {
+    D_ASSERT(vm != NULL);
+
+    mmio_t *mmio = prv_vm_find_mmio(vm, addr, 4);
+    // TODO: raise exception
+    D_ASSERTMF(mmio != NULL, "can't find MMIO for addr 0x%08X, read size 4",
+               addr);
+
+    uint32_t addr_in_mmio = addr - mmio->base;
+    D_ASSERT(mmio->pf_read_u32 != NULL);
+    return mmio->pf_read_u32(mmio->ctx, addr_in_mmio);
+}
+
+void vm_write_u32(vm_state_t *vm, uint32_t addr, uint32_t dword) {
+    D_ASSERT(vm != NULL);
+
+    mmio_t *mmio = prv_vm_find_mmio(vm, addr, 4);
+    // TODO: raise exception
+    D_ASSERTMF(mmio != NULL, "can't find MMIO for addr 0x%08X, write size 4",
+               addr);
+
+    uint32_t addr_in_mmio = addr - mmio->base;
+    D_ASSERT(mmio->pf_write_u32 != NULL);
+    mmio->pf_write_u32(mmio->ctx, addr_in_mmio, dword);
+}
+
+static mmio_t *prv_vm_find_mmio(vm_state_t *vm, uint32_t addr,
+                                uint32_t access_size) {
+    D_ASSERT(vm != NULL);
+
+    uint32_t access_start = addr;
+    uint32_t access_end_excl = addr + access_size;
+
+    for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
+        mmio_t *mmio = &vm->mmio_regions[idx];
+        uint32_t mmio_end_excl = mmio->base + mmio->size;
+        bool has_start =
+            mmio->base <= access_start && access_start < mmio_end_excl;
+        bool has_end =
+            mmio->base <= access_end_excl && access_end_excl <= mmio_end_excl;
+        if (has_start && has_end) { return mmio; }
+    }
+
+    return NULL;
+}
