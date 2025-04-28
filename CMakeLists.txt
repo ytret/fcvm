@@ -26,6 +26,7 @@ add_library(fcvm STATIC
 )
 target_compile_options(fcvm PRIVATE
     -g -Wall -Wextra -Wmissing-prototypes
+    -fdiagnostics-color=always
 )
 target_include_directories(fcvm PUBLIC inc)
 
