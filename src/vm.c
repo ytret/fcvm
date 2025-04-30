@@ -20,6 +20,7 @@ vm_state_t *vm_load(void *v_buf, size_t buf_size) {
 
     D_ASSERT(buf_size >= sizeof(vm_state_t));
     memcpy(vm, &buf[buf_offset], sizeof(vm_state_t));
+    vm->pf_abort_cb = NULL;
     buf_offset += sizeof(vm_state_t);
 
     for (uint32_t idx = 0; idx < vm->mmio_count; idx++) {
@@ -75,7 +76,13 @@ void vm_state_save(const vm_state_t *vm, void *v_buf, size_t buf_size) {
 }
 
 void vm_step(vm_state_t *vm) {
-    cpu_step(vm);
+    vm_res_t step_res = cpu_step(vm);
+    if (!step_res.ok) {
+        vm_res_t raise_res;
+        do {
+            raise_res = cpu_raise_exception(vm, step_res.exc);
+        } while (raise_res.ok != true);
+    }
 }
 
 void vm_map_device(vm_state_t *vm, const mmio_t *mmio) {

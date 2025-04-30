@@ -85,6 +85,7 @@ void cpu_deinit(vm_state_t *vm) {
 
 void cpu_reset(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
+    D_PRINT("CPU reset");
 
     // Clear all registers (except PC).
     memset(vm->regs_gp, 0, sizeof(vm->regs_gp));
@@ -99,12 +100,51 @@ void cpu_reset(vm_state_t *vm) {
     vm->reg_pc = reset_isr_addr.dword;
 }
 
-void cpu_step(vm_state_t *vm) {
+vm_res_t cpu_step(vm_state_t *vm) {
     D_ASSERT(vm != NULL);
 
-    prv_cpu_decode_execute(vm);
-
+    vm_res_t res = prv_cpu_decode_execute(vm);
     vm->cycles++;
+    return res;
+}
+
+vm_res_t cpu_raise_exception(vm_state_t *vm, vm_exc_t exc) {
+    D_PRINTF("raise exception #%d", exc.type);
+    vm->exception_depth++;
+    if (vm->exception_depth >= 3) {
+        D_PRINT("triple fault");
+        cpu_reset(vm);
+        vm_res_t res = {.ok = true};
+        return res;
+    } else {
+        return cpu_raise_interrupt(vm, exc.type);
+    }
+}
+
+vm_res_t cpu_raise_interrupt(vm_state_t *vm, int line) {
+    D_ASSERTM(line != 0, "refuse to raise line 0 (reset)");
+    D_ASSERT(line > 0);
+    uint32_t ivt_entry_addr = CPU_IVT_BASE + CPU_IVT_ENTRY_SIZE * line;
+    static_assert(CPU_IVT_ENTRY_SIZE == 4,
+                  "update IVT entry address calculation");
+
+    vm_res_t raise_res = {.ok = true};
+    vm_res_u32_t mem_res = mem_read_u32(vm, ivt_entry_addr);
+    if (mem_res.ok) {
+        vm_res_t stack_res = prv_cpu_stack_push_u32(vm, vm->reg_pc);
+        if (stack_res.ok) {
+            vm->reg_pc = ivt_entry_addr;
+            vm_res_t res = {.ok = true};
+            return res;
+        } else {
+            raise_res.ok = false;
+            raise_res.exc = stack_res.exc;
+        }
+    } else {
+        raise_res.ok = false;
+        raise_res.exc = mem_res.exc;
+    }
+    return raise_res;
 }
 
 static vm_res_u8_t prv_cpu_fetch_u8(vm_state_t *vm) {

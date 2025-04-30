@@ -1,5 +1,6 @@
 #pragma once
 
+#include "exc.h"
 #include "vm.h"
 
 #define CPU_OP_KIND_MASK 0xE0
@@ -142,8 +143,14 @@ static_assert(VM_NUM_GP_REGS == 8, "please update register codec");
 #define CPU_FLAG_CARRY    (1 << 2)
 #define CPU_FLAG_OVERFLOW (1 << 3)
 
+#define CPU_IVT_BASE        0x00000000
+#define CPU_IVT_NUM_ENTRIES 128
+#define CPU_IVT_ENTRY_SIZE  4
+
 void cpu_init(vm_state_t *vm);
 void cpu_deinit(vm_state_t *vm);
 
 void cpu_reset(vm_state_t *vm);
-void cpu_step(vm_state_t *vm);
+vm_res_t cpu_step(vm_state_t *vm);
+vm_res_t cpu_raise_exception(vm_state_t *vm, vm_exc_t exc);
+vm_res_t cpu_raise_interrupt(vm_state_t *vm, int line);

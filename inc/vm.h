@@ -46,10 +46,13 @@ typedef struct {
     uint8_t flags;
     uint64_t cycles;
     uint8_t interrupt_depth;
+    uint8_t exception_depth;
 
     // Memory IO devices.
     mmio_t mmio_regions[VM_MAX_MMIO_REGIONS];
     uint32_t mmio_count;
+
+    void (*pf_abort_cb)(void);
 } vm_state_t;
 
 vm_state_t *vm_new(void);
@@ -58,6 +61,8 @@ void vm_free(vm_state_t *vm);
 
 size_t vm_state_size(const vm_state_t *vm);
 void vm_state_save(const vm_state_t *vm, void *buf, size_t buf_size);
+
+
 
 void vm_step(vm_state_t *vm);
 void vm_map_device(vm_state_t *vm, const mmio_t *mmio);
