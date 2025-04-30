@@ -15,14 +15,26 @@ class MOV_VR_Test : public testing::TestWithParam<MOV_VR_Param> {
         auto [mem_base, reg_code, val] = GetParam();
         mem = new FakeMem(mem_base, mem_base + TEST_MEM_SIZE);
         cpu = cpu_new(&mem->mem_if);
+        cpu->reg_pc = mem_base;
+
+        cpu_decode_reg(cpu, reg_code, &reg_ptr);
+        encode();
     }
     ~MOV_VR_Test() {
         delete cpu;
         delete mem;
     }
 
+    void encode() {
+        auto [mem_base, reg_code, val] = GetParam();
+        uint8_t instr[6] = {CPU_OP_MOV_VR, reg_code};
+        memcpy(&instr[2], &val, 4);
+        mem->write(mem_base, instr, sizeof(instr));
+    }
+
     FakeMem *mem;
     cpu_ctx_t *cpu;
+    uint32_t *reg_ptr;
 };
 
 class MOV_RR_Test : public testing::TestWithParam<MOV_RR_Param> {
@@ -31,28 +43,33 @@ class MOV_RR_Test : public testing::TestWithParam<MOV_RR_Param> {
         auto [mem_base, reg_codes, val] = GetParam();
         mem = new FakeMem(mem_base, mem_base + TEST_MEM_SIZE);
         cpu = cpu_new(&mem->mem_if);
+        cpu->reg_pc = mem_base;
+
+        cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg_src);
+        cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg_dst);
+        encode();
     }
     ~MOV_RR_Test() {
         delete cpu;
         delete mem;
     }
 
+    void encode() {
+        auto [mem_base, reg_codes, val] = GetParam();
+        uint8_t instr[2] = {CPU_OP_MOV_RR, reg_codes};
+        mem->write(mem_base, instr, 2);
+    }
+
     FakeMem *mem;
     cpu_ctx_t *cpu;
+
+    uint32_t *p_reg_src;
+    uint32_t *p_reg_dst;
 };
 
 TEST_P(MOV_VR_Test, WritesToReg) {
     auto [mem_base, reg_code, val] = GetParam();
 
-    uint8_t instr[6] = {CPU_OP_MOV_VR, reg_code};
-    memcpy(&instr[2], &val, 4);
-    mem->write(mem_base, instr, sizeof(instr));
-
-    uint32_t *reg_ptr;
-    cpu_decode_reg(cpu, reg_code, &reg_ptr);
-    ASSERT_NE(reg_ptr, nullptr);
-
-    cpu->reg_pc = mem_base;
     *reg_ptr = 0;
 
     for (int step_idx = 0; step_idx < 4; step_idx++) {
@@ -66,16 +83,6 @@ TEST_P(MOV_VR_Test, WritesToReg) {
 
 TEST_P(MOV_RR_Test, WritesToReg) {
     auto [mem_base, reg_codes, val] = GetParam();
-
-    uint8_t instr[2] = {CPU_OP_MOV_RR, reg_codes};
-    mem->write(mem_base, instr, 2);
-
-    uint32_t *p_reg_src;
-    uint32_t *p_reg_dst;
-    cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg_src);
-    cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg_dst);
-    ASSERT_NE(p_reg_src, nullptr);
-    ASSERT_NE(p_reg_dst, nullptr);
 
     cpu->reg_pc = mem_base;
     // dst must be written first in case dst and src are the same.
