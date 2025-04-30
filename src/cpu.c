@@ -194,6 +194,13 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
         break;
     }
 
+    case CPU_OP_MOV_RR: {
+        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
+        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
+        *p_reg_dst = *p_reg_src;
+        break;
+    }
+
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
