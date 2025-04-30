@@ -17,7 +17,8 @@ class MOV_VR_Test : public testing::TestWithParam<MOV_VR_Param> {
         cpu = cpu_new(&mem->mem_if);
         cpu->reg_pc = mem_base;
 
-        cpu_decode_reg(cpu, reg_code, &reg_ptr);
+        cpu_decode_reg(cpu, reg_code, &p_reg);
+        *p_reg = 0;
         encode();
     }
     ~MOV_VR_Test() {
@@ -34,7 +35,9 @@ class MOV_VR_Test : public testing::TestWithParam<MOV_VR_Param> {
 
     FakeMem *mem;
     cpu_ctx_t *cpu;
-    uint32_t *reg_ptr;
+    static constexpr int cpu_steps = 4;
+
+    uint32_t *p_reg;
 };
 
 class MOV_RR_Test : public testing::TestWithParam<MOV_RR_Param> {
@@ -47,6 +50,11 @@ class MOV_RR_Test : public testing::TestWithParam<MOV_RR_Param> {
 
         cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg_src);
         cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg_dst);
+
+        // dst must be written first in case dst and src are the same.
+        *p_reg_dst = 0;
+        *p_reg_src = val;
+
         encode();
     }
     ~MOV_RR_Test() {
@@ -62,34 +70,55 @@ class MOV_RR_Test : public testing::TestWithParam<MOV_RR_Param> {
 
     FakeMem *mem;
     cpu_ctx_t *cpu;
+    static constexpr int cpu_steps = 3;
 
     uint32_t *p_reg_src;
     uint32_t *p_reg_dst;
 };
 
+static std::map<const uint32_t *, uint32_t>
+remember_reg_values(cpu_ctx_t *ctx) {
+    std::map<const uint32_t *, uint32_t> reg_vals;
+    reg_vals[&ctx->reg_sp] = ctx->reg_sp;
+    for (size_t idx = 0; idx < CPU_NUM_GP_REGS; idx++) {
+        reg_vals[&ctx->gp_regs[idx]] = ctx->gp_regs[idx];
+    }
+    return reg_vals;
+}
+
+static size_t
+count_changed_regs(const std::map<const uint32_t *, uint32_t> &reg_vals) {
+    size_t num_changed = 0;
+    for (auto [reg_ptr, was_val] : reg_vals) {
+        uint32_t now_val = *reg_ptr;
+        if (now_val != was_val) { num_changed++; }
+    }
+    return num_changed;
+}
+
 TEST_P(MOV_VR_Test, WritesToReg) {
     auto [mem_base, reg_code, val] = GetParam();
-
-    *reg_ptr = 0;
-
-    for (int step_idx = 0; step_idx < 4; step_idx++) {
+    for (int step_idx = 0; step_idx < cpu_steps; step_idx++) {
         cpu_step(cpu);
         ASSERT_NE(cpu->state, CPU_HANDLE_INT);
     }
     ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+    EXPECT_EQ(*p_reg, val);
+}
 
-    EXPECT_EQ(*reg_ptr, val);
+TEST_P(MOV_VR_Test, AffectsOnlyOneReg) {
+    auto reg_vals = remember_reg_values(cpu);
+    for (int step_idx = 0; step_idx < cpu_steps; step_idx++) {
+        cpu_step(cpu);
+        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+    }
+    ASSERT_NE(cpu->state, CPU_HANDLE_INT);
 }
 
 TEST_P(MOV_RR_Test, WritesToReg) {
     auto [mem_base, reg_codes, val] = GetParam();
 
-    cpu->reg_pc = mem_base;
-    // dst must be written first in case dst and src are the same.
-    *p_reg_dst = 0;
-    *p_reg_src = val;
-
-    for (int step_idx = 0; step_idx < 3; step_idx++) {
+    for (int step_idx = 0; step_idx < cpu_steps; step_idx++) {
         cpu_step(cpu);
         ASSERT_NE(cpu->state, CPU_HANDLE_INT);
     }
@@ -97,6 +126,16 @@ TEST_P(MOV_RR_Test, WritesToReg) {
 
     EXPECT_EQ(*p_reg_src, val);
     EXPECT_EQ(*p_reg_dst, val);
+}
+
+TEST_P(MOV_RR_Test, AffectsOnlyOneReg) {
+    auto reg_vals = remember_reg_values(cpu);
+    for (int step_idx = 0; step_idx < cpu_steps; step_idx++) {
+        cpu_step(cpu);
+        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+    }
+    ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+    EXPECT_EQ(count_changed_regs(reg_vals), p_reg_src == p_reg_dst ? 0 : 1);
 }
 
 static vm_addr_t get_random_addr(std::mt19937 &rng) {
