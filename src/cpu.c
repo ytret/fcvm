@@ -224,10 +224,15 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
         }
         break;
     }
-    case CPU_OP_STR_RI0: {
+    case CPU_OP_STR_RI0:
+    case CPU_OP_LDR_RI0: {
         uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
-        uint32_t *p_reg_dst_mem = cpu->instr.operands[0].p_regs[1];
-        err = cpu->mem->write_u32(cpu->mem, *p_reg_dst_mem, *p_reg_src);
+        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
+        if (cpu->instr.opcode == CPU_OP_STR_RI0) {
+            err = cpu->mem->write_u32(cpu->mem, *p_reg_dst, *p_reg_src);
+        } else {
+            err = cpu->mem->read_u32(cpu->mem, *p_reg_src, p_reg_dst);
+        }
         break;
     }
     case CPU_OP_STR_RI8: {
