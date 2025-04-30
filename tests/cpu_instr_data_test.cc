@@ -98,9 +98,12 @@ static uint8_t get_random_reg_code(std::mt19937 &rng) {
     return reg_codes[reg_dist(rng)];
 }
 
-static uint8_t get_random_reg_codes(std::mt19937 &rng) {
+static uint8_t get_random_reg_codes(std::mt19937 &rng, bool unique = false) {
     uint8_t reg_code1 = get_random_reg_code(rng);
-    uint8_t reg_code2 = get_random_reg_code(rng);
+    uint8_t reg_code2;
+    do {
+        reg_code2 = get_random_reg_code(rng);
+    } while (unique && reg_code2 == reg_code1);
     return (reg_code1 << 4) | reg_code2;
 }
 
@@ -180,27 +183,64 @@ INSTANTIATE_TEST_SUITE_P(
             uint32_t reg_val = get_random_imm32(rng);
             vm_addr_t mem_dst = get_random_data_addr(rng, mem_base, 4);
 
-            DataInstrParam param;
-            param.mem_base = mem_base;
-            param.cpu_exec_steps = 4;
+            std::vector<uint8_t> instr_bytes = {CPU_OP_STR_RV0, src_reg_code};
+            instr_bytes.resize(2 + sizeof(vm_addr_t));
+            memcpy(instr_bytes.data() + 2, &mem_dst, sizeof(vm_addr_t));
+            v.push_back({
+                .mem_base = mem_base,
+                .cpu_exec_steps = 4,
+                .instr_bytes = instr_bytes,
+                .expected_value = reg_val,
+                .f_prepare =
+                    [src_reg_code, reg_val](cpu_ctx_t *cpu) {
+                        uint32_t *p_reg_src;
+                        cpu_decode_reg(cpu, src_reg_code, &p_reg_src);
+                        *p_reg_src = reg_val;
+                    },
+                .f_get_actual_value =
+                    [mem_dst](cpu_ctx_t *cpu) {
+                        uint32_t val = 0xDEADBEEF;
+                        cpu->mem->read_u32(cpu->mem, mem_dst, &val);
+                        return val;
+                    },
+            });
+        }
+        return v;
+    }()));
 
-            param.instr_bytes.push_back(CPU_OP_STR_RV0);
-            param.instr_bytes.push_back(src_reg_code);
-            param.instr_bytes.resize(2 + sizeof(vm_addr_t));
-            memcpy(param.instr_bytes.data() + 2, &mem_dst, sizeof(vm_addr_t));
-
-            param.f_prepare = [src_reg_code, reg_val](cpu_ctx_t *cpu) {
-                uint32_t *p_reg_src;
-                cpu_decode_reg(cpu, src_reg_code, &p_reg_src);
-                *p_reg_src = reg_val;
-            };
-            param.expected_value = reg_val;
-            param.f_get_actual_value = [mem_dst](cpu_ctx_t *cpu) {
-                uint32_t val = 0xDEADBEEF;
-                cpu->mem->read_u32(cpu->mem, mem_dst, &val);
-                return val;
-            };
-            v.push_back(param);
+INSTANTIATE_TEST_SUITE_P(
+    Random_STR_RI0, DataInstrTest, testing::ValuesIn([&] {
+        std::vector<DataInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            vm_addr_t mem_base = get_random_base_addr(rng);
+            uint8_t reg_codes = get_random_reg_codes(rng, true);
+            uint32_t val = get_random_imm32(rng);
+            vm_addr_t mem_dst = get_random_data_addr(rng, mem_base, 4);
+            std::vector<uint8_t> instr_bytes = {CPU_OP_STR_RI0, reg_codes};
+            v.push_back({
+                .mem_base = mem_base,
+                .cpu_exec_steps = 3,
+                .instr_bytes = instr_bytes,
+                .expected_value = val,
+                .f_prepare =
+                    [=](cpu_ctx_t *cpu) {
+                        uint32_t *p_reg_src;
+                        uint32_t *p_reg_dst_mem;
+                        cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F,
+                                       &p_reg_src);
+                        cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F,
+                                       &p_reg_dst_mem);
+                        *p_reg_src = val;
+                        *p_reg_dst_mem = mem_dst;
+                    },
+                .f_get_actual_value =
+                    [=](cpu_ctx_t *cpu) {
+                        uint32_t val = 0xDEADBEEF;
+                        cpu->mem->read_u32(cpu->mem, mem_dst, &val);
+                        return val;
+                    },
+            });
         }
         return v;
     }()));
