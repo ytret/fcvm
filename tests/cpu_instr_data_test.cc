@@ -7,7 +7,9 @@
 
 #define TEST_RNG_SEED         12345
 #define TEST_NUM_RANDOM_CASES 50
-#define TEST_MEM_SIZE         100
+
+#define TEST_MEM_SIZE       100
+#define TEST_MEM_START_DATA 50
 
 struct DataInstrParam {
     vm_addr_t mem_base;
@@ -62,8 +64,17 @@ TEST_P(DataInstrTest, WritesValue) {
     EXPECT_EQ(param.f_get_actual_value(cpu), param.expected_value);
 }
 
-static vm_addr_t get_random_addr(std::mt19937 &rng) {
+static vm_addr_t get_random_base_addr(std::mt19937 &rng) {
     std::uniform_int_distribution<vm_addr_t> addr_dist(0, VM_MAX_ADDR);
+    return addr_dist(rng);
+}
+
+static vm_addr_t get_random_data_addr(std::mt19937 &rng, vm_addr_t mem_base,
+                                      size_t min_bytes_left) {
+    vm_addr_t data_start = mem_base + TEST_MEM_START_DATA;
+    vm_addr_t data_end = mem_base + TEST_MEM_SIZE;
+    std::uniform_int_distribution<vm_addr_t> addr_dist(
+        data_start, data_end - min_bytes_left);
     return addr_dist(rng);
 }
 
@@ -92,7 +103,7 @@ INSTANTIATE_TEST_SUITE_P(Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
                              std::vector<DataInstrParam> v;
                              std::mt19937 rng(TEST_RNG_SEED);
                              for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-                                 vm_addr_t mem_base = get_random_addr(rng);
+                                 vm_addr_t mem_base = get_random_base_addr(rng);
                                  uint8_t reg_code = get_random_reg_code(rng);
                                  uint32_t val = get_random_imm32(rng);
 
@@ -122,7 +133,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::vector<DataInstrParam> v;
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            vm_addr_t mem_base = get_random_addr(rng);
+            vm_addr_t mem_base = get_random_base_addr(rng);
             uint8_t reg_codes = get_random_reg_codes(rng);
             uint32_t val = get_random_imm32(rng);
 
@@ -143,6 +154,41 @@ INSTANTIATE_TEST_SUITE_P(
                 uint32_t *p_reg_dst;
                 cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg_dst);
                 return *p_reg_dst;
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_STR_RV0, DataInstrTest, testing::ValuesIn([&] {
+        std::vector<DataInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            vm_addr_t mem_base = get_random_base_addr(rng);
+            uint8_t src_reg_code = get_random_reg_code(rng);
+            uint32_t reg_val = get_random_imm32(rng);
+            vm_addr_t mem_dst = get_random_data_addr(rng, mem_base, 4);
+
+            DataInstrParam param;
+            param.mem_base = mem_base;
+            param.cpu_exec_steps = 4;
+
+            param.instr_bytes.push_back(CPU_OP_STR_RV0);
+            param.instr_bytes.push_back(src_reg_code);
+            param.instr_bytes.resize(2 + sizeof(vm_addr_t));
+            memcpy(param.instr_bytes.data() + 2, &mem_dst, sizeof(vm_addr_t));
+
+            param.f_prepare = [src_reg_code, reg_val](cpu_ctx_t *cpu) {
+                uint32_t *p_reg_src;
+                cpu_decode_reg(cpu, src_reg_code, &p_reg_src);
+                *p_reg_src = reg_val;
+            };
+            param.expected_value = reg_val;
+            param.f_get_actual_value = [mem_dst](cpu_ctx_t *cpu) {
+                uint32_t val = 0xDEADBEEF;
+                cpu->mem->read_u32(cpu->mem, mem_dst, &val);
+                return val;
             };
             v.push_back(param);
         }
