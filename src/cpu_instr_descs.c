@@ -1,5 +1,4 @@
 #include "cpu_instr_descs.h"
-#include "debugm.h"
 
 static const cpu_instr_desc_t cpu_instr_descs[256] = {
     [CPU_OP_MOV_VR] = {CPU_OP_MOV_VR, 2, {CPU_OPD_REG, CPU_OPD_IMM32}},

@@ -4,10 +4,6 @@
 #include "cpu.h"
 #include "debugm.h"
 
-static const cpu_instr_desc_t cpu_instr_descs[] = {
-    {.opcode = 0, .operands = {1}, .num_operands = 1},
-};
-
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
                                              void *v_out);
