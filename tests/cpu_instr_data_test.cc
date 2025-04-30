@@ -19,6 +19,7 @@ struct DataInstrParam {
 
     uint32_t expected_value;
     std::optional<uint32_t> mem_addr;
+    std::optional<int32_t> mem_offset;
 
     std::optional<std::function<void(const DataInstrParam &, cpu_ctx_t *)>>
         f_prepare;
@@ -116,6 +117,13 @@ static uint32_t get_random_imm32(std::mt19937 &rng) {
     return val_dist(rng);
 }
 
+enum class ImmOperandRole {
+    None,
+    ExpVal,
+    MemAddr,
+    Offset,
+};
+
 /**
  * Creates a #DataInstrParam with randomly generated values.
  * @param rng -- Random number generator.
@@ -129,7 +137,8 @@ static uint32_t get_random_imm32(std::mt19937 &rng) {
  *   test environment after executing the instruction.
  */
 static DataInstrParam get_random_param(
-    std::mt19937 &rng, uint8_t opcode, bool unique_regs, bool exp_in_mem,
+    std::mt19937 &rng, uint8_t opcode, bool unique_regs, bool gen_mem_addr,
+    bool gen_mem_offset, ImmOperandRole imm_opd_role,
     std::optional<std::function<void(const DataInstrParam &, cpu_ctx_t *)>>
         f_prepare,
     std::function<uint32_t(const DataInstrParam &, cpu_ctx_t *)>
@@ -143,8 +152,24 @@ static DataInstrParam get_random_param(
 
     uint32_t exp_val = get_random_imm32(rng);
     uint32_t mem_base = get_random_base_addr(rng);
+
     std::optional<uint32_t> mem_addr;
-    if (exp_in_mem) { mem_addr = get_random_data_addr(rng, mem_base, 4); }
+    if (gen_mem_addr) { mem_addr = get_random_data_addr(rng, mem_base, 4); }
+
+    std::optional<int32_t> mem_offset;
+    if (gen_mem_addr && gen_mem_offset) {
+        // offseted_addr is just used to get an offset within the RAM. Since the
+        // offset may be truncated depending on the opcode, it may not
+        // adequately represent the actual memory address the instruction is
+        // supposed to work with.
+        //
+        // Truncated version is saved in mem_offset and can be used, since it's
+        // what is encoded and together with mem_addr points to a valid RAM
+        // dword.
+        uint32_t offseted_addr = get_random_data_addr(rng, mem_base, 4);
+        int32_t offset = offseted_addr - *mem_addr;
+        mem_offset = static_cast<int32_t>(offset);
+    }
 
     std::vector<uint8_t> instr_bytes = {opcode};
     for (size_t idx = 0; idx < desc->num_operands; idx++) {
@@ -157,17 +182,38 @@ static DataInstrParam get_random_param(
             instr_bytes.push_back(get_random_reg_codes(rng, unique_regs));
             break;
         case CPU_OPD_IMM5:
-            fprintf(stderr, "CPU_OPD_IMM5: not implemented");
-            abort();
-        case CPU_OPD_IMM8:
-            fprintf(stderr, "CPU_OPD_IMM8: not implemented");
-            abort();
+            // not used for data instructions
+            break;
+        case CPU_OPD_IMM8: {
+            uint8_t imm8 = 0xAA;
+            switch (imm_opd_role) {
+            case ImmOperandRole::Offset:
+                *mem_offset = static_cast<int8_t>(*mem_offset);
+                imm8 = *mem_offset;
+                break;
+            default:
+                fprintf(stderr, "bad test configuration: imm8 may be used only "
+                                "as an offset\n");
+            }
+            instr_bytes.push_back(imm8);
+            break;
+        }
         case CPU_OPD_IMM32:
-            uint32_t imm32;
-            if (exp_in_mem) {
-                imm32 = mem_addr.value();
-            } else {
+            uint32_t imm32 = 0xCAFEBABE;
+            switch (imm_opd_role) {
+            case ImmOperandRole::ExpVal:
                 imm32 = exp_val;
+                break;
+            case ImmOperandRole::MemAddr:
+                imm32 = *mem_addr;
+                break;
+            case ImmOperandRole::Offset:
+                imm32 = *mem_offset;
+                break;
+            default:
+                fprintf(stderr, "bad test configuration: imm_opd_role = "
+                                "Missing, but opcode requires an imm value");
+                abort();
             }
             instr_bytes.resize(instr_bytes.size() + 4);
             memcpy(instr_bytes.data() + instr_bytes.size() - 4, &imm32, 4);
@@ -181,6 +227,7 @@ static DataInstrParam get_random_param(
         .instr_bytes = instr_bytes,
         .expected_value = exp_val,
         .mem_addr = mem_addr,
+        .mem_offset = mem_offset,
         .f_prepare = f_prepare,
         .f_get_actual_value = f_get_act_val,
     };
@@ -196,21 +243,20 @@ uint32_t *get_reg_ptr(cpu_ctx_t *cpu, uint8_t reg_code) {
     return p_reg;
 }
 
-INSTANTIATE_TEST_SUITE_P(Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
-                             std::vector<DataInstrParam> v;
-                             std::mt19937 rng(TEST_RNG_SEED);
-                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-                                 v.push_back(get_random_param(
-                                     rng, CPU_OP_MOV_VR, false, false, {},
-                                     [](const DataInstrParam &param,
-                                        cpu_ctx_t *cpu) {
-                                         uint8_t reg_code =
-                                             param.instr_bytes.at(1);
-                                         return *get_reg_ptr(cpu, reg_code);
-                                     }));
-                             }
-                             return v;
-                         }()));
+INSTANTIATE_TEST_SUITE_P(
+    Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
+        std::vector<DataInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            v.push_back(get_random_param(
+                rng, CPU_OP_MOV_VR, false, false, false, ImmOperandRole::ExpVal,
+                {}, [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint8_t reg_code = param.instr_bytes.at(1);
+                    return *get_reg_ptr(cpu, reg_code);
+                }));
+        }
+        return v;
+    }()));
 
 INSTANTIATE_TEST_SUITE_P(
     Random_MOV_RR, DataInstrTest, testing::ValuesIn([&] {
@@ -218,7 +264,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
             v.push_back(get_random_param(
-                rng, CPU_OP_MOV_RR, false, false,
+                rng, CPU_OP_MOV_RR, false, false, false, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
                     *get_reg_ptr(cpu, (param.instr_bytes.at(1) >> 4) & 0x0F) =
                         param.expected_value;
@@ -237,7 +283,8 @@ INSTANTIATE_TEST_SUITE_P(
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
             v.push_back(get_random_param(
-                rng, CPU_OP_STR_RV0, false, true,
+                rng, CPU_OP_STR_RV0, false, true, false,
+                ImmOperandRole::MemAddr,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
                     *get_reg_ptr(cpu, param.instr_bytes.at(1)) =
                         param.expected_value;
@@ -257,7 +304,7 @@ INSTANTIATE_TEST_SUITE_P(
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
             v.push_back(get_random_param(
-                rng, CPU_OP_STR_RI0, true, true,
+                rng, CPU_OP_STR_RI0, true, true, false, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
                     uint8_t reg_src = (param.instr_bytes.at(1) >> 4) & 0x0F;
                     uint8_t reg_dst_mem = (param.instr_bytes.at(1) >> 0) & 0x0F;
