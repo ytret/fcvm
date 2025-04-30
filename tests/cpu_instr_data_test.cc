@@ -37,10 +37,18 @@ struct DataInstrParam {
                 return acc.empty() ? oss.str()
                                    : std::move(acc) + ' ' + oss.str();
             });
-        os << absl::StrFormat("{ mem_base = 0x%08X, cpu_exec_steps = %u, "
-                              "instr_bytes = [%s], expected_value = 0x%08X }",
-                              param.mem_base, param.cpu_exec_steps, instr_hex,
-                              param.expected_value);
+        std::string mem_addr = param.mem_addr.has_value()
+                                   ? absl::StrFormat("0x%08X", *param.mem_addr)
+                                   : std::string("<none>");
+        std::string mem_offset =
+            param.mem_addr.has_value()
+                ? absl::StrFormat("%d", *param.mem_offset)
+                : std::string("<none>");
+        os << absl::StrFormat(
+            "{ mem_base = 0x%08X, instr_bytes = [%s], expected_value = 0x%08X, "
+            "mem_addr = %s, mem_offset = %s }",
+            param.mem_base, instr_hex, param.expected_value, mem_addr,
+            mem_offset);
         return os;
     }
 };
