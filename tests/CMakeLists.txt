@@ -1,9 +1,16 @@
 include(FetchContent)
+
 FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/df1544bcee0c7ce35cd5ea0b3eb8cc81855a4140.zip
 )
 FetchContent_MakeAvailable(googletest)
+
+FetchContent_Declare(
+    abseil-cpp
+    URL https://github.com/abseil/abseil-cpp/releases/download/20250127.1/abseil-cpp-20250127.1.tar.gz
+)
+FetchContent_MakeAvailable(abseil-cpp)
 
 include(GoogleTest)
 
@@ -20,7 +27,7 @@ function(my_add_test name)
     )
     target_compile_definitions(${name} PRIVATE ${compile_defs})
     target_link_libraries(${name}
-        fcvm GTest::gtest_main GTest::gmock_main
+        fcvm GTest::gtest_main GTest::gmock_main absl::str_format
     )
     gtest_discover_tests(${name})
 endfunction()
