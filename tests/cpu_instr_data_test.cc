@@ -40,10 +40,9 @@ struct DataInstrParam {
         std::string mem_addr = param.mem_addr.has_value()
                                    ? absl::StrFormat("0x%08X", *param.mem_addr)
                                    : std::string("<none>");
-        std::string mem_offset =
-            param.mem_addr.has_value()
-                ? absl::StrFormat("%d", *param.mem_offset)
-                : std::string("<none>");
+        std::string mem_offset = param.mem_addr.has_value()
+                                     ? absl::StrFormat("%d", *param.mem_offset)
+                                     : std::string("<none>");
         os << absl::StrFormat(
             "{ mem_base = 0x%08X, instr_bytes = [%s], expected_value = 0x%08X, "
             "mem_addr = %s, mem_offset = %s }",
@@ -489,6 +488,30 @@ INSTANTIATE_TEST_SUITE_P(
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
                     uint8_t reg_mem = (param.instr_bytes.at(1) >> 4) & 0x0F;
                     *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
+                    cpu->mem->write_u32(cpu->mem,
+                                        *param.mem_addr + *param.mem_offset,
+                                        param.expected_value);
+                },
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint8_t reg_dst = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    return *get_reg_ptr(cpu, reg_dst);
+                }));
+        }
+        return v;
+    }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_LDR_RIR, DataInstrTest, testing::ValuesIn([&] {
+        std::vector<DataInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            v.push_back(get_random_param(
+                rng, CPU_OP_LDR_RIR, true, true, true, ImmOperandRole::Offset,
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint8_t reg_mem = (param.instr_bytes.at(1) >> 4) & 0x0F;
+                    uint8_t reg_off = param.instr_bytes.at(2);
+                    *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
+                    *get_reg_ptr(cpu, reg_off) = *param.mem_offset;
                     cpu->mem->write_u32(cpu->mem,
                                         *param.mem_addr + *param.mem_offset,
                                         param.expected_value);
