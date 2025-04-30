@@ -63,22 +63,22 @@ class FakeMem {
     }
 
     static vm_err_t read_u8(void *ctx, vm_addr_t addr, uint8_t *out) {
-        std::cerr << "read_u8 " << std::hex << addr << "\n";
+        // std::cerr << "read_u8 " << std::hex << addr << "\n";
         FakeMem *obj = find_obj(ctx);
         return obj->read(addr, out, 1);
     }
     static vm_err_t read_u32(void *ctx, vm_addr_t addr, uint32_t *out) {
-        std::cerr << "read_u32 " << std::hex << addr << "\n";
+        // std::cerr << "read_u32 " << std::hex << addr << "\n";
         FakeMem *obj = find_obj(ctx);
         return obj->read(addr, out, 4);
     }
     static vm_err_t write_u8(void *ctx, vm_addr_t addr, uint8_t val) {
-        std::cerr << "write_u8 " << std::hex << addr << " " << val << "\n";
+        // std::cerr << "write_u8 " << std::hex << addr << " " << val << "\n";
         FakeMem *obj = find_obj(ctx);
         return obj->write(addr, &val, 1);
     }
     static vm_err_t write_u32(void *ctx, vm_addr_t addr, uint32_t val) {
-        std::cerr << "write_u32 " << std::hex << addr << " " << val << "\n";
+        // std::cerr << "write_u32 " << std::hex << addr << " " << val << "\n";
         FakeMem *obj = find_obj(ctx);
         return obj->write(addr, &val, 4);
     }
