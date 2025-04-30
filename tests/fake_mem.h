@@ -36,6 +36,9 @@ class FakeMem {
             memcpy(out_buf, &bytes[rel_addr], num_bytes);
             return {.type = VM_ERR_NONE};
         } else {
+            fprintf(stderr,
+                    "FakeMem: tried to read %zu bytes at bad address 0x%08X\n",
+                    num_bytes, addr);
             return {.type = VM_ERR_BAD_MEM};
         }
     }
@@ -46,6 +49,9 @@ class FakeMem {
             memcpy(&bytes[rel_addr], buf, num_bytes);
             return {.type = VM_ERR_NONE};
         } else {
+            fprintf(stderr,
+                    "FakeMem: tried to write %zu bytes at bad address 0x%08X\n",
+                    num_bytes, addr);
             return {.type = VM_ERR_BAD_MEM};
         }
     }
