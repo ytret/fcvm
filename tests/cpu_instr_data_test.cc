@@ -407,3 +407,23 @@ INSTANTIATE_TEST_SUITE_P(
         }
         return v;
     }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_LDR_RV0, DataInstrTest, testing::ValuesIn([&] {
+        std::vector<DataInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            v.push_back(get_random_param(
+                rng, CPU_OP_LDR_RV0, false, true, false,
+                ImmOperandRole::MemAddr,
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    cpu->mem->write_u32(cpu->mem, *param.mem_addr,
+                                        param.expected_value);
+                },
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint8_t reg_dst = param.instr_bytes.at(1);
+                    return *get_reg_ptr(cpu, reg_dst);
+                }));
+        }
+        return v;
+    }()));
