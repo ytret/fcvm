@@ -1,5 +1,6 @@
 #include <absl/strings/str_format.h>
 #include <gtest/gtest.h>
+#include <iomanip>
 #include <random>
 
 #include "cpu.h"
@@ -22,9 +23,18 @@ struct DataInstrParam {
 
     friend std::ostream &operator<<(std::ostream &os,
                                     const DataInstrParam &param) {
+        std::string instr_hex = std::accumulate(
+            param.instr_bytes.cbegin(), param.instr_bytes.cend(), std::string{},
+            [](std::string acc, uint8_t b) {
+                std::ostringstream oss;
+                oss << std::uppercase << std::hex << std::setw(2)
+                    << std::setfill('0') << static_cast<int>(b);
+                return acc.empty() ? oss.str()
+                                   : std::move(acc) + ' ' + oss.str();
+            });
         os << absl::StrFormat("{ mem_base = 0x%08X, cpu_exec_steps = %u, "
-                              "instr_bytes = <...>, expected_value = 0x%08X }",
-                              param.mem_base, param.cpu_exec_steps,
+                              "instr_bytes = [%s], expected_value = 0x%08X }",
+                              param.mem_base, param.cpu_exec_steps, instr_hex,
                               param.expected_value);
         return os;
     }
