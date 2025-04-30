@@ -142,7 +142,7 @@ extern "C" {
 #define CPU_CODE_R5          0x05
 #define CPU_CODE_R6          0x06
 #define CPU_CODE_R7          0x07
-#define CPU_CODE_SP          0x20
+#define CPU_CODE_SP          0x08
 
 typedef enum {
     CPU_OPD_REG,   //!< One register (1 byte).
