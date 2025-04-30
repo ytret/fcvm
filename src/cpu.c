@@ -180,6 +180,7 @@ static vm_err_t prv_cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
     } else {
         D_PRINTF("bad register code: 0x%02X", reg_code);
         err.type = VM_ERR_BAD_REG_CODE;
+        *out_reg_ptr = NULL;
     }
     return err;
 }
