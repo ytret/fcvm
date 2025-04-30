@@ -129,8 +129,9 @@ enum class ImmOperandRole {
  * @param rng -- Random number generator.
  * @param opcode -- Opcode of the instruction under test.
  * @param unique_regs -- Whether or not registers must be unique.
- * @param exp_in_mem -- Expected value is not baked into the instruction, but is
- *   located at a randomly generated address.
+ * @param gen_mem_addr -- Generate #DataInstrParam.mem_addr.
+ * @param gen_mem_offset -- Generate #DataInstrParam.mem_offset.
+ * @param imm_opd_role -- Role of the immediate operand in the instruction.
  * @param f_prepare -- An optional function which will be used to prepare
  *   the execution context (e.g. put the expected value into memory).
  * @param f_get_act_val -- A required function to get the actual value in the
