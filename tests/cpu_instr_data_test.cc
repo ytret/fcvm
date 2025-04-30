@@ -11,12 +11,10 @@ using MOV_VR_Param = std::tuple<vm_addr_t, uint8_t, uint32_t>;
 class MOV_VR_Test : public testing::TestWithParam<MOV_VR_Param> {
   protected:
     MOV_VR_Test() {
-        auto [mem_base, reg, val] = GetParam();
-
+        auto [mem_base, reg_code, val] = GetParam();
         mem = new FakeMem(mem_base, mem_base + TEST_MEM_SIZE);
         cpu = cpu_new(&mem->mem_if);
     }
-
     ~MOV_VR_Test() {
         delete cpu;
         delete mem;
@@ -27,19 +25,18 @@ class MOV_VR_Test : public testing::TestWithParam<MOV_VR_Param> {
 };
 
 TEST_P(MOV_VR_Test, WritesToReg) {
-    auto [mem_base, reg, val] = GetParam();
+    auto [mem_base, reg_code, val] = GetParam();
 
-    uint8_t instr[6] = {CPU_OP_MOV_VR, reg};
+    uint8_t instr[6] = {CPU_OP_MOV_VR, reg_code};
     memcpy(&instr[2], &val, 4);
     mem->write(mem_base, instr, sizeof(instr));
 
+    uint32_t *reg_ptr;
+    cpu_decode_reg(cpu, reg_code, &reg_ptr);
+    ASSERT_NE(reg_ptr, nullptr);
+
     cpu->reg_pc = mem_base;
-    if (reg == CPU_CODE_SP) {
-        cpu->reg_sp = 0;
-    } else {
-        ASSERT_LT(reg, CPU_NUM_GP_REGS);
-        cpu->gp_regs[reg] = 0;
-    }
+    *reg_ptr = 0;
 
     for (int step_idx = 0; step_idx < 4; step_idx++) {
         cpu_step(cpu);
@@ -47,12 +44,7 @@ TEST_P(MOV_VR_Test, WritesToReg) {
     }
     ASSERT_NE(cpu->state, CPU_HANDLE_INT);
 
-    if (reg == CPU_CODE_SP) {
-        EXPECT_EQ(cpu->reg_sp, val);
-    } else {
-        ASSERT_LT(reg, CPU_NUM_GP_REGS);
-        EXPECT_EQ(cpu->gp_regs[reg], val);
-    }
+    EXPECT_EQ(*reg_ptr, val);
 }
 
 INSTANTIATE_TEST_SUITE_P(
