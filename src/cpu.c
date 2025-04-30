@@ -77,9 +77,15 @@ void cpu_step(cpu_ctx_t *cpu) {
     case CPU_EXECUTE: {
         vm_err_t err = prv_cpu_execute_instr(cpu);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
-        cpu->state = CPU_FETCH_DECODE_OPCODE;
+        cpu->state = CPU_EXECUTED_OK;
         break;
     }
+
+    case CPU_EXECUTED_OK:
+        D_ASSERTMF(false,
+                   "cpu_step() must not be called when cpu->state is "
+                   "CPU_EXECUTED_OK (%u)",
+                   cpu->state);
 
     case CPU_HANDLE_INT:
         D_TODO();

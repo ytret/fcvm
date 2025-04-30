@@ -45,15 +45,6 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
         delete mem;
     }
 
-    void exec_instr() {
-        auto param = GetParam();
-        for (size_t step_idx = 0; step_idx < param.cpu_exec_steps; step_idx++) {
-            cpu_step(cpu);
-            ASSERT_NE(cpu->state, CPU_HANDLE_INT);
-        }
-        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
-    }
-
     FakeMem *mem;
     cpu_ctx_t *cpu;
 };
@@ -61,7 +52,13 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
 TEST_P(DataInstrTest, WritesValue) {
     auto param = GetParam();
     if (param.f_prepare) { param.f_prepare.value()(cpu); }
-    exec_instr();
+
+    for (size_t step_idx = 0; step_idx < param.cpu_exec_steps; step_idx++) {
+        cpu_step(cpu);
+        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+    }
+    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+
     EXPECT_EQ(param.f_get_actual_value(cpu), param.expected_value);
 }
 
@@ -119,6 +116,7 @@ INSTANTIATE_TEST_SUITE_P(Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
 INSTANTIATE_TEST_SUITE_P(
     Random_MOV_RR, DataInstrTest, testing::ValuesIn([&] {
         std::vector<DataInstrParam> v;

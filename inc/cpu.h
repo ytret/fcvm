@@ -17,6 +17,7 @@ typedef enum {
     CPU_FETCH_DECODE_OPCODE,
     CPU_FETCH_DECODE_OPERANDS,
     CPU_EXECUTE,
+    CPU_EXECUTED_OK,
     CPU_HANDLE_INT,
 } cpu_state_t;
 
