@@ -18,8 +18,12 @@ struct DataInstrParam {
     std::vector<uint8_t> instr_bytes;
 
     uint32_t expected_value;
-    std::optional<std::function<void(cpu_ctx_t *)>> f_prepare;
-    std::function<uint32_t(cpu_ctx_t *)> f_get_actual_value;
+    std::optional<uint32_t> mem_addr;
+
+    std::optional<std::function<void(const DataInstrParam &, cpu_ctx_t *)>>
+        f_prepare;
+    std::function<uint32_t(const DataInstrParam &, cpu_ctx_t *)>
+        f_get_actual_value;
 
     friend std::ostream &operator<<(std::ostream &os,
                                     const DataInstrParam &param) {
@@ -63,7 +67,7 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
 
 TEST_P(DataInstrTest, WritesValue) {
     auto param = GetParam();
-    if (param.f_prepare) { param.f_prepare.value()(cpu); }
+    if (param.f_prepare) { param.f_prepare.value()(param, cpu); }
 
     for (size_t step_idx = 0; step_idx < param.cpu_exec_steps; step_idx++) {
         cpu_step(cpu);
@@ -71,7 +75,7 @@ TEST_P(DataInstrTest, WritesValue) {
     }
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 
-    EXPECT_EQ(param.f_get_actual_value(cpu), param.expected_value);
+    EXPECT_EQ(param.f_get_actual_value(param, cpu), param.expected_value);
 }
 
 static vm_addr_t get_random_base_addr(std::mt19937 &rng) {
@@ -112,31 +116,98 @@ static uint32_t get_random_imm32(std::mt19937 &rng) {
     return val_dist(rng);
 }
 
+/**
+ * Creates a #DataInstrParam with randomly generated values.
+ * @param rng -- Random number generator.
+ * @param opcode -- Opcode of the instruction under test.
+ * @param unique_regs -- Whether or not registers must be unique.
+ * @param exp_in_mem -- Expected value is not baked into the instruction, but is
+ *   located at a randomly generated address.
+ * @param f_prepare -- An optional function which will be used to prepare
+ *   the execution context (e.g. put the expected value into memory).
+ * @param f_get_act_val -- A required function to get the actual value in the
+ *   test environment after executing the instruction.
+ */
+static DataInstrParam get_random_param(
+    std::mt19937 &rng, uint8_t opcode, bool unique_regs, bool exp_in_mem,
+    std::optional<std::function<void(const DataInstrParam &, cpu_ctx_t *)>>
+        f_prepare,
+    std::function<uint32_t(const DataInstrParam &, cpu_ctx_t *)>
+        f_get_act_val) {
+    const cpu_instr_desc_t *desc = cpu_lookup_instr_desc(opcode);
+    if (desc == nullptr) {
+        fprintf(stderr, "failed to lookup a descritptor for opcode 0x%02X\n",
+                opcode);
+        abort();
+    }
+
+    uint32_t exp_val = get_random_imm32(rng);
+    uint32_t mem_base = get_random_base_addr(rng);
+    std::optional<uint32_t> mem_addr;
+    if (exp_in_mem) { mem_addr = get_random_data_addr(rng, mem_base, 4); }
+
+    std::vector<uint8_t> instr_bytes = {opcode};
+    for (size_t idx = 0; idx < desc->num_operands; idx++) {
+        cpu_operand_type_t opd = desc->operands[idx];
+        switch (opd) {
+        case CPU_OPD_REG:
+            instr_bytes.push_back(get_random_reg_code(rng));
+            break;
+        case CPU_OPD_REGS:
+            instr_bytes.push_back(get_random_reg_codes(rng, unique_regs));
+            break;
+        case CPU_OPD_IMM5:
+            fprintf(stderr, "CPU_OPD_IMM5: not implemented");
+            abort();
+        case CPU_OPD_IMM8:
+            fprintf(stderr, "CPU_OPD_IMM8: not implemented");
+            abort();
+        case CPU_OPD_IMM32:
+            uint32_t imm32;
+            if (exp_in_mem) {
+                imm32 = mem_addr.value();
+            } else {
+                imm32 = exp_val;
+            }
+            instr_bytes.resize(instr_bytes.size() + 4);
+            memcpy(instr_bytes.data() + instr_bytes.size() - 4, &imm32, 4);
+            break;
+        }
+    }
+
+    return DataInstrParam{
+        .mem_base = mem_base,
+        .cpu_exec_steps = 2 + desc->num_operands,
+        .instr_bytes = instr_bytes,
+        .expected_value = exp_val,
+        .mem_addr = mem_addr,
+        .f_prepare = f_prepare,
+        .f_get_actual_value = f_get_act_val,
+    };
+}
+
+uint32_t *get_reg_ptr(cpu_ctx_t *cpu, uint8_t reg_code) {
+    uint32_t *p_reg;
+    cpu_decode_reg(cpu, reg_code, &p_reg);
+    if (!p_reg) {
+        fprintf(stderr, "failed to decode register code 0x%02X\n", reg_code);
+        abort();
+    }
+    return p_reg;
+}
+
 INSTANTIATE_TEST_SUITE_P(Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
                              std::vector<DataInstrParam> v;
                              std::mt19937 rng(TEST_RNG_SEED);
                              for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-                                 vm_addr_t mem_base = get_random_base_addr(rng);
-                                 uint8_t reg_code = get_random_reg_code(rng);
-                                 uint32_t val = get_random_imm32(rng);
-
-                                 DataInstrParam param;
-                                 param.mem_base = mem_base;
-                                 param.cpu_exec_steps = 4;
-
-                                 param.instr_bytes.push_back(CPU_OP_MOV_VR);
-                                 param.instr_bytes.push_back(reg_code);
-                                 param.instr_bytes.resize(6);
-                                 memcpy(param.instr_bytes.data() + 2, &val, 4);
-
-                                 param.expected_value = val;
-                                 param.f_get_actual_value =
-                                     [reg_code](cpu_ctx_t *cpu) {
-                                         uint32_t *p_reg;
-                                         cpu_decode_reg(cpu, reg_code, &p_reg);
-                                         return *p_reg;
-                                     };
-                                 v.push_back(param);
+                                 v.push_back(get_random_param(
+                                     rng, CPU_OP_MOV_VR, false, false, {},
+                                     [](const DataInstrParam &param,
+                                        cpu_ctx_t *cpu) {
+                                         uint8_t reg_code =
+                                             param.instr_bytes.at(1);
+                                         return *get_reg_ptr(cpu, reg_code);
+                                     }));
                              }
                              return v;
                          }()));
@@ -146,29 +217,16 @@ INSTANTIATE_TEST_SUITE_P(
         std::vector<DataInstrParam> v;
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            vm_addr_t mem_base = get_random_base_addr(rng);
-            uint8_t reg_codes = get_random_reg_codes(rng);
-            uint32_t val = get_random_imm32(rng);
-
-            DataInstrParam param;
-            param.mem_base = mem_base;
-            param.cpu_exec_steps = 3;
-
-            param.instr_bytes.push_back(CPU_OP_MOV_RR);
-            param.instr_bytes.push_back(reg_codes);
-
-            param.f_prepare = [reg_codes, val](cpu_ctx_t *cpu) {
-                uint32_t *p_reg_src;
-                cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg_src);
-                *p_reg_src = val;
-            };
-            param.expected_value = val;
-            param.f_get_actual_value = [reg_codes](cpu_ctx_t *cpu) {
-                uint32_t *p_reg_dst;
-                cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg_dst);
-                return *p_reg_dst;
-            };
-            v.push_back(param);
+            v.push_back(get_random_param(
+                rng, CPU_OP_MOV_RR, false, false,
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    *get_reg_ptr(cpu, (param.instr_bytes.at(1) >> 4) & 0x0F) =
+                        param.expected_value;
+                },
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    return *get_reg_ptr(cpu,
+                                        (param.instr_bytes.at(1) >> 0) & 0x0F);
+                }));
         }
         return v;
     }()));
@@ -178,32 +236,17 @@ INSTANTIATE_TEST_SUITE_P(
         std::vector<DataInstrParam> v;
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            vm_addr_t mem_base = get_random_base_addr(rng);
-            uint8_t src_reg_code = get_random_reg_code(rng);
-            uint32_t reg_val = get_random_imm32(rng);
-            vm_addr_t mem_dst = get_random_data_addr(rng, mem_base, 4);
-
-            std::vector<uint8_t> instr_bytes = {CPU_OP_STR_RV0, src_reg_code};
-            instr_bytes.resize(2 + sizeof(vm_addr_t));
-            memcpy(instr_bytes.data() + 2, &mem_dst, sizeof(vm_addr_t));
-            v.push_back({
-                .mem_base = mem_base,
-                .cpu_exec_steps = 4,
-                .instr_bytes = instr_bytes,
-                .expected_value = reg_val,
-                .f_prepare =
-                    [src_reg_code, reg_val](cpu_ctx_t *cpu) {
-                        uint32_t *p_reg_src;
-                        cpu_decode_reg(cpu, src_reg_code, &p_reg_src);
-                        *p_reg_src = reg_val;
-                    },
-                .f_get_actual_value =
-                    [mem_dst](cpu_ctx_t *cpu) {
-                        uint32_t val = 0xDEADBEEF;
-                        cpu->mem->read_u32(cpu->mem, mem_dst, &val);
-                        return val;
-                    },
-            });
+            v.push_back(get_random_param(
+                rng, CPU_OP_STR_RV0, false, true,
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    *get_reg_ptr(cpu, param.instr_bytes.at(1)) =
+                        param.expected_value;
+                },
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint32_t act_val = 0xDEADBEEF;
+                    cpu->mem->read_u32(cpu->mem, *param.mem_addr, &act_val);
+                    return act_val;
+                }));
         }
         return v;
     }()));
@@ -213,34 +256,19 @@ INSTANTIATE_TEST_SUITE_P(
         std::vector<DataInstrParam> v;
         std::mt19937 rng(TEST_RNG_SEED);
         for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            vm_addr_t mem_base = get_random_base_addr(rng);
-            uint8_t reg_codes = get_random_reg_codes(rng, true);
-            uint32_t val = get_random_imm32(rng);
-            vm_addr_t mem_dst = get_random_data_addr(rng, mem_base, 4);
-            std::vector<uint8_t> instr_bytes = {CPU_OP_STR_RI0, reg_codes};
-            v.push_back({
-                .mem_base = mem_base,
-                .cpu_exec_steps = 3,
-                .instr_bytes = instr_bytes,
-                .expected_value = val,
-                .f_prepare =
-                    [=](cpu_ctx_t *cpu) {
-                        uint32_t *p_reg_src;
-                        uint32_t *p_reg_dst_mem;
-                        cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F,
-                                       &p_reg_src);
-                        cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F,
-                                       &p_reg_dst_mem);
-                        *p_reg_src = val;
-                        *p_reg_dst_mem = mem_dst;
-                    },
-                .f_get_actual_value =
-                    [=](cpu_ctx_t *cpu) {
-                        uint32_t val = 0xDEADBEEF;
-                        cpu->mem->read_u32(cpu->mem, mem_dst, &val);
-                        return val;
-                    },
-            });
+            v.push_back(get_random_param(
+                rng, CPU_OP_STR_RI0, true, true,
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint8_t reg_src = (param.instr_bytes.at(1) >> 4) & 0x0F;
+                    uint8_t reg_dst_mem = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    *get_reg_ptr(cpu, reg_src) = param.expected_value;
+                    *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
+                },
+                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
+                    uint32_t act_val = 0xDEADBEEF;
+                    cpu->mem->read_u32(cpu->mem, *param.mem_addr, &act_val);
+                    return act_val;
+                }));
         }
         return v;
     }()));
