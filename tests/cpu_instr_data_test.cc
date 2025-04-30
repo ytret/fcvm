@@ -93,22 +93,28 @@ static vm_addr_t get_random_data_addr(std::mt19937 &rng, vm_addr_t mem_base,
     return addr_dist(rng);
 }
 
-static uint8_t get_random_reg_code(std::mt19937 &rng) {
+static uint8_t get_random_reg_code(std::mt19937 &rng, bool unique_regs = false,
+                                   std::vector<uint8_t> used_reg_codes = {}) {
     std::array<uint8_t, 9> reg_codes = {
         CPU_CODE_R0, CPU_CODE_R1, CPU_CODE_R2, CPU_CODE_R3, CPU_CODE_R4,
         CPU_CODE_R5, CPU_CODE_R6, CPU_CODE_R7, CPU_CODE_SP,
     };
     static_assert(CPU_NUM_GP_REG_CODES == 8, "update test code");
     std::uniform_int_distribution<size_t> reg_dist(0, reg_codes.size() - 1);
-    return reg_codes[reg_dist(rng)];
+    uint8_t reg_code;
+    do {
+        reg_code = reg_codes[reg_dist(rng)];
+    } while (unique_regs &&
+             std::find(used_reg_codes.cbegin(), used_reg_codes.cend(),
+                       reg_code) != used_reg_codes.cend());
+    return reg_code;
 }
 
-static uint8_t get_random_reg_codes(std::mt19937 &rng, bool unique = false) {
-    uint8_t reg_code1 = get_random_reg_code(rng);
-    uint8_t reg_code2;
-    do {
-        reg_code2 = get_random_reg_code(rng);
-    } while (unique && reg_code2 == reg_code1);
+static uint8_t get_random_reg_codes(std::mt19937 &rng, bool unique_regs = {},
+                                    std::vector<uint8_t> used_reg_codes = {}) {
+    uint8_t reg_code1 = get_random_reg_code(rng, unique_regs, used_reg_codes);
+    used_reg_codes.push_back(reg_code1);
+    uint8_t reg_code2 = get_random_reg_code(rng, unique_regs, used_reg_codes);
     return (reg_code1 << 4) | reg_code2;
 }
 
@@ -173,15 +179,25 @@ static DataInstrParam get_random_param(
     }
 
     std::vector<uint8_t> instr_bytes = {opcode};
+    std::vector<uint8_t> used_reg_codes;
     for (size_t idx = 0; idx < desc->num_operands; idx++) {
         cpu_operand_type_t opd = desc->operands[idx];
         switch (opd) {
-        case CPU_OPD_REG:
-            instr_bytes.push_back(get_random_reg_code(rng));
+        case CPU_OPD_REG: {
+            uint8_t reg_code =
+                get_random_reg_code(rng, unique_regs, used_reg_codes);
+            used_reg_codes.push_back(reg_code);
+            instr_bytes.push_back(reg_code);
             break;
-        case CPU_OPD_REGS:
-            instr_bytes.push_back(get_random_reg_codes(rng, unique_regs));
+        }
+        case CPU_OPD_REGS: {
+            uint8_t reg_codes =
+                get_random_reg_codes(rng, unique_regs, used_reg_codes);
+            used_reg_codes.push_back((reg_codes >> 4) & 0x0F);
+            used_reg_codes.push_back((reg_codes >> 0) & 0x0F);
+            instr_bytes.push_back(reg_codes);
             break;
+        }
         case CPU_OPD_IMM5:
             // not used for data instructions
             break;
