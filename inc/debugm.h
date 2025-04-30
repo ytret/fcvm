@@ -6,11 +6,11 @@
 
 #define D_PRINT(F)                                                             \
     do {                                                                       \
-        printf("" F "\n");                                                     \
+        fprintf(stderr, "" F "\n");                                            \
     } while (0);
 #define D_PRINTF(F, ...)                                                       \
     do {                                                                       \
-        printf("" F "\n", __VA_ARGS__);                                        \
+        fprintf(stderr, "" F "\n", __VA_ARGS__);                               \
     } while (0);
 
 #define D_ASSERT(X)                D_ASSERT_IMPL(X, false, "%s", "")

@@ -14,33 +14,25 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 ##################
 ## Library code ##
 ##################
 add_library(fcvm STATIC
     src/cpu.c
+    src/cpu_instr_descs.c
     src/mem.c
-    src/ram.c
     src/vm.c
+    src/vm_err.c
 )
 target_compile_options(fcvm PRIVATE
     -g -Wall -Wextra -Wmissing-prototypes
     -fdiagnostics-color=always
 )
 target_include_directories(fcvm PUBLIC inc)
-
-
-##################
-## Main program ##
-##################
-add_executable(fcvm-main
-    src/main.c
-)
-target_compile_options(fcvm-main PRIVATE
-    -g -Wall -Wextra -Wmissing-prototypes
-)
-target_link_libraries(fcvm-main fcvm)
 
 
 ###########

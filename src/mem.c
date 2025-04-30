@@ -1,74 +1,43 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include "debugm.h"
 #include "mem.h"
 
-vm_res_u8_t mem_read_u8(vm_state_t *vm, uint32_t addr) {
-    D_ASSERT(vm != NULL);
-    vm_res_u8_t res = {.ok = true};
+mem_ctx_t *mem_new(void) {
+    mem_ctx_t *mem = malloc(sizeof(*mem));
+    D_ASSERT(mem);
+    memset(mem, 0, sizeof(*mem));
 
-    mmio_t *mmio = vm_find_mmio(vm, addr, 1);
-    if (mmio == NULL) {
-        D_PRINTF("can't find MMIO for addr 0x%08X, read size 1", addr);
-        res.ok = false;
-        res.exc.type = VM_EXC_MEM_FAULT;
-        return res;
-    }
+    mem->intf.read_u8 = mem_read_u8;
+    mem->intf.read_u32 = mem_read_u32;
+    mem->intf.write_u8 = mem_write_u8;
+    mem->intf.write_u32 = mem_write_u32;
 
-    uint32_t addr_in_mmio = addr - mmio->base;
-    D_ASSERT(mmio->pf_read_u8 != NULL);
-    res.byte = mmio->pf_read_u8(mmio->ctx, addr_in_mmio);
-    return res;
+    return mem;
 }
 
-vm_res_t mem_write_u8(vm_state_t *vm, uint32_t addr, uint8_t byte) {
-    D_ASSERT(vm != NULL);
-    vm_res_t res = {.ok = true};
-
-    mmio_t *mmio = vm_find_mmio(vm, addr, 1);
-    if (mmio == NULL) {
-        D_PRINTF("can't find MMIO for addr 0x%08X, write size 1", addr);
-        res.ok = false;
-        res.exc.type = VM_EXC_MEM_FAULT;
-        return res;
-    }
-
-    uint32_t addr_in_mmio = addr - mmio->base;
-    D_ASSERT(mmio->pf_write_u8 != NULL);
-    mmio->pf_write_u8(mmio->ctx, addr_in_mmio, byte);
-    return res;
+void mem_free(mem_ctx_t *mem) {
+    D_ASSERT(mem);
+    free(mem);
 }
 
-vm_res_u32_t mem_read_u32(vm_state_t *vm, uint32_t addr) {
-    D_ASSERT(vm != NULL);
-    vm_res_u32_t res = {.ok = true};
-
-    mmio_t *mmio = vm_find_mmio(vm, addr, 4);
-    if (mmio == NULL) {
-        D_PRINTF("can't find MMIO for addr 0x%08X, read size 4", addr);
-        res.ok = false;
-        res.exc.type = VM_EXC_MEM_FAULT;
-        return res;
-    }
-
-    uint32_t addr_in_mmio = addr - mmio->base;
-    D_ASSERT(mmio->pf_read_u32 != NULL);
-    res.dword = mmio->pf_read_u32(mmio->ctx, addr_in_mmio);
-    return res;
+vm_err_t mem_map_dev(mem_ctx_t *mem, const mem_dev_t *dev) {
+    D_TODO();
 }
 
-vm_res_t mem_write_u32(vm_state_t *vm, uint32_t addr, uint32_t dword) {
-    D_ASSERT(vm != NULL);
-    vm_res_t res = {.ok = true};
+vm_err_t mem_read_u8(void *ctx, vm_addr_t addr, uint8_t *out) {
+    D_TODO();
+}
 
-    mmio_t *mmio = vm_find_mmio(vm, addr, 4);
-    if (mmio == NULL) {
-        D_PRINTF("can't find MMIO for addr 0x%08X, write size 4", addr);
-        res.ok = false;
-        res.exc.type = VM_EXC_MEM_FAULT;
-        return res;
-    }
+vm_err_t mem_read_u32(void *ctx, vm_addr_t addr, uint32_t *out) {
+    D_TODO();
+}
 
-    uint32_t addr_in_mmio = addr - mmio->base;
-    D_ASSERT(mmio->pf_write_u32 != NULL);
-    mmio->pf_write_u32(mmio->ctx, addr_in_mmio, dword);
-    return res;
+vm_err_t mem_write_u8(void *ctx, vm_addr_t addr, uint8_t val) {
+    D_TODO();
+}
+
+vm_err_t mem_write_u32(void *ctx, vm_addr_t addr, uint32_t val) {
+    D_TODO();
 }
