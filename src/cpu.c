@@ -169,12 +169,20 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
     case CPU_OPD_IMM5:
         D_TODO();
         break;
-    case CPU_OPD_IMM8:
-        D_TODO();
+    case CPU_OPD_IMM8: {
+        uint8_t imm8;
+        err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm8);
+        if (err.type) { return err; }
+
+        uint32_t *out_imm8 = (uint32_t *)v_out;
+        *out_imm8 = imm8;
+        opd_size = 1;
         break;
+    }
     case CPU_OPD_IMM32: {
         uint32_t imm32;
         err = cpu->mem->read_u32(cpu->mem, cpu->reg_pc, &imm32);
+        if (err.type) { return err; }
 
         uint32_t *out_imm32 = (uint32_t *)v_out;
         *out_imm32 = imm32;
