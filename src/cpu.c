@@ -233,6 +233,14 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
                                   *p_reg_src);
         break;
     }
+    case CPU_OP_STR_RI32: {
+        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
+        uint32_t *p_reg_dst_mem = cpu->instr.operands[0].p_regs[1];
+        int32_t mem_offset = (int32_t)cpu->instr.operands[1].u32;
+        err = cpu->mem->write_u32(cpu->mem, *p_reg_dst_mem + mem_offset,
+                                  *p_reg_src);
+        break;
+    }
 
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
