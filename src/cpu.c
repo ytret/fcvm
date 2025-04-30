@@ -7,8 +7,6 @@
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
                                              void *v_out);
-static vm_err_t prv_cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
-                                   uint32_t **out_reg_ptr);
 static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu);
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
@@ -94,6 +92,32 @@ void cpu_step(cpu_ctx_t *cpu) {
 CPU_STEP_END:
 }
 
+vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
+                        uint32_t **out_reg_ptr) {
+    D_ASSERT(cpu);
+    D_ASSERT(out_reg_ptr);
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    uint32_t *code_addr_map[0xFF] = {
+        [CPU_CODE_R0] = &cpu->gp_regs[0], [CPU_CODE_R1] = &cpu->gp_regs[1],
+        [CPU_CODE_R2] = &cpu->gp_regs[2], [CPU_CODE_R3] = &cpu->gp_regs[3],
+        [CPU_CODE_R4] = &cpu->gp_regs[4], [CPU_CODE_R5] = &cpu->gp_regs[5],
+        [CPU_CODE_R6] = &cpu->gp_regs[6], [CPU_CODE_R7] = &cpu->gp_regs[7],
+        [CPU_CODE_SP] = &cpu->reg_sp,
+    };
+    static_assert(CPU_NUM_GP_REG_CODES == 8, "update register decoding");
+
+    uint32_t *p_reg = code_addr_map[reg_code];
+    if (p_reg) {
+        *out_reg_ptr = p_reg;
+    } else {
+        D_PRINTF("bad register code: 0x%02X", reg_code);
+        err.type = VM_ERR_BAD_REG_CODE;
+        *out_reg_ptr = NULL;
+    }
+    return err;
+}
+
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
                                              void *v_out) {
@@ -109,7 +133,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         if (err.type) { return err; }
 
         uint32_t *p_reg;
-        err = prv_cpu_decode_reg(cpu, reg_code, &p_reg);
+        err = cpu_decode_reg(cpu, reg_code, &p_reg);
         if (err.type) { return err; }
 
         uint32_t **out_reg = (uint32_t **)v_out;
@@ -125,9 +149,9 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
 
         uint32_t *p_reg1;
         uint32_t *p_reg2;
-        err = prv_cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg1);
+        err = cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg1);
         if (err.type) { return err; }
-        err = prv_cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg2);
+        err = cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg2);
         if (err.type) { return err; }
 
         uint32_t **out_regs = (uint32_t **)v_out;
@@ -156,32 +180,6 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
     }
 
     cpu->reg_pc += opd_size;
-    return err;
-}
-
-static vm_err_t prv_cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
-                                   uint32_t **out_reg_ptr) {
-    D_ASSERT(cpu);
-    D_ASSERT(out_reg_ptr);
-    vm_err_t err = {.type = VM_ERR_NONE};
-
-    uint32_t *code_addr_map[0xFF] = {
-        [CPU_CODE_R0] = &cpu->gp_regs[0], [CPU_CODE_R1] = &cpu->gp_regs[1],
-        [CPU_CODE_R2] = &cpu->gp_regs[2], [CPU_CODE_R3] = &cpu->gp_regs[3],
-        [CPU_CODE_R4] = &cpu->gp_regs[4], [CPU_CODE_R5] = &cpu->gp_regs[5],
-        [CPU_CODE_R6] = &cpu->gp_regs[6], [CPU_CODE_R7] = &cpu->gp_regs[7],
-        [CPU_CODE_SP] = &cpu->reg_sp,
-    };
-    static_assert(CPU_NUM_GP_REG_CODES == 8, "update register decoding");
-
-    uint32_t *p_reg = code_addr_map[reg_code];
-    if (p_reg) {
-        *out_reg_ptr = p_reg;
-    } else {
-        D_PRINTF("bad register code: 0x%02X", reg_code);
-        err.type = VM_ERR_BAD_REG_CODE;
-        *out_reg_ptr = NULL;
-    }
     return err;
 }
 

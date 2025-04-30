@@ -55,6 +55,10 @@ void cpu_free(cpu_ctx_t *cpu);
 
 void cpu_step(cpu_ctx_t *cpu);
 
+// Used in tests.
+vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
+                        uint32_t **out_reg_ptr);
+
 #ifdef __cplusplus
 }
 #endif
