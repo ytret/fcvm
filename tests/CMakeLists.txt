@@ -5,14 +5,9 @@ FetchContent_Declare(
     URL https://github.com/google/googletest/archive/df1544bcee0c7ce35cd5ea0b3eb8cc81855a4140.zip
 )
 FetchContent_MakeAvailable(googletest)
-
-FetchContent_Declare(
-    abseil-cpp
-    URL https://github.com/abseil/abseil-cpp/releases/download/20250127.1/abseil-cpp-20250127.1.tar.gz
-)
-FetchContent_MakeAvailable(abseil-cpp)
-
 include(GoogleTest)
+
+find_package(absl REQUIRED)
 
 function(my_add_test name)
     set(compile_defs)
