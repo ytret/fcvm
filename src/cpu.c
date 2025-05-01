@@ -546,6 +546,12 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
         do_jump = !flag_S_xor_V;
         break;
 
+    case CPU_OP_JLTR_V8:
+    case CPU_OP_JLTA_V32:
+    case CPU_OP_JLTA_R:
+        do_jump = flag_S_xor_V;
+        break;
+
     default:
         do_jump = true;
     }
@@ -557,6 +563,7 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     case CPU_OP_JNER_V8:
     case CPU_OP_JGTR_V8:
     case CPU_OP_JGER_V8:
+    case CPU_OP_JLTR_V8:
         jump_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
         break;
     case CPU_OP_JMPA_V32:
@@ -564,6 +571,7 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     case CPU_OP_JNEA_V32:
     case CPU_OP_JGTA_V32:
     case CPU_OP_JGEA_V32:
+    case CPU_OP_JLTA_V32:
         jump_pc = cpu->instr.operands[0].u32;
         break;
     case CPU_OP_JMPA_R:
@@ -571,6 +579,7 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     case CPU_OP_JNEA_R:
     case CPU_OP_JGTA_R:
     case CPU_OP_JGEA_R:
+    case CPU_OP_JLTA_R:
         jump_pc = *cpu->instr.operands[0].p_reg;
         break;
 
