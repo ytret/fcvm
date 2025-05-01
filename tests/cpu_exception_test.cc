@@ -162,5 +162,13 @@ INSTANTIATE_TEST_SUITE_P(
             .malformed_instr = true,
         });
 
+        v.push_back(CPUExceptionParam{
+            .name = "DIV_BY_ZERO",
+            .exception = VM_ERR_DIV_BY_ZERO,
+            .prog_bytes =
+                build_instr(CPU_OP_DIV_RV).reg_code(CPU_CODE_R0).imm32(0).bytes,
+            .num_init_steps = 3,
+        });
+
         return v;
     }()));
