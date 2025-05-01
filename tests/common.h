@@ -61,3 +61,8 @@ inline uint32_t get_random_imm32(std::mt19937 &rng) {
     std::uniform_int_distribution<uint32_t> val_dist(0, UINT32_MAX);
     return val_dist(rng);
 }
+
+inline bool get_random_bool(std::mt19937 &rng) {
+    std::uniform_int_distribution<uint32_t> val_dist(0, 1);
+    return val_dist(rng) == 0;
+}

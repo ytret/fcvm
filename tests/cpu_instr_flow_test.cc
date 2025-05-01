@@ -6,7 +6,7 @@
 #include "fake_mem.h"
 
 #define TEST_RNG_SEED         12345
-#define TEST_NUM_RANDOM_CASES 50
+#define TEST_NUM_RANDOM_CASES 500
 
 #define TEST_MEM_SIZE 100
 
@@ -40,7 +40,7 @@ struct FlowInstrParam {
     /// @}
 
     std::optional<std::function<bool(const FlowInstrParam &, cpu_ctx_t *)>>
-        f_exp_jump;
+        f_should_jump;
 
     static FlowInstrParam get_random_param(std::mt19937 &rng, std::string name,
                                            uint8_t opcode, AddrType addr_type) {
@@ -78,6 +78,11 @@ struct FlowInstrParam {
             break;
         }
         }
+
+        flag_zero = get_random_bool(rng);
+        flag_sign = get_random_bool(rng);
+        flag_carry = get_random_bool(rng);
+        flag_overflow = get_random_bool(rng);
     }
 
     std::vector<uint8_t> encode_instr() const {
@@ -103,6 +108,12 @@ struct FlowInstrParam {
             uint32_t *p_reg = get_reg_ptr(cpu, *reg_code);
             *p_reg = jump_addr;
         }
+
+        cpu->flags = 0;
+        if (flag_zero) { cpu->flags |= CPU_FLAG_ZERO; }
+        if (flag_sign) { cpu->flags |= CPU_FLAG_SIGN; }
+        if (flag_carry) { cpu->flags |= CPU_FLAG_CARRY; }
+        if (flag_overflow) { cpu->flags |= CPU_FLAG_OVERFLOW; }
     }
 
     friend std::ostream &operator<<(std::ostream &os,
@@ -115,8 +126,30 @@ struct FlowInstrParam {
         default:
             break;
         }
-        os << absl::StrFormat("{ %s, PC = 0x%08X, %s, to 0x%08X }", param.name,
-                              param.init_pc, addr_desc, param.jump_addr);
+        std::string flag_str;
+        if (param.flag_zero) {
+            flag_str += "Z";
+        } else {
+            flag_str += "z";
+        }
+        if (param.flag_sign) {
+            flag_str += "S";
+        } else {
+            flag_str += "s";
+        }
+        if (param.flag_carry) {
+            flag_str += "C";
+        } else {
+            flag_str += "c";
+        }
+        if (param.flag_overflow) {
+            flag_str += "O";
+        } else {
+            flag_str += "o";
+        }
+        os << absl::StrFormat("{ %s, PC = 0x%08X, %s, to 0x%08X, %s }",
+                              param.name, param.init_pc, addr_desc,
+                              param.jump_addr, flag_str);
         return os;
     }
 };
@@ -157,8 +190,8 @@ TEST_P(FlowInstrTest, SetsPC) {
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 
     bool exp_jump = true;
-    if (param.f_exp_jump.has_value()) {
-        exp_jump = param.f_exp_jump.value()(param, cpu);
+    if (param.f_should_jump.has_value()) {
+        exp_jump = param.f_should_jump.value()(param, cpu);
     }
     if (exp_jump) {
         EXPECT_EQ(cpu->reg_pc, param.jump_addr);
@@ -198,6 +231,22 @@ INSTANTIATE_TEST_SUITE_P(Random_JMPA_R, FlowInstrTest, testing::ValuesIn([&] {
                                  auto param = FlowInstrParam::get_random_param(
                                      rng, "JMPA_R", CPU_OP_JMPA_R,
                                      FlowInstrParam::AddrInReg);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_JEQR_V8, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "JEQR_V8", CPU_OP_JEQR_V8,
+                                     FlowInstrParam::RelToPC);
+                                 param.f_should_jump =
+                                     [](const FlowInstrParam &p, cpu_ctx_t *) {
+                                         return p.flag_zero;
+                                     };
                                  v.push_back(param);
                              }
                              return v;

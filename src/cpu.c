@@ -515,9 +515,26 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
 
 static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     vm_err_t err = {.type = VM_ERR_NONE};
+
+    bool do_jump;
+    switch (cpu->instr.opcode) {
+    case CPU_OP_JEQR_V8:
+    case CPU_OP_JEQA_V32:
+    case CPU_OP_JEQA_R:
+        do_jump = (cpu->flags & CPU_FLAG_ZERO) != 0;
+        break;
+
+    default:
+        do_jump = true;
+    }
+
     switch (cpu->instr.opcode) {
     case CPU_OP_JMPR_V8:
-        cpu->reg_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
+    case CPU_OP_JEQR_V8:
+        if (do_jump) {
+            cpu->reg_pc =
+                cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
+        }
         break;
     case CPU_OP_JMPA_V32:
         cpu->reg_pc = cpu->instr.operands[0].u32;
