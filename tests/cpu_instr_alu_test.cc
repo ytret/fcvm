@@ -626,3 +626,34 @@ INSTANTIATE_TEST_SUITE_P(
         }
         return v;
     }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_CMP_RR, ALUInstrTest, testing::ValuesIn([&] {
+        std::vector<ALUInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = ALUInstrParam::get_random_param(
+                rng, "CMP_RR", CPU_OP_CMP_RR, ALUInstrParam::ResNotStored,
+                ALUInstrParam::SrcInReg);
+
+            uint32_t op1 = param.dst_val;
+            uint32_t op2;
+            if (param.dst_reg_code == *param.src_reg_code) {
+                param.set_exp_val_flags(param.dst_val - param.dst_val);
+                op2 = op1;
+            } else {
+                param.set_exp_val_flags(param.dst_val - *param.src_val);
+                op2 = *param.src_val;
+            }
+
+            bool sign_op1 = (op1 & (1 << 31)) != 0;
+            bool sign_op2 = (op2 & (1 << 31)) != 0;
+            bool sign_res = (param.exp_res_val & (1 << 31)) != 0;
+            param.exp_flag_carry = op1 >= op2;
+            param.exp_flag_overflow =
+                sign_op1 != sign_op2 && sign_res != sign_op1;
+
+            v.push_back(param);
+        }
+        return v;
+    }()));
