@@ -486,6 +486,15 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
         break;
     }
 
+    case CPU_OP_TST_RR:
+    case CPU_OP_TST_RV: {
+        // Same as AND_*, except that the dest reg is not written to.
+        uint32_t res = *p_reg_dst & src_val;
+        flag_zero = res == 0;
+        flag_sign = (res & (1 << 31)) != 0;
+        break;
+    }
+
     case CPU_OP_ROL_RR:
     case CPU_OP_ROL_RV:
     case CPU_OP_ROR_RR:
