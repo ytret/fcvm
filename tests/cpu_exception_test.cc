@@ -7,6 +7,7 @@
 #define TEST_BAD_MEM      0x1000'0000
 #define TEST_BAD_OPCODE   0x00
 #define TEST_BAD_REG_CODE 0x0F
+#define TEST_BAD_IMM5     0xFF // does not fit into imm5
 
 struct CPUExceptionParam {
     std::string name;
@@ -147,6 +148,17 @@ INSTANTIATE_TEST_SUITE_P(
             .prog_bytes =
                 build_instr(CPU_OP_PUSH_R).reg_code(TEST_BAD_REG_CODE).bytes,
             .num_init_steps = 2,
+            .malformed_instr = true,
+        });
+
+        v.push_back(CPUExceptionParam{
+            .name = "BAD_IMM5",
+            .exception = VM_ERR_BAD_IMM5,
+            .prog_bytes = build_instr(CPU_OP_SHL_RV)
+                              .reg_code(CPU_CODE_R0)
+                              .imm5(TEST_BAD_IMM5)
+                              .bytes,
+            .num_init_steps = 3,
             .malformed_instr = true,
         });
 
