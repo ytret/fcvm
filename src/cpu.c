@@ -519,9 +519,11 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     case CPU_OP_JMPR_V8:
         cpu->reg_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
         break;
-
     case CPU_OP_JMPA_V32:
         cpu->reg_pc = cpu->instr.operands[0].u32;
+        break;
+    case CPU_OP_JMPA_R:
+        cpu->reg_pc = *cpu->instr.operands[0].p_reg;
         break;
 
     default:

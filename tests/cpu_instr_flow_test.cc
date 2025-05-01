@@ -71,10 +71,12 @@ struct FlowInstrParam {
         case AddrInIMM32:
             jump_addr = get_random_data_addr(rng, prog_end, stack_start, 0);
             break;
-        case AddrInReg:
-            fprintf(stderr, "AddrInReg not impl\n");
-            abort();
+        case AddrInReg: {
+            jump_addr = get_random_data_addr(rng, prog_end, stack_start, 0);
+            std::vector<uint8_t> used_reg_codes = {CPU_CODE_SP};
+            *reg_code = get_random_reg_code(rng, true, used_reg_codes);
             break;
+        }
         }
     }
 
@@ -184,6 +186,18 @@ INSTANTIATE_TEST_SUITE_P(Random_JMPA_V32, FlowInstrTest, testing::ValuesIn([&] {
                                  auto param = FlowInstrParam::get_random_param(
                                      rng, "JMPA_V32", CPU_OP_JMPA_V32,
                                      FlowInstrParam::AddrInIMM32);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_JMPA_R, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "JMPA_R", CPU_OP_JMPA_R,
+                                     FlowInstrParam::AddrInReg);
                                  v.push_back(param);
                              }
                              return v;
