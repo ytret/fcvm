@@ -1,5 +1,3 @@
-#pragma once
-
 #include "debugm.h"
 #include "vm_err.h"
 
