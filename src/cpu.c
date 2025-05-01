@@ -339,6 +339,29 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
         break;
     }
 
+    case CPU_OP_SUB_RR:
+    case CPU_OP_SUB_RV: {
+        uint32_t *p_reg_dst;
+        uint32_t src_val;
+        if (cpu->instr.opcode == CPU_OP_SUB_RR) {
+            p_reg_dst = cpu->instr.operands[0].p_regs[0];
+            src_val = *cpu->instr.operands[0].p_regs[1];
+        } else {
+            p_reg_dst = cpu->instr.operands[0].p_reg;
+            src_val = cpu->instr.operands[1].u32;
+        }
+        uint32_t res = *p_reg_dst - src_val;
+        bool sign_op1 = (*p_reg_dst & (1 << 31)) != 0;
+        bool sign_op2 = (src_val & (1 << 31)) != 0;
+        bool sign_res = (res & (1L << 31)) != 0;
+        flag_zero = res == 0;
+        flag_sign = sign_res;
+        flag_carry = *p_reg_dst >= src_val;
+        flag_ovf = (sign_op1 != sign_op2) && (sign_res != sign_op1);
+        *p_reg_dst = (uint32_t)res;
+        break;
+    }
+
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
