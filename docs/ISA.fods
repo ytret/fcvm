@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <office:document xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:css3t="http://www.w3.org/TR/css3-text/" xmlns:grddl="http://www.w3.org/2003/g/data-view#" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xforms="http://www.w3.org/2002/xforms" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:drawooo="http://openoffice.org/2010/draw" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:calcext="urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:tableooo="http://openoffice.org/2009/table" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:rpt="http://openoffice.org/2005/report" xmlns:formx="urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:field="urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:loext="urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0" office:version="1.4" office:mimetype="application/vnd.oasis.opendocument.spreadsheet">
- <office:meta><meta:creation-date>2025-04-27T12:53:32.390253609</meta:creation-date><meta:generator>LibreOffice/25.2.2.2$Linux_X86_64 LibreOffice_project/520$Build-2</meta:generator><dc:date>2025-05-01T13:06:17.674269000</dc:date><meta:editing-duration>PT20H6M44S</meta:editing-duration><meta:editing-cycles>47</meta:editing-cycles><meta:document-statistic meta:table-count="6" meta:cell-count="449" meta:object-count="0"/></office:meta>
+ <office:meta><meta:creation-date>2025-04-27T12:53:32.390253609</meta:creation-date><meta:generator>LibreOffice/25.2.2.2$Linux_X86_64 LibreOffice_project/520$Build-2</meta:generator><dc:date>2025-05-01T13:30:05.344935985</dc:date><meta:editing-duration>PT20H30M30S</meta:editing-duration><meta:editing-cycles>50</meta:editing-cycles><meta:document-statistic meta:table-count="6" meta:cell-count="449" meta:object-count="0"/></office:meta>
  <office:settings>
   <config:config-item-set config:name="ooo:view-settings">
    <config:config-item config:name="VisibleAreaTop" config:type="int">0</config:config-item>
@@ -14,7 +14,7 @@
      <config:config-item-map-named config:name="Tables">
       <config:config-item-map-entry config:name="ALU">
        <config:config-item config:name="CursorPositionX" config:type="int">10</config:config-item>
-       <config:config-item config:name="CursorPositionY" config:type="int">20</config:config-item>
+       <config:config-item config:name="CursorPositionY" config:type="int">29</config:config-item>
        <config:config-item config:name="ActiveSplitRange" config:type="short">2</config:config-item>
        <config:config-item config:name="PositionLeft" config:type="int">0</config:config-item>
        <config:config-item config:name="PositionRight" config:type="int">0</config:config-item>
@@ -383,6 +383,9 @@
   </style:style>
   <style:style style:name="ro2" style:family="table-row">
    <style:table-row-properties style:row-height="0.1783in" fo:break-before="auto" style:use-optimal-row-height="true"/>
+  </style:style>
+  <style:style style:name="ro3" style:family="table-row">
+   <style:table-row-properties style:row-height="0.3311in" fo:break-before="auto" style:use-optimal-row-height="true"/>
   </style:style>
   <style:style style:name="ta1" style:family="table" style:master-page-name="Default">
    <style:table-properties table:display="true" style:writing-mode="lr-tb"/>
@@ -1097,7 +1100,7 @@
       <text:p>bit 31 is set</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
-      <text:p>res &gt;= 0</text:p>
+      <text:p>RD &gt;= RS</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>sign_D != sign_S &amp;&amp; sign_R != sign_D</text:p>
@@ -1613,7 +1616,7 @@
      <table:table-cell table:number-columns-repeated="3"/>
      <table:covered-table-cell table:number-columns-repeated="4"/>
     </table:table-row>
-    <table:table-row table:style-name="ro2">
+    <table:table-row table:style-name="ro3">
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>CMP RA, RB</text:p>
      </table:table-cell>
@@ -1634,10 +1637,10 @@
       <text:p>bit 31 is set</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>res &gt;= 0</text:p>
+      <text:p>RD &gt;= RS</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>always 0</text:p>
+      <text:p>sign_D != sign_S &amp;&amp; sign_R != sign_D</text:p>
      </table:table-cell>
     </table:table-row>
     <table:table-row table:style-name="ro1">
