@@ -28,7 +28,24 @@ function(my_add_test name)
     gtest_discover_tests(${name})
 endfunction()
 
-my_add_test(cpu_instr_data_test)
-my_add_test(cpu_instr_alu_test)
-my_add_test(cpu_instr_flow_test)
-my_add_test(cpu_instr_stack_test)
+set(TEST_RNG_SEED 12345 CACHE STRING
+    "Random number generator seed used by the tests.")
+set(TEST_NUM_RANDOM_CASES 50 CACHE STRING
+    "Number of randomly generated tests for each instruction.")
+
+my_add_test(cpu_instr_data_test
+    -DTEST_RNG_SEED=${TEST_RNG_SEED}
+    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+)
+my_add_test(cpu_instr_alu_test
+    -DTEST_RNG_SEED=${TEST_RNG_SEED}
+    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+)
+my_add_test(cpu_instr_flow_test
+    -DTEST_RNG_SEED=${TEST_RNG_SEED}
+    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+)
+my_add_test(cpu_instr_stack_test
+    -DTEST_RNG_SEED=${TEST_RNG_SEED}
+    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+)

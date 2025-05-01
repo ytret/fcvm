@@ -5,9 +5,6 @@
 #include "cpu.h"
 #include "fake_mem.h"
 
-#define TEST_RNG_SEED         12345
-#define TEST_NUM_RANDOM_CASES 50
-
 #define TEST_MEM_BASE 0x1000
 #define TEST_MEM_SIZE 100
 
