@@ -636,6 +636,10 @@ static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu) {
         err = prv_cpu_stack_push_u32(cpu, *cpu->instr.operands[0].p_reg);
         break;
 
+    case CPU_OP_POP_R:
+        err = prv_cpu_stack_pop_u32(cpu, cpu->instr.operands[0].p_reg);
+        break;
+
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);

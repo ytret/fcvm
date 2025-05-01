@@ -175,3 +175,15 @@ INSTANTIATE_TEST_SUITE_P(Random_PUSH_R, StackInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_POP_R, StackInstrTest, testing::ValuesIn([&] {
+                             std::vector<StackInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = StackInstrParam::get_random_param(
+                                     rng, "POP_R", CPU_OP_POP_R,
+                                     StackInstrParam::PopToReg);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
