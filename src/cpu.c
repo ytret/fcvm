@@ -170,9 +170,20 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         opd_size = 1;
         break;
     }
-    case CPU_OPD_IMM5:
-        D_TODO();
+    case CPU_OPD_IMM5: {
+        uint8_t imm5;
+        err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm5);
+        if (err.type) { return err; }
+        if ((imm5 & ~31) != 0) {
+            err.type = VM_ERR_BAD_IMM5;
+            return err;
+        }
+
+        uint8_t *out_imm5 = (uint8_t *)v_out;
+        *out_imm5 = imm5;
+        opd_size = 1;
         break;
+    }
     case CPU_OPD_IMM8: {
         uint8_t imm8;
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm8);
@@ -329,12 +340,7 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
             cpu->instr.opcode == CPU_OP_ROL_RV ||
             cpu->instr.opcode == CPU_OP_ROR_RV) {
             // Second operand is an imm5.
-            src_val = cpu->instr.operands[1].u8;
-            if ((src_val & ~31) != 0x00) {
-                D_PRINT("garbage bits in an imm5 value");
-                err.type = VM_ERR_BAD_IMM5;
-                return err;
-            }
+            src_val = cpu->instr.operands[1].imm5;
         } else {
             // Second operand is an imm32.
             src_val = cpu->instr.operands[1].u32;
