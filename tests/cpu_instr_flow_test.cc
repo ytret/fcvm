@@ -146,7 +146,10 @@ struct FlowInstrParam {
             addr_desc = absl::StrFormat("R[%u]", *param.reg_code);
             break;
         case FlowInstrParam::AddrInIMM32:
-            addr_desc = absl::StrFormat("imm32");
+            addr_desc = "imm32";
+            break;
+        case FlowInstrParam::AddrOnStack:
+            addr_desc = "[SP]";
             break;
         default:
             break;
