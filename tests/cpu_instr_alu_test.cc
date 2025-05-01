@@ -583,3 +583,46 @@ INSTANTIATE_TEST_SUITE_P(
         }
         return v;
     }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_SHR_RR, ALUInstrTest, testing::ValuesIn([&] {
+        std::vector<ALUInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = ALUInstrParam::get_random_param(
+                rng, "SHR_RR", CPU_OP_SHR_RR, ALUInstrParam::ResStoredInDstReg,
+                ALUInstrParam::SrcInReg);
+
+            uint32_t op1 = param.dst_val;
+            uint32_t num_bits;
+            if (param.dst_reg_code == *param.src_reg_code) {
+                param.set_exp_val_flags(param.dst_val >> (param.dst_val & 31));
+                num_bits = op1;
+            } else {
+                param.set_exp_val_flags(param.dst_val >> (*param.src_val & 31));
+                num_bits = *param.src_val;
+            }
+            if (num_bits > 0) {
+                param.exp_flag_carry = ((op1 >> (num_bits - 1)) & 1) != 0;
+            }
+            v.push_back(param);
+        }
+        return v;
+    }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_SHR_RV, ALUInstrTest, testing::ValuesIn([&] {
+        std::vector<ALUInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = ALUInstrParam::get_random_param(
+                rng, "SHR_RV", CPU_OP_SHR_RV, ALUInstrParam::ResStoredInDstReg,
+                ALUInstrParam::SrcInIMM5);
+            param.set_exp_val_flags(param.dst_val >> (*param.src_val & 31));
+            param.exp_flag_carry =
+                (((uint64_t)param.dst_val >> (32 - (*param.src_val & 31))) &
+                 1) != 0;
+            v.push_back(param);
+        }
+        return v;
+    }()));
