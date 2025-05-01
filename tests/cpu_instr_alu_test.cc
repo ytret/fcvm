@@ -494,3 +494,36 @@ INSTANTIATE_TEST_SUITE_P(Random_OR_RV, ALUInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_XOR_RR, ALUInstrTest, testing::ValuesIn([&] {
+        std::vector<ALUInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = ALUInstrParam::get_random_param(
+                rng, "XOR_RR", CPU_OP_XOR_RR, ALUInstrParam::ResStoredInDstReg,
+                ALUInstrParam::SrcInReg);
+            if (param.dst_reg_code == *param.src_reg_code) {
+                param.set_exp_val_flags(param.dst_val ^ param.dst_val);
+            } else {
+                param.set_exp_val_flags(param.dst_val ^ *param.src_val);
+            }
+            v.push_back(param);
+        }
+        return v;
+    }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_XOR_RV, ALUInstrTest, testing::ValuesIn([&] {
+                             std::vector<ALUInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = ALUInstrParam::get_random_param(
+                                     rng, "XOR_RV", CPU_OP_XOR_RV,
+                                     ALUInstrParam::ResStoredInDstReg,
+                                     ALUInstrParam::SrcInIMM32);
+                                 param.set_exp_val_flags(param.dst_val ^
+                                                         *param.src_val);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
