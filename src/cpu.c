@@ -607,6 +607,10 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
         break;
     }
 
+    case CPU_OP_RET:
+        prv_cpu_stack_pop_u32(cpu, &jump_pc);
+        break;
+
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
@@ -628,7 +632,16 @@ static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val) {
 }
 
 static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val) {
-    D_TODO();
+    D_ASSERT(cpu != NULL);
+    vm_err_t err = cpu->mem->read_u32(cpu->mem, cpu->reg_sp, out_val);
+    if (err.type == VM_ERR_NONE) {
+        if (cpu->reg_sp <= 0xFFFFFFFF - 4) {
+            cpu->reg_sp += 4;
+        } else {
+            err.type = VM_ERR_STACK_OVERFLOW;
+        }
+    }
+    return err;
 }
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err) {

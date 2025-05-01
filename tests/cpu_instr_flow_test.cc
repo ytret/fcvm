@@ -15,6 +15,7 @@ struct FlowInstrParam {
         RelToPC,     //!< Jump address is stored as an IMM8 offset of PC.
         AddrInIMM32, //!< Jump address is stored as an IMM32.
         AddrInReg,   //!< Jump address is stored in a register.
+        AddrOnStack, //!< Jump address is on the stack.
     };
     enum StackOpType {
         NoStackOp,     //!< Does not change the stack or SP.
@@ -52,7 +53,7 @@ struct FlowInstrParam {
     get_random_param(std::mt19937 &rng, std::string name, uint8_t opcode,
                      AddrType addr_type,
                      StackOpType stack_op_type = NoStackOp) {
-        size_t num_cpu_steps = 3;
+        size_t num_cpu_steps = addr_type == AddrOnStack ? 2 : 3;
         FlowInstrParam param = {};
         param.name = name;
         param.opcode = opcode;
@@ -78,6 +79,7 @@ struct FlowInstrParam {
             break;
         }
         case AddrInIMM32:
+        case AddrOnStack:
             jump_addr = get_random_data_addr(rng, prog_end, stack_start, 0);
             break;
         case AddrInReg: {
@@ -98,6 +100,8 @@ struct FlowInstrParam {
         std::vector<uint8_t> bytes;
         bytes.push_back(opcode);
         switch (addr_type) {
+        case AddrOnStack:
+            break;
         case RelToPC:
             bytes.push_back((uint8_t)*pc_offset);
             break;
@@ -113,9 +117,15 @@ struct FlowInstrParam {
     }
 
     void prepare_cpu(cpu_ctx_t *cpu) const {
+        cpu->reg_pc = init_pc;
+        cpu->reg_sp = mem_base + TEST_MEM_SIZE;
+
         if (addr_type == AddrInReg) {
             uint32_t *p_reg = get_reg_ptr(cpu, *reg_code);
             *p_reg = jump_addr;
+        } else if (addr_type == AddrOnStack) {
+            cpu->reg_sp -= 4;
+            cpu->mem->write_u32(cpu->mem, cpu->reg_sp, jump_addr);
         }
 
         cpu->flags = 0;
@@ -180,8 +190,6 @@ class FlowInstrTest : public testing::TestWithParam<FlowInstrParam> {
         mem->write(param.mem_base, instr_bytes.data(), instr_bytes.size());
 
         cpu = cpu_new(&mem->mem_if);
-        cpu->reg_pc = param.init_pc;
-        cpu->reg_sp = param.mem_base + TEST_MEM_SIZE;
     }
     ~FlowInstrTest() {
         delete cpu;
@@ -242,8 +250,7 @@ TEST_P(FlowInstrTest, CheckStack) {
         break;
     }
     case FlowInstrParam::PopsFromStack:
-        fprintf(stderr, "test: PopsFromStack not impl\n");
-        FAIL();
+        ASSERT_EQ(sp_change, 4);
         break;
     }
 }
@@ -570,6 +577,19 @@ INSTANTIATE_TEST_SUITE_P(Random_CALLA_R, FlowInstrTest, testing::ValuesIn([&] {
                                      rng, "CALLA_R", CPU_OP_CALLA_R,
                                      FlowInstrParam::AddrInReg,
                                      FlowInstrParam::PushesOnStack);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_RET, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "RET", CPU_OP_RET,
+                                     FlowInstrParam::AddrOnStack,
+                                     FlowInstrParam::PopsFromStack);
                                  v.push_back(param);
                              }
                              return v;
