@@ -28,3 +28,4 @@ function(my_add_test name)
 endfunction()
 
 my_add_test(cpu_instr_data_test)
+my_add_test(cpu_instr_alu_test)

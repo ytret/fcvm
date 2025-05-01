@@ -13,6 +13,11 @@ extern "C" {
 static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
               "update register codes in cpu_instr_descs.h");
 
+#define CPU_FLAG_ZERO     (1 << 0)
+#define CPU_FLAG_SIGN     (1 << 1)
+#define CPU_FLAG_CARRY    (1 << 2)
+#define CPU_FLAG_OVERFLOW (1 << 3)
+
 typedef enum {
     CPU_FETCH_DECODE_OPCODE,
     CPU_FETCH_DECODE_OPERANDS,

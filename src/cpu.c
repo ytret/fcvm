@@ -8,9 +8,13 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
                                              void *v_out);
 static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu);
+static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu);
+static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu);
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err);
+static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,
+                              bool overflow);
 
 cpu_ctx_t *cpu_new(mem_if_t *mem) {
     D_ASSERT(mem);
@@ -201,6 +205,23 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
     vm_err_t err = {.type = VM_ERR_NONE};
 
+    uint8_t opcode_kind = cpu->instr.opcode & CPU_OP_KIND_MASK;
+    if (opcode_kind == CPU_OP_KIND_DATA) {
+        err = prv_cpu_execute_data_instr(cpu);
+    } else if (opcode_kind == CPU_OP_KIND_ALU) {
+        err = prv_cpu_execute_alu_instr(cpu);
+    } else {
+        D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
+                   cpu->instr.opcode);
+    }
+
+    return err;
+}
+
+static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
+    D_ASSERT(cpu);
+    vm_err_t err = {.type = VM_ERR_NONE};
+
     switch (cpu->instr.opcode) {
     case CPU_OP_MOV_VR: {
         uint32_t *p_reg = cpu->instr.operands[0].p_reg;
@@ -282,6 +303,50 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
     }
+
+    return err;
+}
+
+static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    bool flag_zero = false;
+    bool flag_sign = false;
+    bool flag_carry = false;
+    bool flag_ovf = false;
+
+    switch (cpu->instr.opcode) {
+    case CPU_OP_ADD_RR:
+    case CPU_OP_ADD_RV: {
+        uint32_t *p_reg_dst;
+        uint32_t src_val;
+        if (cpu->instr.opcode == CPU_OP_ADD_RR) {
+            p_reg_dst = cpu->instr.operands[0].p_regs[0];
+            src_val = *cpu->instr.operands[0].p_regs[1];
+        } else {
+            p_reg_dst = cpu->instr.operands[0].p_reg;
+            src_val = cpu->instr.operands[1].u32;
+        }
+        uint64_t res = (uint64_t)*p_reg_dst + src_val;
+        bool sign_op1 = (*p_reg_dst & (1 << 31)) != 0;
+        bool sign_op2 = (src_val & (1 << 31)) != 0;
+        bool sign_res = (res & (1L << 31)) != 0;
+        flag_zero = res == 0;
+        flag_sign = sign_res;
+        flag_carry = (res & ~0xFFFFFFFFL) != 0;
+        flag_ovf = (sign_op1 == sign_op2) && (sign_res != sign_op1);
+        *p_reg_dst = (uint32_t)res;
+        break;
+    }
+
+    default:
+        D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
+                   cpu->instr.opcode);
+    }
+
+    if (err.type == VM_ERR_NONE) {
+        prv_cpu_set_flags(cpu, flag_zero, flag_sign, flag_carry, flag_ovf);
+    }
     return err;
 }
 
@@ -300,4 +365,29 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     D_ASSERT(cpu->raise_irq);
     cpu->raise_irq(cpu, vm_err_to_irq_line(err));
     cpu->state = CPU_HANDLE_INT;
+}
+
+static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,
+                              bool overflow) {
+    D_ASSERT(cpu != NULL);
+    if (zero) {
+        cpu->flags |= CPU_FLAG_ZERO;
+    } else {
+        cpu->flags &= ~CPU_FLAG_ZERO;
+    }
+    if (sign) {
+        cpu->flags |= CPU_FLAG_SIGN;
+    } else {
+        cpu->flags &= ~CPU_FLAG_SIGN;
+    }
+    if (carry) {
+        cpu->flags |= CPU_FLAG_CARRY;
+    } else {
+        cpu->flags &= ~CPU_FLAG_CARRY;
+    }
+    if (overflow) {
+        cpu->flags |= CPU_FLAG_OVERFLOW;
+    } else {
+        cpu->flags &= ~CPU_FLAG_OVERFLOW;
+    }
 }
