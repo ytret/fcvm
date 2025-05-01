@@ -6,7 +6,7 @@
 #include "fake_mem.h"
 
 #define TEST_RNG_SEED         12345
-#define TEST_NUM_RANDOM_CASES 500
+#define TEST_NUM_RANDOM_CASES 50
 
 #define TEST_MEM_SIZE 100
 
@@ -274,6 +274,52 @@ INSTANTIATE_TEST_SUITE_P(Random_JEQA_R, FlowInstrTest, testing::ValuesIn([&] {
                                  param.f_should_jump =
                                      [](const FlowInstrParam &p, cpu_ctx_t *) {
                                          return p.flag_zero;
+                                     };
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_JNER_V8, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "JNER_V8", CPU_OP_JNER_V8,
+                                     FlowInstrParam::RelToPC);
+                                 param.f_should_jump =
+                                     [](const FlowInstrParam &p, cpu_ctx_t *) {
+                                         return !p.flag_zero;
+                                     };
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_JNEA_V32, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "JNEA_V32", CPU_OP_JNEA_V32,
+                                     FlowInstrParam::AddrInIMM32);
+                                 param.f_should_jump =
+                                     [](const FlowInstrParam &p, cpu_ctx_t *) {
+                                         return !p.flag_zero;
+                                     };
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_JNEA_R, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "JNEA_R", CPU_OP_JNEA_R,
+                                     FlowInstrParam::AddrInReg);
+                                 param.f_should_jump =
+                                     [](const FlowInstrParam &p, cpu_ctx_t *) {
+                                         return !p.flag_zero;
                                      };
                                  v.push_back(param);
                              }

@@ -524,6 +524,12 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
         do_jump = (cpu->flags & CPU_FLAG_ZERO) != 0;
         break;
 
+    case CPU_OP_JNER_V8:
+    case CPU_OP_JNEA_V32:
+    case CPU_OP_JNEA_R:
+        do_jump = (cpu->flags & CPU_FLAG_ZERO) == 0;
+        break;
+
     default:
         do_jump = true;
     }
@@ -532,14 +538,17 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     switch (cpu->instr.opcode) {
     case CPU_OP_JMPR_V8:
     case CPU_OP_JEQR_V8:
+    case CPU_OP_JNER_V8:
         jump_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
         break;
     case CPU_OP_JMPA_V32:
     case CPU_OP_JEQA_V32:
+    case CPU_OP_JNEA_V32:
         jump_pc = cpu->instr.operands[0].u32;
         break;
     case CPU_OP_JMPA_R:
     case CPU_OP_JEQA_R:
+    case CPU_OP_JNEA_R:
         jump_pc = *cpu->instr.operands[0].p_reg;
         break;
 
