@@ -123,6 +123,12 @@ struct FlowInstrParam {
         case FlowInstrParam::RelToPC:
             addr_desc = absl::StrFormat("%+d", *param.pc_offset);
             break;
+        case FlowInstrParam::AddrInReg:
+            addr_desc = absl::StrFormat("R[%u]", *param.reg_code);
+            break;
+        case FlowInstrParam::AddrInIMM32:
+            addr_desc = absl::StrFormat("imm32");
+            break;
         default:
             break;
         }
@@ -147,7 +153,7 @@ struct FlowInstrParam {
         } else {
             flag_str += "o";
         }
-        os << absl::StrFormat("{ %s, PC = 0x%08X, %s, to 0x%08X, %s }",
+        os << absl::StrFormat("{ %s, PC = 0x%08X, %s = 0x%08X, %s }",
                               param.name, param.init_pc, addr_desc,
                               param.jump_addr, flag_str);
         return os;
@@ -325,3 +331,46 @@ INSTANTIATE_TEST_SUITE_P(Random_JNEA_R, FlowInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_JGTR_V8, FlowInstrTest, testing::ValuesIn([&] {
+        std::vector<FlowInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = FlowInstrParam::get_random_param(
+                rng, "JGTR_V8", CPU_OP_JGTR_V8, FlowInstrParam::RelToPC);
+            param.f_should_jump = [](const FlowInstrParam &p, cpu_ctx_t *) {
+                return !p.flag_zero && !(p.flag_sign ^ p.flag_overflow);
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));
+INSTANTIATE_TEST_SUITE_P(
+    Random_JGTA_V32, FlowInstrTest, testing::ValuesIn([&] {
+        std::vector<FlowInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = FlowInstrParam::get_random_param(
+                rng, "JGTA_V32", CPU_OP_JGTA_V32, FlowInstrParam::AddrInIMM32);
+            param.f_should_jump = [](const FlowInstrParam &p, cpu_ctx_t *) {
+                return !p.flag_zero && !(p.flag_sign ^ p.flag_overflow);
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));
+INSTANTIATE_TEST_SUITE_P(
+    Random_JGTA_R, FlowInstrTest, testing::ValuesIn([&] {
+        std::vector<FlowInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = FlowInstrParam::get_random_param(
+                rng, "JGTA_R", CPU_OP_JGTA_R, FlowInstrParam::AddrInReg);
+            param.f_should_jump = [](const FlowInstrParam &p, cpu_ctx_t *) {
+                return !p.flag_zero && !(p.flag_sign ^ p.flag_overflow);
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));

@@ -517,17 +517,27 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     vm_err_t err = {.type = VM_ERR_NONE};
 
     bool do_jump;
+    bool flag_zero = (cpu->flags & CPU_FLAG_ZERO) != 0;
+    bool flag_sign = (cpu->flags & CPU_FLAG_SIGN) != 0;
+    bool flag_overflow = (cpu->flags & CPU_FLAG_OVERFLOW) != 0;
+    bool flag_S_xor_V = flag_sign ^ flag_overflow;
     switch (cpu->instr.opcode) {
     case CPU_OP_JEQR_V8:
     case CPU_OP_JEQA_V32:
     case CPU_OP_JEQA_R:
-        do_jump = (cpu->flags & CPU_FLAG_ZERO) != 0;
+        do_jump = flag_zero;
         break;
 
     case CPU_OP_JNER_V8:
     case CPU_OP_JNEA_V32:
     case CPU_OP_JNEA_R:
-        do_jump = (cpu->flags & CPU_FLAG_ZERO) == 0;
+        do_jump = !flag_zero;
+        break;
+
+    case CPU_OP_JGTR_V8:
+    case CPU_OP_JGTA_V32:
+    case CPU_OP_JGTA_R:
+        do_jump = !flag_zero && !flag_S_xor_V;
         break;
 
     default:
@@ -539,16 +549,19 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     case CPU_OP_JMPR_V8:
     case CPU_OP_JEQR_V8:
     case CPU_OP_JNER_V8:
+    case CPU_OP_JGTR_V8:
         jump_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
         break;
     case CPU_OP_JMPA_V32:
     case CPU_OP_JEQA_V32:
     case CPU_OP_JNEA_V32:
+    case CPU_OP_JGTA_V32:
         jump_pc = cpu->instr.operands[0].u32;
         break;
     case CPU_OP_JMPA_R:
     case CPU_OP_JEQA_R:
     case CPU_OP_JNEA_R:
+    case CPU_OP_JGTA_R:
         jump_pc = *cpu->instr.operands[0].p_reg;
         break;
 
