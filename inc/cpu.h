@@ -18,12 +18,20 @@ static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
 #define CPU_FLAG_CARRY    (1 << 2)
 #define CPU_FLAG_OVERFLOW (1 << 3)
 
+#define CPU_IVT_ADDR        ((vm_addr_t)0x0000'0000)
+#define CPU_IVT_ENTRY_SIZE  sizeof(vm_addr_t)
+#define CPU_IVT_NUM_ENTRIES 256
+
 typedef enum {
     CPU_FETCH_DECODE_OPCODE,
     CPU_FETCH_DECODE_OPERANDS,
     CPU_EXECUTE,
     CPU_EXECUTED_OK,
-    CPU_HANDLE_INT,
+
+    CPU_INT_FETCH_ISR_ADDR,
+    CPU_INT_PUSH_PC,
+    CPU_INT_JUMP,
+    CPU_TRIPLE_FAULT,
 } cpu_state_t;
 
 /// Instruction execution context.
@@ -54,7 +62,10 @@ typedef struct cpu_ctx {
 
     mem_if_t *mem;
 
-    void (*raise_irq)(struct cpu_ctx *ctx, uint8_t line);
+    size_t num_nested_exc;
+    uint8_t curr_irq_line;
+    vm_addr_t curr_isr_addr;
+    uint32_t pc_before_int;
 } cpu_ctx_t;
 
 cpu_ctx_t *cpu_new(mem_if_t *mem);
@@ -62,7 +73,7 @@ void cpu_free(cpu_ctx_t *cpu);
 
 void cpu_step(cpu_ctx_t *cpu);
 
-// Used in tests.
+// Used in cpu.c and in tests.
 vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
                         uint32_t **out_reg_ptr);
 

@@ -49,3 +49,5 @@ my_add_test(cpu_instr_stack_test
     -DTEST_RNG_SEED=${TEST_RNG_SEED}
     -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
 )
+
+my_add_test(cpu_exception_test)

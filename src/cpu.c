@@ -18,6 +18,7 @@ static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val);
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err);
+
 static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,
                               bool overflow);
 
@@ -30,6 +31,8 @@ cpu_ctx_t *cpu_new(mem_if_t *mem) {
 
     cpu->state = CPU_FETCH_DECODE_OPCODE;
     cpu->mem = mem;
+
+    cpu->num_nested_exc = 0;
 
     return cpu;
 }
@@ -96,7 +99,34 @@ void cpu_step(cpu_ctx_t *cpu) {
                    "CPU_EXECUTED_OK (%u)",
                    cpu->state);
 
-    case CPU_HANDLE_INT:
+    case CPU_INT_FETCH_ISR_ADDR: {
+        uint8_t ivt_entry = cpu->curr_irq_line;
+        vm_addr_t ivt_base = CPU_IVT_ADDR;
+        vm_addr_t entry_addr = ivt_base + CPU_IVT_ENTRY_SIZE * ivt_entry;
+
+        vm_err_t err =
+            cpu->mem->read_u32(cpu->mem, entry_addr, &cpu->curr_isr_addr);
+        if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
+
+        cpu->state = CPU_INT_PUSH_PC;
+        break;
+    }
+
+    case CPU_INT_PUSH_PC: {
+        vm_err_t err = prv_cpu_stack_push_u32(cpu, cpu->pc_before_int);
+        if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
+        cpu->state = CPU_INT_JUMP;
+        break;
+    }
+
+    case CPU_INT_JUMP: {
+        cpu->reg_pc = cpu->curr_isr_addr;
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
+        break;
+    }
+
+    case CPU_TRIPLE_FAULT:
+        D_PRINT("triple fault");
         D_TODO();
         break;
 
@@ -684,9 +714,16 @@ static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err) {
 
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     D_ASSERT(cpu);
-    D_ASSERT(cpu->raise_irq);
-    cpu->raise_irq(cpu, vm_err_to_irq_line(err));
-    cpu->state = CPU_HANDLE_INT;
+    cpu->state = CPU_INT_FETCH_ISR_ADDR;
+
+    cpu->num_nested_exc++;
+    cpu->curr_irq_line = err.type;
+    cpu->pc_before_int = cpu->instr.start_addr;
+
+    if (cpu->num_nested_exc == 3) {
+        cpu->state = CPU_TRIPLE_FAULT;
+        return;
+    }
 }
 
 static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,

@@ -178,7 +178,7 @@ TEST_P(ALUInstrTest, WritesValue) {
 
     for (size_t step_idx = 0; step_idx < param.num_cpu_steps; step_idx++) {
         cpu_step(cpu);
-        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+        ASSERT_EQ(cpu->num_nested_exc, 0);
     }
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 
@@ -194,7 +194,7 @@ TEST_P(ALUInstrTest, WritesFlags) {
 
     for (size_t step_idx = 0; step_idx < param.num_cpu_steps; step_idx++) {
         cpu_step(cpu);
-        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+        ASSERT_EQ(cpu->num_nested_exc, 0);
     }
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 

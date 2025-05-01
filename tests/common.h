@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cpu.h"
 
@@ -65,4 +66,30 @@ inline uint32_t get_random_imm32(std::mt19937 &rng) {
 inline bool get_random_bool(std::mt19937 &rng) {
     std::uniform_int_distribution<uint32_t> val_dist(0, 1);
     return val_dist(rng) == 0;
+}
+
+class InstrBuilder {
+  public:
+    InstrBuilder(uint8_t opcode) {
+        bytes.push_back(opcode);
+    }
+    InstrBuilder &reg_code(uint8_t reg_code) {
+        bytes.push_back(reg_code);
+        return *this;
+    }
+    InstrBuilder &imm8(uint8_t imm8) {
+        bytes.push_back(imm8);
+        return *this;
+    }
+    InstrBuilder &imm32(uint32_t imm32) {
+        bytes.resize(bytes.size() + 4);
+        memcpy(bytes.data() + bytes.size() - 4, &imm32, 4);
+        return *this;
+    }
+
+    std::vector<uint8_t> bytes;
+};
+
+inline InstrBuilder build_instr(uint8_t opcode) {
+    return InstrBuilder(opcode);
 }
