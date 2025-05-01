@@ -163,3 +163,15 @@ INSTANTIATE_TEST_SUITE_P(Random_PUSH_V32, StackInstrTest,
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_PUSH_R, StackInstrTest, testing::ValuesIn([&] {
+                             std::vector<StackInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = StackInstrParam::get_random_param(
+                                     rng, "PUSH_R", CPU_OP_PUSH_R,
+                                     StackInstrParam::PushReg);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
