@@ -12,6 +12,9 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu);
 
+static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val);
+static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val);
+
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,
@@ -592,6 +595,18 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
         jump_pc = *cpu->instr.operands[0].p_reg;
         break;
 
+    case CPU_OP_CALLA_V32:
+    case CPU_OP_CALLA_R: {
+        if (cpu->instr.opcode == CPU_OP_CALLA_V32) {
+            jump_pc = cpu->instr.operands[0].u32;
+        } else {
+            jump_pc = *cpu->instr.operands[0].p_reg;
+        }
+        uint32_t next_instr_at = cpu->reg_pc;
+        prv_cpu_stack_push_u32(cpu, next_instr_at);
+        break;
+    }
+
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
@@ -599,6 +614,21 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
 
     if (err.type == VM_ERR_NONE && do_jump) { cpu->reg_pc = jump_pc; }
     return err;
+}
+
+static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val) {
+    D_ASSERT(cpu != NULL);
+    if (cpu->reg_sp >= 4) {
+        cpu->reg_sp -= 4;
+        return cpu->mem->write_u32(cpu->mem, cpu->reg_sp, val);
+    } else {
+        vm_err_t err = {.type = VM_ERR_STACK_OVERFLOW};
+        return err;
+    }
+}
+
+static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val) {
+    D_TODO();
 }
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err) {

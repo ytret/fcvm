@@ -16,12 +16,18 @@ struct FlowInstrParam {
         AddrInIMM32, //!< Jump address is stored as an IMM32.
         AddrInReg,   //!< Jump address is stored in a register.
     };
+    enum StackOpType {
+        NoStackOp,     //!< Does not change the stack or SP.
+        PushesOnStack, //!< PC is pushed onto the stack before jump.
+        PopsFromStack, //!< PC is popped from the stack.
+    };
 
     std::string name;
     uint8_t opcode;
     /// Number of CPU steps required to execute this instruction.
     size_t num_cpu_steps;
     AddrType addr_type;
+    StackOpType stack_op_type;
 
     /**
      * @{
@@ -42,14 +48,17 @@ struct FlowInstrParam {
     std::optional<std::function<bool(const FlowInstrParam &, cpu_ctx_t *)>>
         f_should_jump;
 
-    static FlowInstrParam get_random_param(std::mt19937 &rng, std::string name,
-                                           uint8_t opcode, AddrType addr_type) {
+    static FlowInstrParam
+    get_random_param(std::mt19937 &rng, std::string name, uint8_t opcode,
+                     AddrType addr_type,
+                     StackOpType stack_op_type = NoStackOp) {
         size_t num_cpu_steps = 3;
         FlowInstrParam param = {};
         param.name = name;
         param.opcode = opcode;
         param.num_cpu_steps = num_cpu_steps;
         param.addr_type = addr_type;
+        param.stack_op_type = stack_op_type;
         param.set_random_vals(rng);
         return param;
     }
@@ -203,6 +212,39 @@ TEST_P(FlowInstrTest, SetsPC) {
         EXPECT_EQ(cpu->reg_pc, param.jump_addr);
     } else {
         EXPECT_EQ(cpu->reg_pc, orig_pc + instr_size);
+    }
+}
+
+TEST_P(FlowInstrTest, CheckStack) {
+    auto param = GetParam();
+    param.prepare_cpu(cpu);
+    uint32_t orig_pc = cpu->reg_pc;
+    uint32_t orig_sp = cpu->reg_sp;
+
+    for (size_t step_idx = 0; step_idx < param.num_cpu_steps; step_idx++) {
+        cpu_step(cpu);
+        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+    }
+    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+
+    int32_t sp_change = cpu->reg_sp - orig_sp;
+    switch (param.stack_op_type) {
+    case FlowInstrParam::NoStackOp:
+        EXPECT_EQ(sp_change, 0);
+        break;
+    case FlowInstrParam::PushesOnStack: {
+        ASSERT_EQ(sp_change, -4);
+        uint32_t next_instr_at = orig_pc + instr_size;
+        uint32_t val_on_stack = 0xDEADBEEF;
+        vm_err_t err = mem->read(cpu->reg_sp, &val_on_stack, 4);
+        ASSERT_EQ(err.type, VM_ERR_NONE);
+        EXPECT_EQ(val_on_stack, next_instr_at);
+        break;
+    }
+    case FlowInstrParam::PopsFromStack:
+        fprintf(stderr, "test: PopsFromStack not impl\n");
+        FAIL();
+        break;
     }
 }
 
@@ -506,3 +548,29 @@ INSTANTIATE_TEST_SUITE_P(
         }
         return v;
     }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_CALLA_V32, FlowInstrTest,
+                         testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "CALLA_V32", CPU_OP_CALLA_V32,
+                                     FlowInstrParam::AddrInIMM32,
+                                     FlowInstrParam::PushesOnStack);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_CALLA_R, FlowInstrTest, testing::ValuesIn([&] {
+                             std::vector<FlowInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = FlowInstrParam::get_random_param(
+                                     rng, "CALLA_R", CPU_OP_CALLA_R,
+                                     FlowInstrParam::AddrInReg,
+                                     FlowInstrParam::PushesOnStack);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
