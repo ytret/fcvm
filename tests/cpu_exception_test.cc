@@ -4,11 +4,12 @@
 #include "cpu.h"
 #include "fake_mem.h"
 
-#define TEST_BAD_MEM 0x1000'0000
+#define TEST_BAD_MEM      0x1000'0000
+#define TEST_BAD_OPCODE   0x00
+#define TEST_BAD_REG_CODE 0x0F
 
 struct CPUExceptionParam {
     std::string name;
-    bool map_ivt;
     vm_err_type_t exception;
     std::vector<uint8_t> prog_bytes;
 
@@ -16,6 +17,8 @@ struct CPUExceptionParam {
     size_t num_init_steps;
     /// `true` if the instruction cannot be decoded.
     bool malformed_instr = false;
+    /// `true` if the IVT needs to be filled and mapped into memory.
+    bool map_ivt = true;
 
     vm_addr_t isr_addr() const {
         return exception + 1;
@@ -116,29 +119,36 @@ TEST_P(CPUExceptionTest, JumpsToISR) {
     ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 }
 
-INSTANTIATE_TEST_SUITE_P(AllExceptions, CPUExceptionTest,
-                         testing::ValuesIn([&] {
-                             std::vector<CPUExceptionParam> v;
+INSTANTIATE_TEST_SUITE_P(
+    AllExceptions, CPUExceptionTest, testing::ValuesIn([&] {
+        std::vector<CPUExceptionParam> v;
 
-                             v.push_back(CPUExceptionParam{
-                                 .name = "BAD_MEM",
-                                 .map_ivt = true,
-                                 .exception = VM_ERR_BAD_MEM,
-                                 .prog_bytes = build_instr(CPU_OP_STR_RV0)
-                                                   .reg_code(CPU_CODE_R0)
-                                                   .imm32(TEST_BAD_MEM)
-                                                   .bytes,
-                                 .num_init_steps = 3,
-                             });
+        v.push_back(CPUExceptionParam{
+            .name = "BAD_MEM",
+            .exception = VM_ERR_BAD_MEM,
+            .prog_bytes = build_instr(CPU_OP_STR_RV0)
+                              .reg_code(CPU_CODE_R0)
+                              .imm32(TEST_BAD_MEM)
+                              .bytes,
+            .num_init_steps = 3,
+        });
 
-                             v.push_back(CPUExceptionParam{
-                                 .name = "BAD_OPCODE",
-                                 .map_ivt = true,
-                                 .exception = VM_ERR_BAD_OPCODE,
-                                 .prog_bytes = build_instr(0x00).bytes,
-                                 .num_init_steps = 1,
-                                 .malformed_instr = true,
-                             });
+        v.push_back(CPUExceptionParam{
+            .name = "BAD_OPCODE",
+            .exception = VM_ERR_BAD_OPCODE,
+            .prog_bytes = build_instr(TEST_BAD_OPCODE).bytes,
+            .num_init_steps = 1,
+            .malformed_instr = true,
+        });
 
-                             return v;
-                         }()));
+        v.push_back(CPUExceptionParam{
+            .name = "BAD_REG_CODE",
+            .exception = VM_ERR_BAD_REG_CODE,
+            .prog_bytes =
+                build_instr(CPU_OP_PUSH_R).reg_code(TEST_BAD_REG_CODE).bytes,
+            .num_init_steps = 2,
+            .malformed_instr = true,
+        });
+
+        return v;
+    }()));
