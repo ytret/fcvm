@@ -141,12 +141,17 @@ TEST_P(StackInstrTest, SingleInstrWorks) {
     int32_t sp_change = cpu->reg_sp - orig_sp;
     switch (param.instr_type) {
     case StackInstrParam::PushIMM32:
-    case StackInstrParam::PushReg:
+    case StackInstrParam::PushReg: {
         ASSERT_EQ(sp_change, -4);
+        uint32_t pushed_val;
+        mem->read(cpu->reg_sp, &pushed_val, 4);
+        EXPECT_EQ(pushed_val, param.exp_val);
         break;
+    }
 
     case StackInstrParam::PopToReg:
         ASSERT_EQ(sp_change, 4);
+        EXPECT_EQ(*get_reg_ptr(cpu, *param.reg_code), param.exp_val);
         break;
     }
 }
