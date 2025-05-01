@@ -310,6 +310,37 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     vm_err_t err = {.type = VM_ERR_NONE};
 
+    uint32_t *p_reg_dst;
+    uint32_t src_val;
+    if ((cpu->instr.opcode & 1) == 0) {
+        // Even opcodes require two register operands.
+        p_reg_dst = cpu->instr.operands[0].p_regs[0];
+        src_val = *cpu->instr.operands[0].p_regs[1];
+    } else if (cpu->instr.opcode == CPU_OP_NOT_R) {
+        // Only one register operand.
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+    } else {
+        // Odd opcodes require a register operand and an imm32 value, except for
+        // some opcodes.
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+
+        if (cpu->instr.opcode == CPU_OP_SHL_RV ||
+            cpu->instr.opcode == CPU_OP_SHR_RV ||
+            cpu->instr.opcode == CPU_OP_ROL_RV ||
+            cpu->instr.opcode == CPU_OP_ROR_RV) {
+            // Second operand is an imm5.
+            src_val = cpu->instr.operands[1].u8;
+            if ((src_val & ~31) != 0x00) {
+                D_PRINT("garbage bits in an imm5 value");
+                err.type = VM_ERR_BAD_IMM5;
+                return err;
+            }
+        } else {
+            // Second operand is an imm32.
+            src_val = cpu->instr.operands[1].u32;
+        }
+    }
+
     bool flag_zero = false;
     bool flag_sign = false;
     bool flag_carry = false;
@@ -318,15 +349,6 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     switch (cpu->instr.opcode) {
     case CPU_OP_ADD_RR:
     case CPU_OP_ADD_RV: {
-        uint32_t *p_reg_dst;
-        uint32_t src_val;
-        if (cpu->instr.opcode == CPU_OP_ADD_RR) {
-            p_reg_dst = cpu->instr.operands[0].p_regs[0];
-            src_val = *cpu->instr.operands[0].p_regs[1];
-        } else {
-            p_reg_dst = cpu->instr.operands[0].p_reg;
-            src_val = cpu->instr.operands[1].u32;
-        }
         uint64_t res = (uint64_t)*p_reg_dst + src_val;
         bool sign_op1 = (*p_reg_dst & (1 << 31)) != 0;
         bool sign_op2 = (src_val & (1 << 31)) != 0;
@@ -341,15 +363,6 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
 
     case CPU_OP_SUB_RR:
     case CPU_OP_SUB_RV: {
-        uint32_t *p_reg_dst;
-        uint32_t src_val;
-        if (cpu->instr.opcode == CPU_OP_SUB_RR) {
-            p_reg_dst = cpu->instr.operands[0].p_regs[0];
-            src_val = *cpu->instr.operands[0].p_regs[1];
-        } else {
-            p_reg_dst = cpu->instr.operands[0].p_reg;
-            src_val = cpu->instr.operands[1].u32;
-        }
         uint32_t res = *p_reg_dst - src_val;
         bool sign_op1 = (*p_reg_dst & (1 << 31)) != 0;
         bool sign_op2 = (src_val & (1 << 31)) != 0;
