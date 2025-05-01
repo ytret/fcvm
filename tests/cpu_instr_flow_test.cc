@@ -463,3 +463,46 @@ INSTANTIATE_TEST_SUITE_P(Random_JLTA_R, FlowInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_JLER_V8, FlowInstrTest, testing::ValuesIn([&] {
+        std::vector<FlowInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = FlowInstrParam::get_random_param(
+                rng, "JLER_V8", CPU_OP_JLER_V8, FlowInstrParam::RelToPC);
+            param.f_should_jump = [](const FlowInstrParam &p, cpu_ctx_t *) {
+                return p.flag_zero || p.flag_sign ^ p.flag_overflow;
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));
+INSTANTIATE_TEST_SUITE_P(
+    Random_JLEA_V32, FlowInstrTest, testing::ValuesIn([&] {
+        std::vector<FlowInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = FlowInstrParam::get_random_param(
+                rng, "JLEA_V32", CPU_OP_JLEA_V32, FlowInstrParam::AddrInIMM32);
+            param.f_should_jump = [](const FlowInstrParam &p, cpu_ctx_t *) {
+                return p.flag_zero || p.flag_sign ^ p.flag_overflow;
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));
+INSTANTIATE_TEST_SUITE_P(
+    Random_JLEA_R, FlowInstrTest, testing::ValuesIn([&] {
+        std::vector<FlowInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = FlowInstrParam::get_random_param(
+                rng, "JLEA_R", CPU_OP_JLEA_R, FlowInstrParam::AddrInReg);
+            param.f_should_jump = [](const FlowInstrParam &p, cpu_ctx_t *) {
+                return p.flag_zero || p.flag_sign ^ p.flag_overflow;
+            };
+            v.push_back(param);
+        }
+        return v;
+    }()));
