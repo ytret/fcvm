@@ -12,6 +12,11 @@ struct CPUExceptionParam {
     vm_err_type_t exception;
     std::vector<uint8_t> prog_bytes;
 
+    /// Number of initial CPU steps that do not cause an exception.
+    size_t num_init_steps;
+    /// `true` if the instruction cannot be decoded.
+    bool malformed_instr = false;
+
     vm_addr_t isr_addr() const {
         return exception + 1;
     }
@@ -78,19 +83,21 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
     vm_addr_t stack_top;
 };
 
-TEST_P(CPUExceptionTest, BadMem) {
+TEST_P(CPUExceptionTest, JumpsToISR) {
     auto param = GetParam();
 
-    for (int step = 0; step < 3; step++) {
-        cpu_step(cpu);
+    for (size_t step = 0; step < param.num_init_steps; step++) {
         ASSERT_EQ(cpu->num_nested_exc, 0);
+        cpu_step(cpu);
     }
 
-    // Try to write to bad memory.
-    ASSERT_EQ(cpu->state, CPU_EXECUTE);
-    cpu_step(cpu);
+    if (!param.malformed_instr) {
+        // Try to execute the instruction.
+        ASSERT_EQ(cpu->state, CPU_EXECUTE);
+        cpu_step(cpu);
+    }
 
-    // Fetch ISR address.
+    // Fetch the ISR address.
     ASSERT_EQ(cpu->num_nested_exc, 1);
     ASSERT_EQ(cpu->state, CPU_INT_FETCH_ISR_ADDR);
     cpu_step(cpu);
@@ -121,6 +128,16 @@ INSTANTIATE_TEST_SUITE_P(AllExceptions, CPUExceptionTest,
                                                    .reg_code(CPU_CODE_R0)
                                                    .imm32(TEST_BAD_MEM)
                                                    .bytes,
+                                 .num_init_steps = 3,
+                             });
+
+                             v.push_back(CPUExceptionParam{
+                                 .name = "BAD_OPCODE",
+                                 .map_ivt = true,
+                                 .exception = VM_ERR_BAD_OPCODE,
+                                 .prog_bytes = build_instr(0x00).bytes,
+                                 .num_init_steps = 1,
+                                 .malformed_instr = true,
                              });
 
                              return v;
