@@ -47,12 +47,12 @@ void cpu_step(cpu_ctx_t *cpu) {
 
     switch (cpu->state) {
     case CPU_FETCH_DECODE_OPCODE: {
+        cpu->instr.start_addr = cpu->reg_pc;
         vm_err_t err =
             cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &cpu->instr.opcode);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
         cpu->instr.desc = cpu_lookup_instr_desc(cpu->instr.opcode);
         if (cpu->instr.desc) {
-            cpu->instr.start_addr = cpu->reg_pc;
             cpu->reg_pc += 1;
             if (cpu->instr.desc->num_operands == 0) {
                 cpu->state = CPU_EXECUTE;
@@ -113,7 +113,7 @@ void cpu_step(cpu_ctx_t *cpu) {
     }
 
     case CPU_INT_PUSH_PC: {
-        vm_err_t err = prv_cpu_stack_push_u32(cpu, cpu->pc_before_int);
+        vm_err_t err = prv_cpu_stack_push_u32(cpu, cpu->pc_after_isr);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
         cpu->state = CPU_INT_JUMP;
         break;
@@ -718,7 +718,7 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
 
     cpu->num_nested_exc++;
     cpu->curr_irq_line = err.type;
-    cpu->pc_before_int = cpu->instr.start_addr;
+    cpu->pc_after_isr = cpu->instr.start_addr;
 
     if (cpu->num_nested_exc == 3) {
         cpu->state = CPU_TRIPLE_FAULT;
