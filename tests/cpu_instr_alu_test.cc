@@ -527,3 +527,17 @@ INSTANTIATE_TEST_SUITE_P(Random_XOR_RV, ALUInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_NOT_R, ALUInstrTest, testing::ValuesIn([&] {
+                             std::vector<ALUInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = ALUInstrParam::get_random_param(
+                                     rng, "NOT_R", CPU_OP_NOT_R,
+                                     ALUInstrParam::ResStoredInDstReg,
+                                     ALUInstrParam::NoSrc);
+                                 param.set_exp_val_flags(~param.dst_val);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
