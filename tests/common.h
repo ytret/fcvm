@@ -73,17 +73,20 @@ class InstrBuilder {
     InstrBuilder(uint8_t opcode) {
         bytes.push_back(opcode);
     }
-    InstrBuilder &reg_code(uint8_t reg_code) {
-        bytes.push_back(reg_code);
+    InstrBuilder &reg_code(uint8_t val_reg_code) {
+        bytes.push_back(val_reg_code);
         return *this;
     }
-    InstrBuilder &imm8(uint8_t imm8) {
-        bytes.push_back(imm8);
+    InstrBuilder &imm5(uint8_t val_imm5) {
+        return imm8(val_imm5);
+    }
+    InstrBuilder &imm8(uint8_t val_imm8) {
+        bytes.push_back(val_imm8);
         return *this;
     }
-    InstrBuilder &imm32(uint32_t imm32) {
+    InstrBuilder &imm32(uint32_t val_imm32) {
         bytes.resize(bytes.size() + 4);
-        memcpy(bytes.data() + bytes.size() - 4, &imm32, 4);
+        memcpy(bytes.data() + bytes.size() - 4, &val_imm32, 4);
         return *this;
     }
 
