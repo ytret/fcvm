@@ -13,6 +13,8 @@ typedef enum {
     VM_ERR_BAD_OPCODE,
     VM_ERR_BAD_REG_CODE,
     VM_ERR_BAD_IMM5,
+
+    VM_ERR_DIV_BY_ZERO,
 } vm_err_type_t;
 
 typedef struct {

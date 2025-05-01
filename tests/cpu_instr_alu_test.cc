@@ -359,3 +359,72 @@ INSTANTIATE_TEST_SUITE_P(
         }
         return v;
     }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_DIV_RR, ALUInstrTest, testing::ValuesIn([&] {
+        std::vector<ALUInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = ALUInstrParam::get_random_param(
+                rng, "DIV_RR", CPU_OP_DIV_RR, ALUInstrParam::ResStoredInDstReg,
+                ALUInstrParam::SrcInReg);
+            if (param.dst_reg_code == *param.src_reg_code) {
+                param.set_exp_val_flags(param.dst_val / param.dst_val);
+            } else {
+                param.set_exp_val_flags(param.dst_val / *param.src_val);
+            }
+            v.push_back(param);
+        }
+        return v;
+    }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_DIV_RV, ALUInstrTest, testing::ValuesIn([&] {
+                             std::vector<ALUInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = ALUInstrParam::get_random_param(
+                                     rng, "DIV_RV", CPU_OP_DIV_RV,
+                                     ALUInstrParam::ResStoredInDstReg,
+                                     ALUInstrParam::SrcInIMM32);
+                                 param.set_exp_val_flags(param.dst_val /
+                                                         *param.src_val);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Random_IDIV_RR, ALUInstrTest, testing::ValuesIn([&] {
+        std::vector<ALUInstrParam> v;
+        std::mt19937 rng(TEST_RNG_SEED);
+        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+            auto param = ALUInstrParam::get_random_param(
+                rng, "IDIV_RR", CPU_OP_IDIV_RR,
+                ALUInstrParam::ResStoredInDstReg, ALUInstrParam::SrcInReg);
+            if (param.dst_reg_code == *param.src_reg_code) {
+                param.set_exp_val_flags((int32_t)param.dst_val /
+                                        (int32_t)param.dst_val);
+            } else {
+                param.set_exp_val_flags((int32_t)param.dst_val /
+                                        (int32_t)*param.src_val);
+            }
+            v.push_back(param);
+        }
+        return v;
+    }()));
+
+INSTANTIATE_TEST_SUITE_P(Random_IDIV_RV, ALUInstrTest, testing::ValuesIn([&] {
+                             std::vector<ALUInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = ALUInstrParam::get_random_param(
+                                     rng, "IDIV_RV", CPU_OP_IDIV_RV,
+                                     ALUInstrParam::ResStoredInDstReg,
+                                     ALUInstrParam::SrcInIMM32);
+                                 param.set_exp_val_flags(
+                                     (int32_t)param.dst_val /
+                                     (int32_t)*param.src_val);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
