@@ -528,25 +528,27 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
         do_jump = true;
     }
 
+    uint32_t jump_pc;
     switch (cpu->instr.opcode) {
     case CPU_OP_JMPR_V8:
     case CPU_OP_JEQR_V8:
-        if (do_jump) {
-            cpu->reg_pc =
-                cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
-        }
+        jump_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
         break;
     case CPU_OP_JMPA_V32:
-        cpu->reg_pc = cpu->instr.operands[0].u32;
+    case CPU_OP_JEQA_V32:
+        jump_pc = cpu->instr.operands[0].u32;
         break;
     case CPU_OP_JMPA_R:
-        cpu->reg_pc = *cpu->instr.operands[0].p_reg;
+    case CPU_OP_JEQA_R:
+        jump_pc = *cpu->instr.operands[0].p_reg;
         break;
 
     default:
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
     }
+
+    if (err.type == VM_ERR_NONE && do_jump) { cpu->reg_pc = jump_pc; }
     return err;
 }
 
