@@ -167,7 +167,7 @@ class ALUInstrTest : public testing::TestWithParam<ALUInstrParam> {
         cpu->reg_pc = TEST_MEM_BASE;
     }
     ~ALUInstrTest() {
-        delete cpu;
+        cpu_free(cpu);
         delete mem;
     }
 

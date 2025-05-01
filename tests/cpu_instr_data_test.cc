@@ -65,7 +65,7 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
         cpu->reg_pc = param.mem_base;
     }
     ~DataInstrTest() {
-        delete cpu;
+        cpu_free(cpu);
         delete mem;
     }
 

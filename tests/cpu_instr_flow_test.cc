@@ -196,7 +196,7 @@ class FlowInstrTest : public testing::TestWithParam<FlowInstrParam> {
         cpu = cpu_new(&mem->mem_if);
     }
     ~FlowInstrTest() {
-        delete cpu;
+        cpu_free(cpu);
         delete mem;
     }
 
