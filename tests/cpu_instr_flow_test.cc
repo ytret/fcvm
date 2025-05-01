@@ -68,11 +68,12 @@ struct FlowInstrParam {
         mem_base = get_random_base_addr(rng);
         init_pc = mem_base;
         vm_addr_t prog_end = mem_base + 10; // 10 is enough to encode the instr
-        vm_addr_t stack_start = mem_base + TEST_MEM_SIZE - 4;
+        vm_addr_t stack_bottom = mem_base + TEST_MEM_SIZE - 4;
 
         switch (addr_type) {
         case RelToPC: {
-            uint32_t addr = get_random_data_addr(rng, prog_end, stack_start, 0);
+            uint32_t addr =
+                get_random_data_addr(rng, prog_end, stack_bottom, 0);
             int32_t offset32 = addr - init_pc;
             pc_offset = (int8_t)offset32;
             jump_addr = init_pc + *pc_offset;
@@ -80,10 +81,10 @@ struct FlowInstrParam {
         }
         case AddrInIMM32:
         case AddrOnStack:
-            jump_addr = get_random_data_addr(rng, prog_end, stack_start, 0);
+            jump_addr = get_random_data_addr(rng, prog_end, stack_bottom, 0);
             break;
         case AddrInReg: {
-            jump_addr = get_random_data_addr(rng, prog_end, stack_start, 0);
+            jump_addr = get_random_data_addr(rng, prog_end, stack_bottom, 0);
             std::vector<uint8_t> used_reg_codes = {CPU_CODE_SP};
             *reg_code = get_random_reg_code(rng, true, used_reg_codes);
             break;
