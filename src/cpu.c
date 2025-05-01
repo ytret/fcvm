@@ -11,6 +11,7 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu);
+static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu);
 
 static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val);
 static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val);
@@ -227,6 +228,8 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
         err = prv_cpu_execute_alu_instr(cpu);
     } else if (opcode_kind == CPU_OP_KIND_FLOW) {
         err = prv_cpu_execute_flow_instr(cpu);
+    } else if (opcode_kind == CPU_OP_KIND_STACK) {
+        err = prv_cpu_execute_stack_instr(cpu);
     } else {
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
@@ -617,6 +620,23 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     }
 
     if (err.type == VM_ERR_NONE && do_jump) { cpu->reg_pc = jump_pc; }
+    return err;
+}
+
+static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu) {
+    D_ASSERT(cpu);
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    switch (cpu->instr.opcode) {
+    case CPU_OP_PUSH_V32:
+        prv_cpu_stack_push_u32(cpu, cpu->instr.operands[0].u32);
+        break;
+
+    default:
+        D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
+                   cpu->instr.opcode);
+    }
+
     return err;
 }
 
