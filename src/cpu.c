@@ -10,6 +10,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
 static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu);
+static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu);
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err);
@@ -221,6 +222,8 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
         err = prv_cpu_execute_data_instr(cpu);
     } else if (opcode_kind == CPU_OP_KIND_ALU) {
         err = prv_cpu_execute_alu_instr(cpu);
+    } else if (opcode_kind == CPU_OP_KIND_FLOW) {
+        err = prv_cpu_execute_flow_instr(cpu);
     } else {
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
@@ -506,6 +509,20 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
 
     if (err.type == VM_ERR_NONE) {
         prv_cpu_set_flags(cpu, flag_zero, flag_sign, flag_carry, flag_ovf);
+    }
+    return err;
+}
+
+static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
+    vm_err_t err = {.type = VM_ERR_NONE};
+    switch (cpu->instr.opcode) {
+    case CPU_OP_JMPR_V8:
+        cpu->reg_pc = cpu->instr.start_addr + (int8_t)cpu->instr.operands[0].u8;
+        break;
+
+    default:
+        D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
+                   cpu->instr.opcode);
     }
     return err;
 }
