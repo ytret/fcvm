@@ -115,6 +115,7 @@ struct FlowInstrParam {
     }
 
     void prepare_cpu(cpu_ctx_t *cpu) const {
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = init_pc;
         cpu->reg_sp = mem_base + TEST_MEM_SIZE;
 

@@ -69,6 +69,7 @@ struct StackInstrParam {
     }
 
     void prepare_cpu(cpu_ctx_t *cpu) const {
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = mem_base;
         cpu->reg_sp = stack_top;
 

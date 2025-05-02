@@ -59,6 +59,7 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
                    param.instr_bytes.size());
 
         cpu = cpu_new(&mem->mem_if);
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = param.mem_base;
     }
     ~DataInstrTest() {

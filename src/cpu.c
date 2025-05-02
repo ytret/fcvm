@@ -29,7 +29,7 @@ cpu_ctx_t *cpu_new(mem_if_t *mem) {
     D_ASSERT(cpu);
     memset(cpu, 0, sizeof(*cpu));
 
-    cpu->state = CPU_FETCH_DECODE_OPCODE;
+    cpu->state = CPU_RESET;
     cpu->mem = mem;
 
     cpu->num_nested_exc = 0;

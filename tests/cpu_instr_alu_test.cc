@@ -123,6 +123,8 @@ struct ALUInstrParam {
     }
 
     void prepare_cpu(cpu_ctx_t *cpu) const {
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
+
         // First fill in the source register, so that if the src and dst regs
         // are the same, the caller can overwrite the expected value assuming
         // that the dst val is written to the reg.

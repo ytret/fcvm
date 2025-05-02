@@ -59,6 +59,7 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
         }
 
         cpu = cpu_new(&mem->mem_if);
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = param.prog_start;
         cpu->reg_sp = param.stack_top;
     }

@@ -24,7 +24,7 @@ class CPUResetTest : public testing::Test {
     cpu_ctx_t *cpu;
 };
 
-TEST_F(CPUResetTest, DISABLED_InitStateIsReset) {
+TEST_F(CPUResetTest, InitStateIsReset) {
     EXPECT_EQ(cpu->state, CPU_RESET);
 }
 
