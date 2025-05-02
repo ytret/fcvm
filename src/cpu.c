@@ -48,6 +48,12 @@ void cpu_step(cpu_ctx_t *cpu) {
     if (cpu->state == CPU_EXECUTED_OK) { cpu->state = CPU_FETCH_DECODE_OPCODE; }
 
     switch (cpu->state) {
+    case CPU_RESET: {
+        D_PRINT("cpu reset");
+        D_TODO();
+        break;
+    }
+
     case CPU_FETCH_DECODE_OPCODE: {
         cpu->instr.start_addr = cpu->reg_pc;
         vm_err_t err =
@@ -128,8 +134,8 @@ void cpu_step(cpu_ctx_t *cpu) {
     }
 
     case CPU_TRIPLE_FAULT:
-        D_PRINT("triple fault");
-        D_TODO();
+        D_PRINT("cpu triple fault");
+        cpu->state = CPU_RESET;
         break;
 
     default:
