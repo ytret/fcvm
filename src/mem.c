@@ -23,21 +23,35 @@ void mem_free(mem_ctx_t *mem) {
 }
 
 vm_err_t mem_map_dev(mem_ctx_t *mem, const mem_dev_t *dev) {
+    (void)mem;
+    (void)dev;
     D_TODO();
 }
 
 vm_err_t mem_read_u8(void *ctx, vm_addr_t addr, uint8_t *out) {
+    (void)ctx;
+    (void)addr;
+    (void)out;
     D_TODO();
 }
 
 vm_err_t mem_read_u32(void *ctx, vm_addr_t addr, uint32_t *out) {
+    (void)ctx;
+    (void)addr;
+    (void)out;
     D_TODO();
 }
 
 vm_err_t mem_write_u8(void *ctx, vm_addr_t addr, uint8_t val) {
+    (void)ctx;
+    (void)addr;
+    (void)val;
     D_TODO();
 }
 
 vm_err_t mem_write_u32(void *ctx, vm_addr_t addr, uint32_t val) {
+    (void)ctx;
+    (void)addr;
+    (void)val;
     D_TODO();
 }
