@@ -39,10 +39,10 @@ struct DataInstrParam {
                                    ? absl::StrFormat("0x%08X", *param.mem_addr)
                                    : std::string("N/A");
         std::string mem_offset = param.mem_addr.has_value()
-                                     ? absl::StrFormat("%d", *param.mem_offset)
-                                     : std::string("N/A");
+                                     ? absl::StrFormat("%+d", *param.mem_offset)
+                                     : std::string("");
         os << absl::StrFormat(
-            "{ mem_base = 0x%08X, [%s], expect 0x%08X at [%s + %s] }",
+            "{ mem_base = 0x%08X, [%s], expect 0x%08X at [%s%s] }",
             param.mem_base, instr_hex, param.expected_value, mem_addr,
             mem_offset);
         return os;
