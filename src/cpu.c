@@ -108,9 +108,8 @@ void cpu_step(cpu_ctx_t *cpu) {
                    cpu->state);
 
     case CPU_INT_FETCH_ISR_ADDR: {
-        uint8_t ivt_entry = cpu->curr_int_line;
-        vm_addr_t ivt_base = CPU_IVT_ADDR;
-        vm_addr_t entry_addr = ivt_base + CPU_IVT_ENTRY_SIZE * ivt_entry;
+        uint8_t entry_idx = cpu->curr_int_line;
+        vm_addr_t entry_addr = CPU_IVT_ENTRY_ADDR(entry_idx);
 
         vm_err_t err =
             cpu->mem->read_u32(cpu->mem, entry_addr, &cpu->curr_isr_addr);
@@ -173,6 +172,31 @@ vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
         *out_reg_ptr = NULL;
     }
     return err;
+}
+
+cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err) {
+    D_ASSERT(cpu);
+    switch (err) {
+    case VM_ERR_BAD_MEM:
+        return CPU_EXC_BAD_MEM;
+
+    case VM_ERR_BAD_OPCODE:
+    case VM_ERR_BAD_REG_CODE:
+    case VM_ERR_BAD_IMM5:
+        return CPU_EXC_BAD_INSTR;
+
+    case VM_ERR_DIV_BY_ZERO:
+        return CPU_EXC_DIV_BY_ZERO;
+
+    case VM_ERR_STACK_OVERFLOW:
+        return CPU_EXC_STACK_OVERFLOW;
+
+    case VM_ERR_NONE:
+        D_ASSERTM(false,
+                  "cpu_exc_num_of_err must not be called with VM_ERR_NONE");
+    default:
+        D_ASSERT(false);
+    }
 }
 
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
@@ -728,11 +752,13 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     D_ASSERT(cpu);
     cpu->state = CPU_INT_FETCH_ISR_ADDR;
 
+    uint8_t exc_num = (uint8_t)cpu_exc_type_of_err(cpu, err.type);
+
     cpu->num_nested_exc++;
-    cpu->curr_int_line = err.type;
+    cpu->curr_int_line = exc_num;
     cpu->pc_after_isr = cpu->instr.start_addr;
 
-    D_PRINTF("exception %u, count %zu", err.type, cpu->num_nested_exc);
+    D_PRINTF("exception %u, count %zu", exc_num, cpu->num_nested_exc);
 
     if (cpu->num_nested_exc == 3) {
         cpu->state = CPU_TRIPLE_FAULT;

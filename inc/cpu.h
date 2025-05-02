@@ -21,6 +21,8 @@ static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
 #define CPU_IVT_ADDR        ((vm_addr_t)0x0000'0000)
 #define CPU_IVT_ENTRY_SIZE  sizeof(vm_addr_t)
 #define CPU_IVT_NUM_ENTRIES 256
+#define CPU_IVT_ENTRY_ADDR(entry_idx)                                          \
+    (CPU_IVT_ADDR + CPU_IVT_ENTRY_SIZE * (entry_idx))
 
 typedef enum {
     CPU_RESET,
@@ -51,6 +53,20 @@ typedef struct {
     const cpu_instr_desc_t *desc; //!< Descriptor of the instruction.
 } cpu_instr_t;
 
+/// Exception numbers.
+/// These must fit into `uint8_t`.
+typedef enum {
+    CPU_EXC_RESET,
+    CPU_EXC_BAD_MEM,
+    CPU_EXC_BAD_INSTR,
+    CPU_EXC_DIV_BY_ZERO,
+    CPU_EXC_STACK_OVERFLOW,
+
+    CPU_NUM_EXCEPTIONS,
+} cpu_exc_type_t;
+static_assert(CPU_NUM_EXCEPTIONS <= 256,
+              "cpu_exc_type does not fit into uint8_t");
+
 typedef struct cpu_ctx {
     cpu_state_t state;
     cpu_instr_t instr;
@@ -74,9 +90,9 @@ void cpu_free(cpu_ctx_t *cpu);
 
 void cpu_step(cpu_ctx_t *cpu);
 
-// Used in cpu.c and in tests.
 vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
                         uint32_t **out_reg_ptr);
+cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err_type);
 
 #ifdef __cplusplus
 }

@@ -50,7 +50,7 @@ TEST_F(CPUResetTest, NoInitResetIsPossible) {
 }
 
 TEST_F(CPUResetTest, JumpsToResetISR) {
-    vm_addr_t isr_entry_addr = CPU_IVT_ADDR + CPU_IVT_ENTRY_SIZE * 0;
+    vm_addr_t isr_entry_addr = CPU_IVT_ENTRY_ADDR(CPU_EXC_RESET);
     vm_addr_t reset_isr_addr = 0xDEADBEEF;
     mem->write(isr_entry_addr, &reset_isr_addr, sizeof(reset_isr_addr));
 
@@ -69,9 +69,8 @@ TEST_F(CPUResetTest, TripleFaultCausesReset) {
     // This causes another divide-by-zero exception, and after the third
     // iteration, a triple fault occurs.
 
-    const vm_addr_t ivt_reset_addr = CPU_IVT_ADDR + CPU_IVT_ENTRY_SIZE * 0;
-    const vm_addr_t ivt_divzero_addr =
-        CPU_IVT_ADDR + CPU_IVT_ENTRY_SIZE * VM_ERR_DIV_BY_ZERO;
+    const vm_addr_t ivt_reset_addr = CPU_IVT_ENTRY_ADDR(CPU_EXC_RESET);
+    const vm_addr_t ivt_divzero_addr = CPU_IVT_ENTRY_ADDR(CPU_EXC_DIV_BY_ZERO);
     const vm_addr_t isr_reset_addr = TEST_PROG_START;
     const vm_addr_t isr_divzero_addr = TEST_PROG_START + 20;
     mem->write(ivt_reset_addr, &isr_reset_addr, sizeof(isr_reset_addr));

@@ -11,7 +11,7 @@
 
 struct CPUExceptionParam {
     struct ExcDesc {
-        vm_err_type_t exception;
+        cpu_exc_type_t exception;
         cpu_state_t on_state;
 
         /// In case `on_state` is `CPU_FETCH_DECODE_OPERANDS`, this member
@@ -19,7 +19,7 @@ struct CPUExceptionParam {
         size_t opd_idx = 0;
 
         vm_addr_t isr_addr() const {
-            return exception + 1;
+            return (vm_addr_t)exception + 1;
         }
     };
 
@@ -68,7 +68,7 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
         delete mem;
     }
 
-    /// Builds an IVT where each entry is the interrupt number plus one.
+    /// Builds an IVT where each entry value is the entry index plus one.
     std::vector<uint8_t> build_ivt() {
         std::vector<vm_addr_t> ivt;
         static_assert(CPU_IVT_ENTRY_SIZE == sizeof(vm_addr_t));
@@ -167,7 +167,7 @@ INSTANTIATE_TEST_SUITE_P(
 
         v.push_back(CPUExceptionParam{
             .name = "BAD_MEM",
-            .exceptions = {{VM_ERR_BAD_MEM, CPU_EXECUTE}},
+            .exceptions = {{CPU_EXC_BAD_MEM, CPU_EXECUTE}},
             .prog_bytes = build_instr(CPU_OP_STR_RV0)
                               .reg_code(CPU_CODE_R0)
                               .imm32(TEST_BAD_MEM)
@@ -175,21 +175,21 @@ INSTANTIATE_TEST_SUITE_P(
         });
 
         v.push_back(CPUExceptionParam{
-            .name = "BAD_OPCODE",
-            .exceptions = {{VM_ERR_BAD_OPCODE, CPU_FETCH_DECODE_OPCODE}},
+            .name = "BAD_INSTR (opcode)",
+            .exceptions = {{CPU_EXC_BAD_INSTR, CPU_FETCH_DECODE_OPCODE}},
             .prog_bytes = build_instr(TEST_BAD_OPCODE).bytes,
         });
 
         v.push_back(CPUExceptionParam{
-            .name = "BAD_REG_CODE",
-            .exceptions = {{VM_ERR_BAD_REG_CODE, CPU_FETCH_DECODE_OPERANDS, 0}},
+            .name = "BAD_INSTR (reg code)",
+            .exceptions = {{CPU_EXC_BAD_INSTR, CPU_FETCH_DECODE_OPERANDS, 0}},
             .prog_bytes =
                 build_instr(CPU_OP_PUSH_R).reg_code(TEST_BAD_REG_CODE).bytes,
         });
 
         v.push_back(CPUExceptionParam{
-            .name = "BAD_IMM5",
-            .exceptions = {{VM_ERR_BAD_IMM5, CPU_FETCH_DECODE_OPERANDS, 1}},
+            .name = "BAD_INSTR (imm5)",
+            .exceptions = {{CPU_EXC_BAD_INSTR, CPU_FETCH_DECODE_OPERANDS, 1}},
             .prog_bytes = build_instr(CPU_OP_SHL_RV)
                               .reg_code(CPU_CODE_R0)
                               .imm5(TEST_BAD_IMM5)
@@ -200,9 +200,9 @@ INSTANTIATE_TEST_SUITE_P(
             .name = "TRIPLE_FAULT_STACK_OVERFLOW_PUSH",
             .exceptions =
                 {
-                    {VM_ERR_STACK_OVERFLOW, CPU_EXECUTE},
-                    {VM_ERR_STACK_OVERFLOW, CPU_INT_PUSH_PC},
-                    {VM_ERR_STACK_OVERFLOW, CPU_INT_PUSH_PC},
+                    {CPU_EXC_STACK_OVERFLOW, CPU_EXECUTE},
+                    {CPU_EXC_STACK_OVERFLOW, CPU_INT_PUSH_PC},
+                    {CPU_EXC_STACK_OVERFLOW, CPU_INT_PUSH_PC},
                 },
             .prog_bytes =
                 build_prog()
@@ -218,9 +218,9 @@ INSTANTIATE_TEST_SUITE_P(
             .name = "TRIPLE_FAULT_STACK_OVERFLOW_POP",
             .exceptions =
                 {
-                    {VM_ERR_STACK_OVERFLOW, CPU_EXECUTE},
-                    {VM_ERR_BAD_MEM, CPU_INT_FETCH_ISR_ADDR},
-                    {VM_ERR_BAD_MEM, CPU_INT_FETCH_ISR_ADDR},
+                    {CPU_EXC_STACK_OVERFLOW, CPU_EXECUTE},
+                    {CPU_EXC_BAD_MEM, CPU_INT_FETCH_ISR_ADDR},
+                    {CPU_EXC_BAD_MEM, CPU_INT_FETCH_ISR_ADDR},
                 },
             .prog_bytes =
                 build_prog()
