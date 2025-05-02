@@ -212,7 +212,7 @@ TEST_P(FlowInstrTest, SetsPC) {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
     }
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     bool exp_jump = true;
     if (param.f_should_jump.has_value()) {
@@ -235,7 +235,7 @@ TEST_P(FlowInstrTest, CheckStack) {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
     }
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     int32_t sp_change = cpu->reg_sp - orig_sp;
     switch (param.stack_op_type) {

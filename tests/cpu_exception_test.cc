@@ -96,7 +96,7 @@ TEST_P(CPUExceptionTest, JumpsToISR) {
         do {
             cpu_step(cpu);
             ASSERT_EQ(cpu->num_nested_exc, 0);
-        } while (cpu->state != CPU_EXECUTED_OK);
+        } while (cpu->state != CPU_FETCH_DECODE_OPCODE);
         num_ok++;
     }
 

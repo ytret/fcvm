@@ -44,7 +44,7 @@ TEST_F(CPUResetTest, NoInitResetIsPossible) {
     do {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
-    } while (cpu->state != CPU_EXECUTED_OK);
+    } while (cpu->state != CPU_FETCH_DECODE_OPCODE);
 
     EXPECT_EQ(cpu->gp_regs[0], 0xDEADBEEF);
 }

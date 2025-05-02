@@ -43,7 +43,7 @@ TEST_F(CPUInterruptTest, HandleIRQ) {
     cpu_step(cpu);
     ASSERT_EQ(cpu->state, CPU_EXECUTE);
     cpu_step(cpu);
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     // Now the CPU should see that the IRQ is raised and jump to the ISR.
     cpu_step(cpu);

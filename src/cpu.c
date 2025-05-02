@@ -47,7 +47,7 @@ void cpu_step(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
     D_ASSERT(cpu->intctl);
 
-    if (cpu->state == CPU_EXECUTED_OK) {
+    if (cpu->state == CPU_FETCH_DECODE_OPCODE) {
         if (intctl_has_pending_irqs(cpu->intctl)) {
             uint8_t pending_irq;
             if (intctl_get_pending_irq(cpu->intctl, &pending_irq)) {
@@ -110,15 +110,9 @@ void cpu_step(cpu_ctx_t *cpu) {
     case CPU_EXECUTE: {
         vm_err_t err = prv_cpu_execute_instr(cpu);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
-        cpu->state = CPU_EXECUTED_OK;
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         break;
     }
-
-    case CPU_EXECUTED_OK:
-        D_ASSERTMF(false,
-                   "cpu_step() must not be called when cpu->state is "
-                   "CPU_EXECUTED_OK (%u)",
-                   cpu->state);
 
     case CPU_INT_FETCH_ISR_ADDR: {
         uint8_t entry_idx = cpu->curr_int_line;

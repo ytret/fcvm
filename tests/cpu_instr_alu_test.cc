@@ -182,7 +182,7 @@ TEST_P(ALUInstrTest, WritesValue) {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
     }
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     if (param.res_type == ALUInstrParam::ResStoredInDstReg) {
         uint32_t *p_reg_dst = get_reg_ptr(cpu, param.dst_reg_code);
@@ -198,7 +198,7 @@ TEST_P(ALUInstrTest, WritesFlags) {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
     }
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     bool act_flag_zero = (cpu->flags & CPU_FLAG_ZERO) != 0;
     bool act_flag_sign = (cpu->flags & CPU_FLAG_SIGN) != 0;
