@@ -131,6 +131,7 @@ extern "C" {
 #define CPU_OP_NOP    0xA0
 #define CPU_OP_HALT   0xA1
 #define CPU_OP_INT_V8 0xA2
+#define CPU_OP_IRET   0xA3
 /// @}
 
 #define CPU_NUM_GP_REG_CODES 8
