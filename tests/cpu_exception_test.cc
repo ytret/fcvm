@@ -32,6 +32,11 @@ struct CPUExceptionParam {
     /// `true` if the IVT needs to be filled and mapped into memory.
     bool map_ivt = true;
 
+    vm_addr_t mem_base = 0x0000'0000;
+    size_t mem_size = CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES + 255;
+    vm_addr_t prog_start = mem_base + CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES;
+    vm_addr_t stack_top = mem_base + mem_size;
+
     friend std::ostream &operator<<(std::ostream &os,
                                     const CPUExceptionParam &param) {
         os << "{ " << param.name << " }";
@@ -44,15 +49,8 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
     CPUExceptionTest() {
         auto param = GetParam();
 
-        size_t ivt_size = CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES;
-
-        mem_base = param.map_ivt ? 0x0000'0000 : 0x0000'1000;
-        mem_size = mem_base + ivt_size + 100;
-        prog_start = mem_base + ivt_size;
-        stack_top = mem_base + mem_size;
-
-        mem = new FakeMem(mem_base, mem_size);
-        mem->write(prog_start, param.prog_bytes.data(),
+        mem = new FakeMem(param.mem_base, param.mem_base + param.mem_size);
+        mem->write(param.prog_start, param.prog_bytes.data(),
                    param.prog_bytes.size());
 
         if (param.map_ivt) {
@@ -61,8 +59,8 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
         }
 
         cpu = cpu_new(&mem->mem_if);
-        cpu->reg_pc = prog_start;
-        cpu->reg_sp = stack_top;
+        cpu->reg_pc = param.prog_start;
+        cpu->reg_sp = param.stack_top;
     }
     ~CPUExceptionTest() {
         cpu_free(cpu);
@@ -87,11 +85,6 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
 
     FakeMem *mem;
     cpu_ctx_t *cpu;
-
-    vm_addr_t mem_base;
-    size_t mem_size;
-    vm_addr_t prog_start;
-    vm_addr_t stack_top;
 };
 
 TEST_P(CPUExceptionTest, JumpsToISR) {
@@ -218,6 +211,26 @@ INSTANTIATE_TEST_SUITE_P(
                     .instr(build_instr(CPU_OP_PUSH_R).reg_code(CPU_CODE_R0))
                     .bytes,
             .num_ok_instr = 1,
+        });
+
+        v.push_back(CPUExceptionParam{
+            .name = "TRIPLE_FAULT_STACK_OVERFLOW_POP",
+            .exceptions =
+                {
+                    {VM_ERR_STACK_OVERFLOW, CPU_EXECUTE},
+                    {VM_ERR_BAD_MEM, CPU_INT_FETCH_ISR_ADDR},
+                    {VM_ERR_BAD_MEM, CPU_INT_FETCH_ISR_ADDR},
+                },
+            .prog_bytes =
+                build_prog()
+                    .instr(build_instr(CPU_OP_POP_R).reg_code(CPU_CODE_R0))
+                    .bytes,
+            .num_ok_instr = 0,
+            .map_ivt = false,
+            .mem_base = 0xFFFF'FF00,
+            .mem_size = 0x0000'00FF,
+            .prog_start = 0xFFFF'FF00,
+            .stack_top = 0xFFFF'FFFF,
         });
 
         return v;
