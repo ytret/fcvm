@@ -64,7 +64,7 @@ typedef struct cpu_ctx {
     mem_if_t *mem;
 
     size_t num_nested_exc;
-    uint8_t curr_irq_line;
+    uint8_t curr_int_line;
     vm_addr_t curr_isr_addr;
     uint32_t pc_after_isr;
 } cpu_ctx_t;

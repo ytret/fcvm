@@ -49,7 +49,7 @@ void cpu_step(cpu_ctx_t *cpu) {
 
     switch (cpu->state) {
     case CPU_RESET: {
-        cpu->curr_irq_line = 0;
+        cpu->curr_int_line = 0;
         cpu->state = CPU_INT_FETCH_ISR_ADDR;
         break;
     }
@@ -108,7 +108,7 @@ void cpu_step(cpu_ctx_t *cpu) {
                    cpu->state);
 
     case CPU_INT_FETCH_ISR_ADDR: {
-        uint8_t ivt_entry = cpu->curr_irq_line;
+        uint8_t ivt_entry = cpu->curr_int_line;
         vm_addr_t ivt_base = CPU_IVT_ADDR;
         vm_addr_t entry_addr = ivt_base + CPU_IVT_ENTRY_SIZE * ivt_entry;
 
@@ -116,7 +116,7 @@ void cpu_step(cpu_ctx_t *cpu) {
             cpu->mem->read_u32(cpu->mem, entry_addr, &cpu->curr_isr_addr);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
 
-        if (cpu->curr_irq_line == 0) {
+        if (cpu->curr_int_line == 0) {
             cpu->state = CPU_INT_JUMP;
         } else {
             cpu->state = CPU_INT_PUSH_PC;
@@ -729,7 +729,7 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     cpu->state = CPU_INT_FETCH_ISR_ADDR;
 
     cpu->num_nested_exc++;
-    cpu->curr_irq_line = err.type;
+    cpu->curr_int_line = err.type;
     cpu->pc_after_isr = cpu->instr.start_addr;
 
     D_PRINTF("exception %u, count %zu", err.type, cpu->num_nested_exc);
