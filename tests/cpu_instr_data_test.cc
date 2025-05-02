@@ -39,10 +39,10 @@ struct DataInstrParam {
                                    ? absl::StrFormat("0x%08X", *param.mem_addr)
                                    : std::string("N/A");
         std::string mem_offset = param.mem_addr.has_value()
-                                     ? absl::StrFormat("%d", *param.mem_offset)
-                                     : std::string("N/A");
+                                     ? absl::StrFormat("%+d", *param.mem_offset)
+                                     : std::string("");
         os << absl::StrFormat(
-            "{ mem_base = 0x%08X, [%s], expect 0x%08X at [%s + %s] }",
+            "{ mem_base = 0x%08X, [%s], expect 0x%08X at [%s%s] }",
             param.mem_base, instr_hex, param.expected_value, mem_addr,
             mem_offset);
         return os;
@@ -59,6 +59,7 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
                    param.instr_bytes.size());
 
         cpu = cpu_new(&mem->mem_if);
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = param.mem_base;
     }
     ~DataInstrTest() {
@@ -76,7 +77,7 @@ TEST_P(DataInstrTest, WritesValue) {
 
     for (size_t step_idx = 0; step_idx < param.cpu_exec_steps; step_idx++) {
         cpu_step(cpu);
-        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+        ASSERT_EQ(cpu->num_nested_exc, 0);
     }
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 

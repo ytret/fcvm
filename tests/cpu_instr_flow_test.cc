@@ -115,6 +115,7 @@ struct FlowInstrParam {
     }
 
     void prepare_cpu(cpu_ctx_t *cpu) const {
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = init_pc;
         cpu->reg_sp = mem_base + TEST_MEM_SIZE;
 
@@ -209,7 +210,7 @@ TEST_P(FlowInstrTest, SetsPC) {
 
     for (size_t step_idx = 0; step_idx < param.num_cpu_steps; step_idx++) {
         cpu_step(cpu);
-        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+        ASSERT_EQ(cpu->num_nested_exc, 0);
     }
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 
@@ -232,7 +233,7 @@ TEST_P(FlowInstrTest, CheckStack) {
 
     for (size_t step_idx = 0; step_idx < param.num_cpu_steps; step_idx++) {
         cpu_step(cpu);
-        ASSERT_NE(cpu->state, CPU_HANDLE_INT);
+        ASSERT_EQ(cpu->num_nested_exc, 0);
     }
     ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
 

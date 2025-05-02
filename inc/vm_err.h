@@ -22,8 +22,6 @@ typedef struct {
     vm_err_type_t type;
 } vm_err_t;
 
-uint8_t vm_err_to_irq_line(vm_err_t err);
-
 #ifdef __cplusplus
 }
 #endif

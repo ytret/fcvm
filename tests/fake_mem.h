@@ -12,10 +12,13 @@ class FakeMem {
   public:
     explicit FakeMem(vm_addr_t abase, vm_addr_t aend) {
         assert(aend > abase);
+
         vm_addr_t size = aend - abase;
         bytes = new uint8_t[size];
         base = abase;
         end = aend;
+
+        memset(bytes, 0xFF, size);
 
         mem_if.read_u8 = read_u8;
         mem_if.read_u32 = read_u32;

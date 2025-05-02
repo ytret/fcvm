@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "cpu.h"
 
@@ -65,4 +66,51 @@ inline uint32_t get_random_imm32(std::mt19937 &rng) {
 inline bool get_random_bool(std::mt19937 &rng) {
     std::uniform_int_distribution<uint32_t> val_dist(0, 1);
     return val_dist(rng) == 0;
+}
+
+class InstrBuilder {
+  public:
+    InstrBuilder(uint8_t opcode) {
+        bytes.push_back(opcode);
+    }
+    InstrBuilder &reg_code(uint8_t val_reg_code) {
+        bytes.push_back(val_reg_code);
+        return *this;
+    }
+    InstrBuilder &imm5(uint8_t val_imm5) {
+        return imm8(val_imm5);
+    }
+    InstrBuilder &imm8(uint8_t val_imm8) {
+        bytes.push_back(val_imm8);
+        return *this;
+    }
+    InstrBuilder &imm32(uint32_t val_imm32) {
+        bytes.resize(bytes.size() + 4);
+        memcpy(bytes.data() + bytes.size() - 4, &val_imm32, 4);
+        return *this;
+    }
+
+    std::vector<uint8_t> bytes;
+};
+
+class ProgBuilder {
+  public:
+    ProgBuilder &instr(std::vector<uint8_t> instr_bytes) {
+        std::copy(instr_bytes.cbegin(), instr_bytes.cend(),
+                  std::back_inserter(bytes));
+        return *this;
+    }
+    ProgBuilder &instr(const InstrBuilder &instr_builder) {
+        return instr(instr_builder.bytes);
+    }
+
+    std::vector<uint8_t> bytes;
+};
+
+inline InstrBuilder build_instr(uint8_t opcode) {
+    return InstrBuilder(opcode);
+}
+
+inline ProgBuilder build_prog() {
+    return ProgBuilder();
 }

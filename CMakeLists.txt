@@ -26,7 +26,6 @@ add_library(fcvm STATIC
     src/cpu_instr_descs.c
     src/mem.c
     src/vm.c
-    src/vm_err.c
 )
 target_compile_options(fcvm PRIVATE
     -g -Wall -Wextra -Wmissing-prototypes
