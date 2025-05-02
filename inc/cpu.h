@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "cpu_instr_descs.h"
+#include "intctl.h"
 #include "mem.h"
 
 #ifdef __cplusplus
@@ -21,8 +22,10 @@ static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
 #define CPU_IVT_ADDR        ((vm_addr_t)0x0000'0000)
 #define CPU_IVT_ENTRY_SIZE  sizeof(vm_addr_t)
 #define CPU_IVT_NUM_ENTRIES 256
+#define CPU_IVT_SIZE            (CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES)
 #define CPU_IVT_ENTRY_ADDR(entry_idx)                                          \
     (CPU_IVT_ADDR + CPU_IVT_ENTRY_SIZE * (entry_idx))
+#define CPU_IVT_FIRST_IRQ_ENTRY 32
 
 typedef enum {
     CPU_RESET,
@@ -53,7 +56,7 @@ typedef struct {
     const cpu_instr_desc_t *desc; //!< Descriptor of the instruction.
 } cpu_instr_t;
 
-/// Exception numbers.
+/// Exception numbers, with values corresponding to IVT entries.
 /// These must fit into `uint8_t`.
 typedef enum {
     CPU_EXC_RESET,
@@ -66,6 +69,9 @@ typedef enum {
 } cpu_exc_type_t;
 static_assert(CPU_NUM_EXCEPTIONS <= 256,
               "cpu_exc_type does not fit into uint8_t");
+static_assert(CPU_NUM_EXCEPTIONS < CPU_IVT_FIRST_IRQ_ENTRY,
+              "IVT has no space for this many exceptions, increase "
+              "CPU_IVT_FIRST_IRQ_ENTRY");
 
 typedef struct cpu_ctx {
     cpu_state_t state;
@@ -78,6 +84,11 @@ typedef struct cpu_ctx {
     uint64_t cycles;
 
     mem_if_t *mem;
+
+    /// An interrupt controller built into the CPU.
+    /// It is not meant to be used anywhere other than #cpu.c. An IRQ that is
+    /// supposed to be handled by the CPU is raised using #cpu_raise_irq().
+    intctl_ctx_t *intctl;
 
     size_t num_nested_exc;
     uint8_t curr_int_line;
@@ -93,6 +104,8 @@ void cpu_step(cpu_ctx_t *cpu);
 vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
                         uint32_t **out_reg_ptr);
 cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err_type);
+
+vm_err_t cpu_raise_irq(cpu_ctx_t *cpu, uint8_t irq_line);
 
 #ifdef __cplusplus
 }
