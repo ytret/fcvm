@@ -16,6 +16,8 @@ typedef enum {
 
     VM_ERR_DIV_BY_ZERO,
     VM_ERR_STACK_OVERFLOW,
+
+    VM_ERR_INVALID_IRQ_NUM,
 } vm_err_type_t;
 
 typedef struct {
