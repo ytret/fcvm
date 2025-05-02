@@ -689,3 +689,39 @@ INSTANTIATE_TEST_SUITE_P(Random_TST_RV, ALUInstrTest, testing::ValuesIn([&] {
                              }
                              return v;
                          }()));
+
+INSTANTIATE_TEST_SUITE_P(CornerCases, ALUInstrTest,
+                         testing::ValuesIn({
+                             ALUInstrParam{
+                                 .name = "SHL_RV_0bits",
+                                 .opcode = CPU_OP_SHL_RV,
+                                 .num_cpu_steps = 4,
+                                 .res_type = ALUInstrParam::ResStoredInDstReg,
+                                 .dst_reg_code = CPU_CODE_R0,
+                                 .dst_val = 0xDEADBEEF,
+                                 .src_reg_code = {},
+                                 .src_val = 0,
+                                 .src_type = ALUInstrParam::SrcInIMM32,
+                                 .exp_res_val = 0xDEADBEEF,
+                                 .exp_flag_zero = false,
+                                 .exp_flag_sign = true,
+                                 .exp_flag_carry = false,
+                                 .exp_flag_overflow = false,
+                             },
+                             ALUInstrParam{
+                                 .name = "SHR_RV_0bits",
+                                 .opcode = CPU_OP_SHR_RV,
+                                 .num_cpu_steps = 4,
+                                 .res_type = ALUInstrParam::ResStoredInDstReg,
+                                 .dst_reg_code = CPU_CODE_R0,
+                                 .dst_val = 0xDEADBEEF,
+                                 .src_reg_code = {},
+                                 .src_val = 0,
+                                 .src_type = ALUInstrParam::SrcInIMM32,
+                                 .exp_res_val = 0xDEADBEEF,
+                                 .exp_flag_zero = false,
+                                 .exp_flag_sign = true,
+                                 .exp_flag_carry = false,
+                                 .exp_flag_overflow = false,
+                             },
+                         }));
