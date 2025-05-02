@@ -38,7 +38,7 @@ class CPUInterruptTest : public testing::Test {
     FakeMem *mem;
 };
 
-TEST_F(CPUInterruptTest, InstrINT) {
+TEST_F(CPUInterruptTest, SoftwareInterrupt) {
     constexpr uint8_t irq_num = 1;
     auto instr = build_instr(CPU_OP_INT_V8).imm8(irq_num).bytes;
     mem->write(TEST_PROG_START, instr.data(), instr.size());
@@ -60,7 +60,7 @@ TEST_F(CPUInterruptTest, InstrINT) {
     EXPECT_EQ(cpu->state, CPU_INT_PUSH_PC);
 }
 
-TEST_F(CPUInterruptTest, InstrHALT) {
+TEST_F(CPUInterruptTest, HALTHalts) {
     const auto instr = build_instr(CPU_OP_HALT).bytes;
     mem->write(TEST_PROG_START, instr.data(), instr.size());
 
@@ -80,7 +80,7 @@ TEST_F(CPUInterruptTest, InstrHALT) {
     }
 }
 
-TEST_F(CPUInterruptTest, InstrHALTWithIRET) {
+TEST_F(CPUInterruptTest, ExternalInterruptISR) {
     constexpr uint8_t irq_num = 1;
 
     // Write a HALT instruction.
