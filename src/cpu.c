@@ -49,8 +49,8 @@ void cpu_step(cpu_ctx_t *cpu) {
 
     switch (cpu->state) {
     case CPU_RESET: {
-        D_PRINT("cpu reset");
-        D_TODO();
+        cpu->curr_irq_line = 0;
+        cpu->state = CPU_INT_FETCH_ISR_ADDR;
         break;
     }
 
@@ -116,7 +116,11 @@ void cpu_step(cpu_ctx_t *cpu) {
             cpu->mem->read_u32(cpu->mem, entry_addr, &cpu->curr_isr_addr);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
 
-        cpu->state = CPU_INT_PUSH_PC;
+        if (cpu->curr_irq_line == 0) {
+            cpu->state = CPU_INT_JUMP;
+        } else {
+            cpu->state = CPU_INT_PUSH_PC;
+        }
         break;
     }
 
