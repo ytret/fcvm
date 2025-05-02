@@ -722,6 +722,8 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     cpu->curr_irq_line = err.type;
     cpu->pc_after_isr = cpu->instr.start_addr;
 
+    D_PRINTF("exception %u, count %zu", err.type, cpu->num_nested_exc);
+
     if (cpu->num_nested_exc == 3) {
         cpu->state = CPU_TRIPLE_FAULT;
         return;
