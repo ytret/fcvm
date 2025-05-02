@@ -93,6 +93,24 @@ class InstrBuilder {
     std::vector<uint8_t> bytes;
 };
 
+class ProgBuilder {
+  public:
+    ProgBuilder &instr(std::vector<uint8_t> instr_bytes) {
+        std::copy(instr_bytes.cbegin(), instr_bytes.cend(),
+                  std::back_inserter(bytes));
+        return *this;
+    }
+    ProgBuilder &instr(const InstrBuilder &instr_builder) {
+        return instr(instr_builder.bytes);
+    }
+
+    std::vector<uint8_t> bytes;
+};
+
 inline InstrBuilder build_instr(uint8_t opcode) {
     return InstrBuilder(opcode);
+}
+
+inline ProgBuilder build_prog() {
+    return ProgBuilder();
 }
