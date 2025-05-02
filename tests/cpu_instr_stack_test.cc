@@ -141,7 +141,7 @@ TEST_P(StackInstrTest, SingleInstrWorks) {
     case StackInstrParam::PushIMM32:
     case StackInstrParam::PushReg: {
         ASSERT_EQ(sp_change, -4);
-        uint32_t pushed_val;
+        uint32_t pushed_val = 0xDEADBEEF;
         mem->read(cpu->reg_sp, &pushed_val, 4);
         EXPECT_EQ(pushed_val, param.exp_val);
         break;
