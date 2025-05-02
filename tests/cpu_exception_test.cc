@@ -10,20 +10,27 @@
 #define TEST_BAD_IMM5     0xFF // does not fit into imm5
 
 struct CPUExceptionParam {
-    std::string name;
-    vm_err_type_t exception;
-    std::vector<uint8_t> prog_bytes;
+    struct ExcDesc {
+        vm_err_type_t exception;
+        cpu_state_t on_state;
 
-    /// Number of initial CPU steps that do not cause an exception.
-    size_t num_init_steps;
-    /// `true` if the instruction cannot be decoded.
-    bool malformed_instr = false;
+        /// In case `on_state` is `CPU_FETCH_DECODE_OPERANDS`, this member
+        /// specifies which operand fails to fetch/decode.
+        size_t opd_idx = 0;
+
+        vm_addr_t isr_addr() const {
+            return exception + 1;
+        }
+    };
+
+    std::string name;
+    std::vector<ExcDesc> exceptions;
+    std::vector<uint8_t> prog_bytes;
+    /// Number of good instructions to execute, not expecting exceptions.
+    size_t num_ok_instr = 0;
+
     /// `true` if the IVT needs to be filled and mapped into memory.
     bool map_ivt = true;
-
-    vm_addr_t isr_addr() const {
-        return exception + 1;
-    }
 
     friend std::ostream &operator<<(std::ostream &os,
                                     const CPUExceptionParam &param) {
@@ -90,34 +97,74 @@ class CPUExceptionTest : public testing::TestWithParam<CPUExceptionParam> {
 TEST_P(CPUExceptionTest, JumpsToISR) {
     auto param = GetParam();
 
-    for (size_t step = 0; step < param.num_init_steps; step++) {
-        ASSERT_EQ(cpu->num_nested_exc, 0);
-        cpu_step(cpu);
+    size_t num_ok = 0;
+    while (num_ok < param.num_ok_instr) {
+        do {
+            cpu_step(cpu);
+            ASSERT_EQ(cpu->num_nested_exc, 0);
+        } while (cpu->state != CPU_EXECUTED_OK);
+        num_ok++;
     }
 
-    if (!param.malformed_instr) {
-        // Try to execute the instruction.
-        ASSERT_EQ(cpu->state, CPU_EXECUTE);
+    size_t exc_count = 0;
+    while (exc_count < param.exceptions.size()) {
+        uint32_t instr_pc = cpu->reg_pc;
+
+        const auto &exc_desc = param.exceptions.at(exc_count);
+        std::optional<CPUExceptionParam::ExcDesc> next_exc =
+            (exc_count + 1) < param.exceptions.size()
+                ? std::make_optional(param.exceptions.at(exc_count + 1))
+                : std::nullopt;
+
+        // Get to the step which causes an exception.
+        while (true) {
+            if (cpu->state == exc_desc.on_state) {
+                if (exc_desc.on_state == CPU_FETCH_DECODE_OPERANDS) {
+                    if (cpu->instr.next_operand == exc_desc.opd_idx) { break; }
+                } else {
+                    break;
+                }
+            }
+            ASSERT_EQ(cpu->num_nested_exc, exc_count);
+            cpu_step(cpu);
+        }
+
+        // Expect an exception.
+        ASSERT_EQ(cpu->state, exc_desc.on_state);
+        ASSERT_EQ(cpu->num_nested_exc, exc_count);
         cpu_step(cpu);
+        exc_count++;
+        ASSERT_EQ(cpu->num_nested_exc, exc_count);
+
+        if (exc_count == 3) {
+            ASSERT_EQ(cpu->state, CPU_TRIPLE_FAULT);
+            break;
+        }
+
+        // Fetch an ISR.
+        ASSERT_EQ(cpu->state, CPU_INT_FETCH_ISR_ADDR);
+        if (next_exc && next_exc->on_state == CPU_INT_FETCH_ISR_ADDR) {
+            continue;
+        }
+        cpu_step(cpu);
+        ASSERT_EQ(cpu->num_nested_exc, exc_count);
+        EXPECT_EQ(cpu->curr_isr_addr, exc_desc.isr_addr());
+
+        // Push bad PC on the stack.
+        ASSERT_EQ(cpu->state, CPU_INT_PUSH_PC);
+        if (next_exc && next_exc->on_state == CPU_INT_PUSH_PC) { continue; }
+        cpu_step(cpu);
+        ASSERT_EQ(cpu->num_nested_exc, exc_count);
+        uint32_t pushed_val = 0xDEADBEEF;
+        mem->read(cpu->reg_sp, &pushed_val, 4);
+        EXPECT_EQ(pushed_val, instr_pc);
+
+        // Jump to the ISR.
+        ASSERT_EQ(cpu->state, CPU_INT_JUMP);
+        cpu_step(cpu);
+        ASSERT_EQ(cpu->num_nested_exc, exc_count);
+        EXPECT_EQ(cpu->reg_pc, exc_desc.isr_addr());
     }
-
-    // Fetch the ISR address.
-    ASSERT_EQ(cpu->num_nested_exc, 1);
-    ASSERT_EQ(cpu->state, CPU_INT_FETCH_ISR_ADDR);
-    cpu_step(cpu);
-
-    // Push PC.
-    ASSERT_EQ(cpu->state, CPU_INT_PUSH_PC);
-    cpu_step(cpu);
-    uint32_t pushed_val;
-    mem->read(stack_top - 4, &pushed_val, 4);
-    EXPECT_EQ(pushed_val, prog_start);
-
-    // Jump to the ISR.
-    ASSERT_EQ(cpu->state, CPU_INT_JUMP);
-    cpu_step(cpu);
-    EXPECT_EQ(cpu->reg_pc, param.isr_addr());
-    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -126,48 +173,51 @@ INSTANTIATE_TEST_SUITE_P(
 
         v.push_back(CPUExceptionParam{
             .name = "BAD_MEM",
-            .exception = VM_ERR_BAD_MEM,
+            .exceptions = {{VM_ERR_BAD_MEM, CPU_EXECUTE}},
             .prog_bytes = build_instr(CPU_OP_STR_RV0)
                               .reg_code(CPU_CODE_R0)
                               .imm32(TEST_BAD_MEM)
                               .bytes,
-            .num_init_steps = 3,
         });
 
         v.push_back(CPUExceptionParam{
             .name = "BAD_OPCODE",
-            .exception = VM_ERR_BAD_OPCODE,
+            .exceptions = {{VM_ERR_BAD_OPCODE, CPU_FETCH_DECODE_OPCODE}},
             .prog_bytes = build_instr(TEST_BAD_OPCODE).bytes,
-            .num_init_steps = 1,
-            .malformed_instr = true,
         });
 
         v.push_back(CPUExceptionParam{
             .name = "BAD_REG_CODE",
-            .exception = VM_ERR_BAD_REG_CODE,
+            .exceptions = {{VM_ERR_BAD_REG_CODE, CPU_FETCH_DECODE_OPERANDS, 0}},
             .prog_bytes =
                 build_instr(CPU_OP_PUSH_R).reg_code(TEST_BAD_REG_CODE).bytes,
-            .num_init_steps = 2,
-            .malformed_instr = true,
         });
 
         v.push_back(CPUExceptionParam{
             .name = "BAD_IMM5",
-            .exception = VM_ERR_BAD_IMM5,
+            .exceptions = {{VM_ERR_BAD_IMM5, CPU_FETCH_DECODE_OPERANDS, 1}},
             .prog_bytes = build_instr(CPU_OP_SHL_RV)
                               .reg_code(CPU_CODE_R0)
                               .imm5(TEST_BAD_IMM5)
                               .bytes,
-            .num_init_steps = 3,
-            .malformed_instr = true,
         });
 
         v.push_back(CPUExceptionParam{
-            .name = "DIV_BY_ZERO",
-            .exception = VM_ERR_DIV_BY_ZERO,
+            .name = "TRIPLE_FAULT_STACK_OVERFLOW_PUSH",
+            .exceptions =
+                {
+                    {VM_ERR_STACK_OVERFLOW, CPU_EXECUTE},
+                    {VM_ERR_STACK_OVERFLOW, CPU_INT_PUSH_PC},
+                    {VM_ERR_STACK_OVERFLOW, CPU_INT_PUSH_PC},
+                },
             .prog_bytes =
-                build_instr(CPU_OP_DIV_RV).reg_code(CPU_CODE_R0).imm32(0).bytes,
-            .num_init_steps = 3,
+                build_prog()
+                    .instr(build_instr(CPU_OP_MOV_VR)
+                               .reg_code(CPU_CODE_SP)
+                               .imm32(0))
+                    .instr(build_instr(CPU_OP_PUSH_R).reg_code(CPU_CODE_R0))
+                    .bytes,
+            .num_ok_instr = 1,
         });
 
         return v;
