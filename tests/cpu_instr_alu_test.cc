@@ -551,16 +551,15 @@ INSTANTIATE_TEST_SUITE_P(
                 ALUInstrParam::SrcInReg);
 
             uint32_t op1 = param.dst_val;
-            uint32_t op2;
+            uint32_t num_bits;
             if (param.dst_reg_code == *param.src_reg_code) {
-                param.set_exp_val_flags(param.dst_val << (param.dst_val & 31));
-                op2 = op1;
+                num_bits = op1 & 31;
             } else {
-                param.set_exp_val_flags(param.dst_val << (*param.src_val & 31));
-                op2 = *param.src_val;
+                num_bits = *param.src_val & 31;
             }
+            param.set_exp_val_flags(param.dst_val << num_bits);
             param.exp_flag_carry =
-                (((uint64_t)op1 >> (32 - (op2 & 31))) & 1) != 0;
+                (((uint64_t)op1 >> (32 - (num_bits & 31))) & 1) != 0;
             v.push_back(param);
         }
         return v;
@@ -595,12 +594,11 @@ INSTANTIATE_TEST_SUITE_P(
             uint32_t op1 = param.dst_val;
             uint32_t num_bits;
             if (param.dst_reg_code == *param.src_reg_code) {
-                param.set_exp_val_flags(param.dst_val >> (param.dst_val & 31));
-                num_bits = op1;
+                num_bits = op1 & 31;
             } else {
-                param.set_exp_val_flags(param.dst_val >> (*param.src_val & 31));
-                num_bits = *param.src_val;
+                num_bits = *param.src_val & 31;
             }
+            param.set_exp_val_flags(param.dst_val >> num_bits);
             if (num_bits > 0) {
                 param.exp_flag_carry = ((op1 >> (num_bits - 1)) & 1) != 0;
             }
