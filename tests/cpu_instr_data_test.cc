@@ -79,7 +79,7 @@ TEST_P(DataInstrTest, WritesValue) {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
     }
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     EXPECT_EQ(param.f_get_actual_value(param, cpu), param.expected_value);
 }

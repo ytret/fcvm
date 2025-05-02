@@ -134,7 +134,7 @@ TEST_P(StackInstrTest, SingleInstrWorks) {
         cpu_step(cpu);
         ASSERT_EQ(cpu->num_nested_exc, 0);
     }
-    ASSERT_EQ(cpu->state, CPU_EXECUTED_OK);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
 
     int32_t sp_change = cpu->reg_sp - orig_sp;
     switch (param.instr_type) {

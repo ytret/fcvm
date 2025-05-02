@@ -75,6 +75,7 @@ static const cpu_instr_desc_t cpu_instr_descs[256] = {
     [CPU_OP_NOP] = {CPU_OP_NOP, 0, {}},
     [CPU_OP_HALT] = {CPU_OP_HALT, 0, {}},
     [CPU_OP_INT_V8] = {CPU_OP_INT_V8, 1, {CPU_OPD_IMM8}},
+    [CPU_OP_IRET] = {CPU_OP_IRET, 0, {}},
 };
 
 const cpu_instr_desc_t *cpu_lookup_instr_desc(uint8_t opcode) {

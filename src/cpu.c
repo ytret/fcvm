@@ -12,6 +12,7 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu);
+static vm_err_t prv_cpu_execute_other_instr(cpu_ctx_t *cpu);
 
 static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val);
 static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val);
@@ -31,7 +32,7 @@ cpu_ctx_t *cpu_new(mem_if_t *mem) {
 
     cpu->state = CPU_RESET;
     cpu->mem = mem;
-
+    cpu->intctl = intctl_new();
     cpu->num_nested_exc = 0;
 
     return cpu;
@@ -44,8 +45,18 @@ void cpu_free(cpu_ctx_t *cpu) {
 
 void cpu_step(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
+    D_ASSERT(cpu->intctl);
 
-    if (cpu->state == CPU_EXECUTED_OK) { cpu->state = CPU_FETCH_DECODE_OPCODE; }
+    if (cpu->state == CPU_FETCH_DECODE_OPCODE || cpu->state == CPU_HALTED) {
+        if (intctl_has_pending_irqs(cpu->intctl)) {
+            uint8_t pending_irq;
+            if (intctl_get_pending_irq(cpu->intctl, &pending_irq)) {
+                cpu->curr_int_line = CPU_IVT_FIRST_IRQ_ENTRY + pending_irq;
+                cpu->pc_after_isr = cpu->reg_pc;
+                cpu->state = CPU_INT_FETCH_ISR_ADDR;
+            }
+        }
+    }
 
     switch (cpu->state) {
     case CPU_RESET: {
@@ -69,7 +80,8 @@ void cpu_step(cpu_ctx_t *cpu) {
                 cpu->state = CPU_FETCH_DECODE_OPERANDS;
             }
         } else {
-            D_PRINTF("bad opcode: 0x%02X", cpu->instr.opcode);
+            D_PRINTF("bad opcode 0x%02X at 0x%08X", cpu->instr.opcode,
+                     cpu->reg_pc);
             vm_err_t err = {.type = VM_ERR_BAD_OPCODE};
             prv_cpu_raise_exception(cpu, err);
         }
@@ -97,15 +109,16 @@ void cpu_step(cpu_ctx_t *cpu) {
     case CPU_EXECUTE: {
         vm_err_t err = prv_cpu_execute_instr(cpu);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
-        cpu->state = CPU_EXECUTED_OK;
+        if (cpu->state == CPU_EXECUTE) {
+            // If the state has not been changed by the instruction (e.g. HALT),
+            // fetch and decode the next opcode.
+            cpu->state = CPU_FETCH_DECODE_OPCODE;
+        }
         break;
     }
 
-    case CPU_EXECUTED_OK:
-        D_ASSERTMF(false,
-                   "cpu_step() must not be called when cpu->state is "
-                   "CPU_EXECUTED_OK (%u)",
-                   cpu->state);
+    case CPU_HALTED:
+        break;
 
     case CPU_INT_FETCH_ISR_ADDR: {
         uint8_t entry_idx = cpu->curr_int_line;
@@ -183,6 +196,7 @@ cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err) {
     case VM_ERR_BAD_OPCODE:
     case VM_ERR_BAD_REG_CODE:
     case VM_ERR_BAD_IMM5:
+    case VM_ERR_INVALID_IRQ_NUM:
         return CPU_EXC_BAD_INSTR;
 
     case VM_ERR_DIV_BY_ZERO:
@@ -197,6 +211,12 @@ cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err) {
     default:
         D_ASSERT(false);
     }
+}
+
+vm_err_t cpu_raise_irq(cpu_ctx_t *cpu, uint8_t irq_line) {
+    D_ASSERT(cpu);
+    D_ASSERT(cpu->intctl);
+    return intctl_raise_irq_line(cpu->intctl, irq_line);
 }
 
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
@@ -296,6 +316,8 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
         err = prv_cpu_execute_flow_instr(cpu);
     } else if (opcode_kind == CPU_OP_KIND_STACK) {
         err = prv_cpu_execute_stack_instr(cpu);
+    } else if (opcode_kind == CPU_OP_KIND_OTHER) {
+        err = prv_cpu_execute_other_instr(cpu);
     } else {
         D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
                    cpu->instr.opcode);
@@ -711,6 +733,28 @@ static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu) {
                    cpu->instr.opcode);
     }
 
+    return err;
+}
+
+static vm_err_t prv_cpu_execute_other_instr(cpu_ctx_t *cpu) {
+    vm_err_t err = {.type = VM_ERR_NONE};
+    switch (cpu->instr.opcode) {
+    case CPU_OP_INT_V8:
+        err = cpu_raise_irq(cpu, cpu->instr.operands[0].u8);
+        break;
+
+    case CPU_OP_HALT:
+        cpu->state = CPU_HALTED;
+        break;
+
+    case CPU_OP_IRET:
+        err = prv_cpu_stack_pop_u32(cpu, &cpu->reg_pc);
+        break;
+
+    default:
+        D_ASSERTMF(false, "instruction is not implemented: 0x%02X",
+                   cpu->instr.opcode);
+    }
     return err;
 }
 

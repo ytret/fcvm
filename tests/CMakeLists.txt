@@ -52,3 +52,5 @@ my_add_test(cpu_instr_stack_test
 
 my_add_test(cpu_exception_test)
 my_add_test(cpu_reset_test)
+my_add_test(intctl_test)
+my_add_test(cpu_interrupt_test)
