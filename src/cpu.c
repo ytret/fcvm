@@ -45,6 +45,8 @@ void cpu_free(cpu_ctx_t *cpu) {
 void cpu_step(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
 
+    if (cpu->state == CPU_EXECUTED_OK) { cpu->state = CPU_FETCH_DECODE_OPCODE; }
+
     switch (cpu->state) {
     case CPU_FETCH_DECODE_OPCODE: {
         cpu->instr.start_addr = cpu->reg_pc;
