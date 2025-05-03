@@ -83,7 +83,7 @@ struct FlowInstrParam {
         case AddrInReg: {
             jump_addr = get_random_data_addr(rng, prog_end, stack_bottom, 0);
             std::vector<uint8_t> used_reg_codes = {CPU_CODE_SP};
-            *reg_code = get_random_reg_code(rng, true, used_reg_codes);
+            reg_code = get_random_reg_code(rng, true, used_reg_codes);
             break;
         }
         }
