@@ -19,7 +19,10 @@ class MemCtlTest : public testing::Test {
     MemCtlTest() {
         memctl = memctl_new();
 
-        mmio1_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE);
+        // Set the `fail_on_wrong_access` option to `true`, because memctl must
+        // not propagate wrong reads/writes to the memory interfaces.
+
+        mmio1_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE, true);
         mmio1_reg = {
             .start = TEST_MMIO1_START,
             .end = TEST_MMIO1_START + TEST_MMIO1_SIZE,
@@ -27,7 +30,7 @@ class MemCtlTest : public testing::Test {
             .mem_if = mmio1_dev->mem_if,
         };
 
-        mmio2_dev = new FakeMem(0x0000'0000, TEST_MMIO2_SIZE);
+        mmio2_dev = new FakeMem(0x0000'0000, TEST_MMIO2_SIZE, true);
         mmio2_reg = {
             .start = TEST_MMIO2_START,
             .end = TEST_MMIO2_START + TEST_MMIO2_SIZE,
@@ -258,6 +261,43 @@ TEST_F(MemCtlTest, Region2ReadU8) {
     EXPECT_EQ(act_byte, exp_byte);
 }
 
+TEST_F(MemCtlTest, Region2ReadU32) {
+    vm_addr_t rel_addr;
+    uint32_t exp_dword;
+    uint32_t act_dword;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
+    ASSERT_EQ(err.type, VM_ERR_NONE);
+
+    // Read from the start.
+    rel_addr = 0x0000'0000;
+    exp_dword = 0xDEADBEEF;
+    mmio2_dev->write(rel_addr, &exp_dword, 4);
+    memctl_read_u32(memctl, TEST_MMIO2_START + rel_addr, &act_dword);
+    EXPECT_EQ(act_dword, exp_dword);
+
+    // Read from the middle.
+    rel_addr = TEST_MMIO2_SIZE / 2;
+    exp_dword = 0xCAFEBABE;
+    mmio2_dev->write(rel_addr, &exp_dword, 4);
+    memctl_read_u32(memctl, TEST_MMIO2_START + rel_addr, &act_dword);
+    EXPECT_EQ(act_dword, exp_dword);
+
+    // Read from the end dword.
+    rel_addr = TEST_MMIO2_SIZE - 4;
+    exp_dword = 0xCC00FFEE;
+    mmio2_dev->write(rel_addr, &exp_dword, 4);
+    memctl_read_u32(memctl, TEST_MMIO2_START + rel_addr, &act_dword);
+    EXPECT_EQ(act_dword, exp_dword);
+
+    // Reading a dword anywhere from [end-3, end) should fail.
+    for (vm_addr_t i = 0; i < 3; i++) {
+        err = memctl_read_u32(memctl, TEST_MMIO2_START + TEST_MMIO2_SIZE - i,
+                              &act_dword);
+        EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+    }
+}
+
 TEST_F(MemCtlTest, Region2WriteU8) {
     vm_addr_t rel_addr;
     uint8_t exp_byte;
@@ -266,24 +306,61 @@ TEST_F(MemCtlTest, Region2WriteU8) {
     vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
     ASSERT_EQ(err.type, VM_ERR_NONE);
 
-    // Read from the start.
+    // Write at the start.
     rel_addr = 0x0000'0000;
     exp_byte = 0xDE;
     memctl_write_u8(memctl, TEST_MMIO2_START + rel_addr, exp_byte);
     mmio2_dev->read(rel_addr, &act_byte, 1);
     EXPECT_EQ(act_byte, exp_byte);
 
-    // Read from the middle.
+    // Write in the middle.
     rel_addr = TEST_MMIO2_SIZE / 2;
     exp_byte = 0xAD;
     memctl_write_u8(memctl, TEST_MMIO2_START + rel_addr, exp_byte);
     mmio2_dev->read(rel_addr, &act_byte, 1);
     EXPECT_EQ(act_byte, exp_byte);
 
-    // Read from the end.
+    // Write the last byte.
     rel_addr = TEST_MMIO2_SIZE - 1;
     exp_byte = 0xBE;
     memctl_write_u8(memctl, TEST_MMIO2_START + rel_addr, exp_byte);
     mmio2_dev->read(rel_addr, &act_byte, 1);
     EXPECT_EQ(act_byte, exp_byte);
+}
+
+TEST_F(MemCtlTest, Region2WriteU32) {
+    vm_addr_t rel_addr;
+    uint32_t exp_dword;
+    uint32_t act_dword;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
+    ASSERT_EQ(err.type, VM_ERR_NONE);
+
+    // Read from the start.
+    rel_addr = 0x0000'0000;
+    exp_dword = 0xDEADBEEF;
+    memctl_write_u32(memctl, TEST_MMIO2_START + rel_addr, exp_dword);
+    mmio2_dev->read(rel_addr, &act_dword, 4);
+    EXPECT_EQ(act_dword, exp_dword);
+
+    // Write in the middle.
+    rel_addr = TEST_MMIO2_SIZE / 2;
+    exp_dword = 0xCAFEBABE;
+    memctl_write_u32(memctl, TEST_MMIO2_START + rel_addr, exp_dword);
+    mmio2_dev->read(rel_addr, &act_dword, 4);
+    EXPECT_EQ(act_dword, exp_dword);
+
+    // Write the last dword.
+    rel_addr = TEST_MMIO2_SIZE - 4;
+    exp_dword = 0xCC00FFEE;
+    memctl_write_u32(memctl, TEST_MMIO2_START + rel_addr, exp_dword);
+    mmio2_dev->read(rel_addr, &act_dword, 4);
+    EXPECT_EQ(act_dword, exp_dword);
+
+    // Writing a dword anywhere at [end-3, end) should fail.
+    for (vm_addr_t i = 0; i < 3; i++) {
+        err = memctl_write_u32(memctl, TEST_MMIO2_START + TEST_MMIO2_SIZE - i,
+                               exp_dword);
+        EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+    }
 }
