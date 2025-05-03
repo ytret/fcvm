@@ -5,6 +5,8 @@
 #include "memctl.h"
 
 static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx);
+static vm_err_t prv_mem_find_mmio_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
+                                          const mmio_region_t **out_reg);
 
 memctl_ctx_t *memctl_new(void) {
     memctl_ctx_t *memctl = malloc(sizeof(*memctl));
@@ -41,34 +43,56 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     return err;
 }
 
-vm_err_t memctl_read_u8(void *ctx, vm_addr_t addr, uint8_t *out) {
-    (void)ctx;
-    (void)addr;
-    (void)out;
-    D_TODO();
+vm_err_t memctl_read_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t *out) {
+    D_ASSERT(v_memctl_ctx);
+    memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    const mmio_region_t *reg;
+    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    if (err.type == VM_ERR_NONE) {
+        err = reg->mem_if.read_u8(reg->ctx, addr, out);
+    }
+
+    return err;
 }
 
-vm_err_t memctl_read_u32(void *ctx, vm_addr_t addr, uint32_t *out) {
-    (void)ctx;
-    (void)addr;
-    (void)out;
-    D_TODO();
+vm_err_t memctl_read_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t *out) {
+    D_ASSERT(v_memctl_ctx);
+    memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    const mmio_region_t *reg;
+    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    if (err.type == VM_ERR_NONE) {
+        err = reg->mem_if.read_u32(reg->ctx, addr, out);
+    }
+
+    return err;
 }
 
-vm_err_t memctl_write_u8(void *ctx, vm_addr_t addr, uint8_t val) {
-    (void)ctx;
+vm_err_t memctl_write_u8(void *memctl_ctx, vm_addr_t addr, uint8_t val) {
+    D_ASSERT(memctl_ctx);
     (void)addr;
     (void)val;
     D_TODO();
 }
 
-vm_err_t memctl_write_u32(void *ctx, vm_addr_t addr, uint32_t val) {
-    (void)ctx;
+vm_err_t memctl_write_u32(void *memctl_ctx, vm_addr_t addr, uint32_t val) {
+    D_ASSERT(memctl_ctx);
     (void)addr;
     (void)val;
     D_TODO();
 }
 
+/**
+ * Finds an unused index in the #memctl_ctx_t.mapped_regions array.
+ * \param[in] memctl -- Memory controller.
+ * \param[out] out_idx -- Output pointer to the unused index.
+ * \returns `true` if an unused index was found and written at \a *out_idx,
+ *          `false` if no unused index was found and \a *out_idx was not
+ *          changed.
+ */
 static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx) {
     D_ASSERT(memctl);
     D_ASSERT(out_idx);
@@ -79,4 +103,33 @@ static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx) {
         }
     }
     return false;
+}
+
+/**
+ * Finds a mapped region that contains address \a addr.
+ * \param[in] memctl -- Memory controller.
+ * \param[in] addr -- Contained memory address to search by.
+ * \param[out] out_reg -- Output pointer to the found memory region.
+ * \returns #VM_ERR_NONE if a region containing \a addr was found and written
+ *          to \a *out_reg, #VM_ERR_BAD_MEM if no containing region was found
+ *          and \a *out_reg was not written
+ */
+static vm_err_t prv_mem_find_mmio_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
+                                          const mmio_region_t **out_reg) {
+    D_ASSERT(memctl);
+    D_ASSERT(out_reg);
+    vm_err_t err = {.type = VM_ERR_BAD_MEM};
+
+    for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
+        if (memctl->used_regions[idx]) {
+            mmio_region_t reg = memctl->mapped_regions[idx];
+            if (reg.start <= addr && addr < reg.end) {
+                *out_reg = &memctl->mapped_regions[idx];
+                err.type = VM_ERR_NONE;
+                break;
+            }
+        }
+    }
+
+    return err;
 }

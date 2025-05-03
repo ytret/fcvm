@@ -47,10 +47,10 @@ memctl_ctx_t *memctl_new(void);
 void memctl_free(memctl_ctx_t *memctl);
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio);
 
-vm_err_t memctl_read_u8(void *ctx, vm_addr_t addr, uint8_t *out);
-vm_err_t memctl_read_u32(void *ctx, vm_addr_t addr, uint32_t *out);
-vm_err_t memctl_write_u8(void *ctx, vm_addr_t addr, uint8_t val);
-vm_err_t memctl_write_u32(void *ctx, vm_addr_t addr, uint32_t val);
+vm_err_t memctl_read_u8(void *memctl_ctx, vm_addr_t addr, uint8_t *out);
+vm_err_t memctl_read_u32(void *memctl_ctx, vm_addr_t addr, uint32_t *out);
+vm_err_t memctl_write_u8(void *memctl_ctx, vm_addr_t addr, uint8_t val);
+vm_err_t memctl_write_u32(void *memctl_ctx, vm_addr_t addr, uint32_t val);
 
 #ifdef __cplusplus
 }
