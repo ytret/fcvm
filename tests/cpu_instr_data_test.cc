@@ -38,7 +38,7 @@ struct DataInstrParam {
         std::string mem_addr = param.mem_addr.has_value()
                                    ? absl::StrFormat("0x%08X", *param.mem_addr)
                                    : std::string("N/A");
-        std::string mem_offset = param.mem_addr.has_value()
+        std::string mem_offset = param.mem_offset.has_value()
                                      ? absl::StrFormat("%+d", *param.mem_offset)
                                      : std::string("");
         os << absl::StrFormat(
