@@ -18,6 +18,7 @@ typedef enum {
     VM_ERR_STACK_OVERFLOW,
 
     VM_ERR_INVALID_IRQ_NUM,
+    VM_ERR_MEM_MAX_REGIONS,
 } vm_err_type_t;
 
 typedef struct {
