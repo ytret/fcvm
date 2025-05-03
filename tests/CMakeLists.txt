@@ -55,4 +55,5 @@ my_add_test(cpu_reset_test)
 my_add_test(cpu_interrupt_test)
 
 my_add_test(intctl_test)
+my_add_test(memctl_test)
 my_add_test(busctl_test)
