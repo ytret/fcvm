@@ -254,6 +254,36 @@ TEST_F(MemCtlTest, Region1ReadU8) {
     EXPECT_EQ(act_byte, exp_byte);
 }
 
+TEST_F(MemCtlTest, Region1WriteU8) {
+    vm_addr_t rel_addr;
+    uint8_t exp_byte;
+    uint8_t act_byte;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio1_reg);
+    ASSERT_EQ(err.type, VM_ERR_NONE);
+
+    // Read from the start.
+    rel_addr = 0x0000'0000;
+    exp_byte = 0xDE;
+    memctl_write_u8(memctl, TEST_MMIO1_START + rel_addr, exp_byte);
+    mmio1_dev->read(rel_addr, &act_byte, 1);
+    EXPECT_EQ(act_byte, exp_byte);
+
+    // Read from the middle.
+    rel_addr = TEST_MMIO1_SIZE / 2;
+    exp_byte = 0xAD;
+    memctl_write_u8(memctl, TEST_MMIO1_START + rel_addr, exp_byte);
+    mmio1_dev->read(rel_addr, &act_byte, 1);
+    EXPECT_EQ(act_byte, exp_byte);
+
+    // Read from the end.
+    rel_addr = TEST_MMIO1_SIZE - 1;
+    exp_byte = 0xBE;
+    memctl_write_u8(memctl, TEST_MMIO1_START + rel_addr, exp_byte);
+    mmio1_dev->read(rel_addr, &act_byte, 1);
+    EXPECT_EQ(act_byte, exp_byte);
+}
+
 TEST_F(MemCtlTest, Region2ReadU8) {
     vm_addr_t rel_addr;
     uint8_t exp_byte;
@@ -281,5 +311,35 @@ TEST_F(MemCtlTest, Region2ReadU8) {
     exp_byte = 0xBE;
     mmio2_dev->write(rel_addr, &exp_byte, 1);
     memctl_read_u8(memctl, TEST_MMIO2_START + rel_addr, &act_byte);
+    EXPECT_EQ(act_byte, exp_byte);
+}
+
+TEST_F(MemCtlTest, Region2WriteU8) {
+    vm_addr_t rel_addr;
+    uint8_t exp_byte;
+    uint8_t act_byte;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
+    ASSERT_EQ(err.type, VM_ERR_NONE);
+
+    // Read from the start.
+    rel_addr = 0x0000'0000;
+    exp_byte = 0xDE;
+    memctl_write_u8(memctl, TEST_MMIO2_START + rel_addr, exp_byte);
+    mmio2_dev->read(rel_addr, &act_byte, 1);
+    EXPECT_EQ(act_byte, exp_byte);
+
+    // Read from the middle.
+    rel_addr = TEST_MMIO2_SIZE / 2;
+    exp_byte = 0xAD;
+    memctl_write_u8(memctl, TEST_MMIO2_START + rel_addr, exp_byte);
+    mmio2_dev->read(rel_addr, &act_byte, 1);
+    EXPECT_EQ(act_byte, exp_byte);
+
+    // Read from the end.
+    rel_addr = TEST_MMIO2_SIZE - 1;
+    exp_byte = 0xBE;
+    memctl_write_u8(memctl, TEST_MMIO2_START + rel_addr, exp_byte);
+    mmio2_dev->read(rel_addr, &act_byte, 1);
     EXPECT_EQ(act_byte, exp_byte);
 }
