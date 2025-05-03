@@ -10,6 +10,9 @@
 #define TEST_MMIO2_START (TEST_MMIO1_START + TEST_MMIO1_SIZE + TEST_MMIO_GAP)
 #define TEST_MMIO2_SIZE  100
 
+#define TEST_MMIO3_START TEST_MMIO1_START
+#define TEST_MMIO3_SIZE  TEST_MMIO1_SIZE
+
 // Region 2 should not start at 0, because it's used to test reads/writes to a
 // region that doesn't start at 0.
 static_assert(TEST_MMIO2_START > 0);
@@ -37,6 +40,18 @@ class MemCtlTest : public testing::Test {
             .ctx = &mmio2_dev->mem_if,
             .mem_if = mmio2_dev->mem_if,
         };
+
+        mmio3_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE, true);
+        mmio3_reg = {
+            .start = TEST_MMIO3_START,
+            .end = TEST_MMIO3_START + TEST_MMIO3_SIZE,
+            .ctx = &mmio2_dev->mem_if,
+            .mem_if = mmio2_dev->mem_if,
+        };
+        mmio3_reg.mem_if.read_u8 = nullptr;
+        mmio3_reg.mem_if.write_u8 = nullptr;
+        mmio3_reg.mem_if.read_u32 = nullptr;
+        mmio3_reg.mem_if.write_u32 = nullptr;
     }
     ~MemCtlTest() {
         memctl_free(memctl);
@@ -55,6 +70,12 @@ class MemCtlTest : public testing::Test {
 
     FakeMem *mmio2_dev;
     mmio_region_t mmio2_reg;
+
+    /// A memory-mapped fake memory device that lacks the u32 r/w capability.
+    /// It's a copy of #mmio1_dev, except that the #mem_if_t function pointers
+    /// have been set to `nullptr`.
+    FakeMem *mmio3_dev;
+    mmio_region_t mmio3_reg;
     /// @}
 };
 
@@ -336,7 +357,7 @@ TEST_F(MemCtlTest, Region2WriteU32) {
     vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
     ASSERT_EQ(err.type, VM_ERR_NONE);
 
-    // Read from the start.
+    // Write at the start.
     rel_addr = 0x0000'0000;
     exp_dword = 0xDEADBEEF;
     memctl_write_u32(memctl, TEST_MMIO2_START + rel_addr, exp_dword);
@@ -363,4 +384,40 @@ TEST_F(MemCtlTest, Region2WriteU32) {
                                exp_dword);
         EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
     }
+}
+
+TEST_F(MemCtlTest, Region3CannotReadWriteU8) {
+    vm_addr_t rel_addr;
+    uint8_t byte = 0xAE;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio3_reg);
+    ASSERT_EQ(err.type, VM_ERR_NONE);
+
+    // Read
+    rel_addr = TEST_MMIO3_SIZE / 2;
+    err = memctl_read_u8(memctl, TEST_MMIO3_START + rel_addr, &byte);
+    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+
+    // Write
+    rel_addr = TEST_MMIO3_SIZE / 2;
+    err = memctl_write_u32(memctl, TEST_MMIO3_START + rel_addr, byte);
+    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+}
+
+TEST_F(MemCtlTest, Region3CannotReadWriteU32) {
+    vm_addr_t rel_addr;
+    uint32_t dword = 0xDEADBEEF;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio3_reg);
+    ASSERT_EQ(err.type, VM_ERR_NONE);
+
+    // Read
+    rel_addr = TEST_MMIO3_SIZE / 2;
+    err = memctl_read_u32(memctl, TEST_MMIO3_START + rel_addr, &dword);
+    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+
+    // Write
+    rel_addr = TEST_MMIO3_SIZE / 2;
+    memctl_write_u32(memctl, TEST_MMIO3_START + rel_addr, dword);
+    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
 }

@@ -67,8 +67,12 @@ vm_err_t memctl_read_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t *out) {
     const mmio_region_t *reg;
     err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
-        vm_addr_t rel_addr = addr - reg->start;
-        err = reg->mem_if.read_u8(reg->ctx, rel_addr, out);
+        if (reg->mem_if.read_u8) {
+            vm_addr_t rel_addr = addr - reg->start;
+            err = reg->mem_if.read_u8(reg->ctx, rel_addr, out);
+        } else {
+            err.type = VM_ERR_MEM_BAD_OP;
+        }
     }
 
     return err;
@@ -82,11 +86,15 @@ vm_err_t memctl_read_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t *out) {
     const mmio_region_t *reg;
     err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
-        if (addr + 4 <= reg->end) {
-            vm_addr_t rel_addr = addr - reg->start;
-            err = reg->mem_if.read_u32(reg->ctx, rel_addr, out);
+        if (reg->mem_if.read_u32) {
+            if (addr + 4 <= reg->end) {
+                vm_addr_t rel_addr = addr - reg->start;
+                err = reg->mem_if.read_u32(reg->ctx, rel_addr, out);
+            } else {
+                err.type = VM_ERR_BAD_MEM;
+            }
         } else {
-            err.type = VM_ERR_BAD_MEM;
+            err.type = VM_ERR_MEM_BAD_OP;
         }
     }
 
@@ -101,8 +109,12 @@ vm_err_t memctl_write_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t val) {
     const mmio_region_t *reg;
     err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
-        vm_addr_t rel_addr = addr - reg->start;
-        err = reg->mem_if.write_u8(reg->ctx, rel_addr, val);
+        if (reg->mem_if.write_u8) {
+            vm_addr_t rel_addr = addr - reg->start;
+            err = reg->mem_if.write_u8(reg->ctx, rel_addr, val);
+        } else {
+            err.type = VM_ERR_MEM_BAD_OP;
+        }
     }
 
     return err;
@@ -116,11 +128,15 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
     const mmio_region_t *reg;
     err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
-        if (addr + 4 <= reg->end) {
-            vm_addr_t rel_addr = addr - reg->start;
-            err = reg->mem_if.write_u32(reg->ctx, rel_addr, val);
+        if (reg->mem_if.write_u32) {
+            if (addr + 4 <= reg->end) {
+                vm_addr_t rel_addr = addr - reg->start;
+                err = reg->mem_if.write_u32(reg->ctx, rel_addr, val);
+            } else {
+                err.type = VM_ERR_BAD_MEM;
+            }
         } else {
-            err.type = VM_ERR_BAD_MEM;
+            err.type = VM_ERR_MEM_BAD_OP;
         }
     }
 
@@ -153,9 +169,9 @@ static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx) {
  * \param[in] addr -- Contained memory address to search by.
  * \param[out] out_reg -- Output pointer to the found memory region (may be
  *                        NULL).
- * \returns #VM_ERR_NONE if a region containing \a addr was found and written
- *          to \a *out_reg (if it's not NULL), #VM_ERR_BAD_MEM if no containing
- *          region was found and \a *out_reg was not written
+ * \returns #VM_ERR_NONE if a region containing \a addr was found and
+ * written to \a *out_reg (if it's not NULL), #VM_ERR_BAD_MEM if no
+ * containing region was found and \a *out_reg was not written
  */
 static vm_err_t prv_mem_find_mmio_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
                                           const mmio_region_t **out_reg) {

@@ -24,6 +24,7 @@ typedef enum {
 
     VM_ERR_MEM_MAX_REGIONS,
     VM_ERR_MEM_USED,
+    VM_ERR_MEM_BAD_OP,
 } vm_err_type_t;
 
 typedef struct {
