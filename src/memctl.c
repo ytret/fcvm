@@ -29,7 +29,23 @@ void memctl_free(memctl_ctx_t *memctl) {
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     D_ASSERT(memctl);
     D_ASSERT(mmio);
+    D_ASSERT(mmio->start < mmio->end);
     vm_err_t err = {.type = VM_ERR_NONE};
+
+    // FIXME: there are two iterations over the mapped_regions array, but it
+    // could be one if we checked both the start and end in a single iteration.
+    if (prv_mem_find_mmio_by_addr(memctl, mmio->start, NULL).type ==
+        VM_ERR_NONE) {
+        err.type = VM_ERR_MEM_USED;
+        return err;
+    }
+    // The end is exclusive, that's why we check if `end - 1`, the last byte of
+    // this region, not `end`, is contained in another region.
+    if (prv_mem_find_mmio_by_addr(memctl, mmio->end - 1, NULL).type ==
+        VM_ERR_NONE) {
+        err.type = VM_ERR_MEM_USED;
+        return err;
+    }
 
     size_t idx;
     if (!prv_mem_find_free_region(memctl, &idx)) {
@@ -123,22 +139,22 @@ static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx) {
  * Finds a mapped region that contains address \a addr.
  * \param[in] memctl -- Memory controller.
  * \param[in] addr -- Contained memory address to search by.
- * \param[out] out_reg -- Output pointer to the found memory region.
+ * \param[out] out_reg -- Output pointer to the found memory region (may be
+ *                        NULL).
  * \returns #VM_ERR_NONE if a region containing \a addr was found and written
- *          to \a *out_reg, #VM_ERR_BAD_MEM if no containing region was found
- *          and \a *out_reg was not written
+ *          to \a *out_reg (if it's not NULL), #VM_ERR_BAD_MEM if no containing
+ *          region was found and \a *out_reg was not written
  */
 static vm_err_t prv_mem_find_mmio_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
                                           const mmio_region_t **out_reg) {
     D_ASSERT(memctl);
-    D_ASSERT(out_reg);
     vm_err_t err = {.type = VM_ERR_BAD_MEM};
 
     for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
         if (memctl->used_regions[idx]) {
             mmio_region_t reg = memctl->mapped_regions[idx];
             if (reg.start <= addr && addr < reg.end) {
-                *out_reg = &memctl->mapped_regions[idx];
+                if (out_reg) { *out_reg = &memctl->mapped_regions[idx]; }
                 err.type = VM_ERR_NONE;
                 break;
             }
