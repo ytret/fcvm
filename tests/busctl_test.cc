@@ -180,3 +180,27 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU32) {
     EXPECT_EQ(err.type, VM_ERR_NONE);
     EXPECT_EQ(test_dev.contained_dword, write_dword);
 }
+
+TEST_F(BusCtlTest, TestDeviceRaiseIRQ) {
+    TestDevice test_dev;
+    vm_err_t err;
+
+    // Register the test device.
+    busctl_req_t req = test_dev.build_req();
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_NE(dev_ctx, nullptr);
+
+    // Raise the assigned IRQ line.
+    uint8_t pending_irq = 0xFF;
+    ASSERT_NE(pending_irq, dev_ctx->irq_line)
+        << "update the initial value of variable 'pending_irq' to something "
+           "different, because busctl assigned this IRQ line to the device";
+    EXPECT_FALSE(intctl_has_pending_irqs(intctl));
+    err = intctl_raise_irq_line(intctl, dev_ctx->irq_line);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_TRUE(intctl_has_pending_irqs(intctl));
+    EXPECT_TRUE(intctl_get_pending_irq(intctl, &pending_irq));
+    EXPECT_EQ(pending_irq, dev_ctx->irq_line);
+}
