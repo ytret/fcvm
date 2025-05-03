@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.18)
+if(CMAKE_VERSION VERSION_GREATER 3.19)
+    # CMP0115: Source file extensions must be explicit.
+    # 3.20+
+    cmake_policy(SET CMP0115 NEW)
+endif()
 if(CMAKE_VERSION VERSION_GREATER 3.23)
     # CMP0135: When using the URL download method with the ExternalProject_Add()
     # or FetchContent_Declare() commands, set the timestamps of extracted
@@ -45,4 +50,4 @@ add_subdirectory(tests)
 ##########
 ## Docs ##
 ##########
-#add_subdirectory(docs)
+add_subdirectory(docs)
