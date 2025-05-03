@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include "busctl.h"
-#include "common.h"
 #include "memctl.h"
 
 class BusCtlTest : public testing::Test {
@@ -63,7 +62,7 @@ TEST_F(BusCtlTest, RegisterMaxDevices) {
         };
         req = {
             .dev_class = (uint8_t)idx_dev,
-            .region_size = (vm_addr_t)idx_dev,
+            .region_size = 10 + (vm_addr_t)idx_dev,
             .ctx = &mem_ctx,
             .mem_if = mem_if,
         };
