@@ -191,6 +191,7 @@ cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err) {
     D_ASSERT(cpu);
     switch (err) {
     case VM_ERR_BAD_MEM:
+    case VM_ERR_MEM_BAD_OP:
         return CPU_EXC_BAD_MEM;
 
     case VM_ERR_BAD_OPCODE:
