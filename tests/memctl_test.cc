@@ -17,16 +17,16 @@ class MemCtlTest : public testing::Test {
 
         mmio1_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE);
         mmio1_reg = {
-            .start = 0x0000'0000,
-            .end = TEST_MMIO1_SIZE,
+            .start = TEST_MMIO1_START,
+            .end = TEST_MMIO1_START + TEST_MMIO1_SIZE,
             .ctx = mmio1_dev,
             .mem_if = mmio1_dev->mem_if,
         };
 
         mmio2_dev = new FakeMem(0x0000'0000, TEST_MMIO2_SIZE);
         mmio2_reg = {
-            .start = 0x0000'0000,
-            .end = TEST_MMIO2_SIZE,
+            .start = TEST_MMIO2_START,
+            .end = TEST_MMIO2_START + TEST_MMIO2_SIZE,
             .ctx = mmio2_dev,
             .mem_if = mmio2_dev->mem_if,
         };
@@ -94,4 +94,14 @@ TEST_F(MemCtlTest, MapTwoRegions) {
 
     err = memctl_map_region(memctl, &mmio2_reg);
     EXPECT_EQ(err.type, VM_ERR_NONE);
+}
+
+TEST_F(MemCtlTest, MapSameRegionTwiceFails) {
+    vm_err_t err;
+
+    err = memctl_map_region(memctl, &mmio1_reg);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+
+    err = memctl_map_region(memctl, &mmio1_reg);
+    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
 }

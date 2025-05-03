@@ -21,7 +21,9 @@ typedef enum {
 
     VM_ERR_BUS_NO_FREE_SLOT,
     VM_ERR_BUS_NO_FREE_MEM,
+
     VM_ERR_MEM_MAX_REGIONS,
+    VM_ERR_MEM_USED,
 } vm_err_type_t;
 
 typedef struct {
