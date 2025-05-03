@@ -10,6 +10,10 @@
 #define TEST_MMIO2_START (TEST_MMIO1_START + TEST_MMIO1_SIZE + TEST_MMIO_GAP)
 #define TEST_MMIO2_SIZE  100
 
+// Region 2 should not start at 0, because it's used to test reads/writes to a
+// region that doesn't start at 0.
+static_assert(TEST_MMIO2_START > 0);
+
 class MemCtlTest : public testing::Test {
   protected:
     MemCtlTest() {
@@ -222,66 +226,6 @@ TEST_F(MemCtlTest, NoRegionWriteU32Fails) {
     uint32_t val = 0xDEADBEEF;
     vm_err_t err = memctl->intf.write_u32(memctl, 0x0000'0000, val);
     EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
-}
-
-TEST_F(MemCtlTest, Region1ReadU8) {
-    vm_addr_t rel_addr;
-    uint8_t exp_byte;
-    uint8_t act_byte;
-
-    vm_err_t err = memctl_map_region(memctl, &mmio1_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
-
-    // Read from the start.
-    rel_addr = 0x0000'0000;
-    exp_byte = 0xDE;
-    mmio1_dev->write(rel_addr, &exp_byte, 1);
-    memctl_read_u8(memctl, TEST_MMIO1_START + rel_addr, &act_byte);
-    EXPECT_EQ(act_byte, exp_byte);
-
-    // Read from the middle.
-    rel_addr = TEST_MMIO1_SIZE / 2;
-    exp_byte = 0xAD;
-    mmio1_dev->write(rel_addr, &exp_byte, 1);
-    memctl_read_u8(memctl, TEST_MMIO1_START + rel_addr, &act_byte);
-    EXPECT_EQ(act_byte, exp_byte);
-
-    // Read from the end.
-    rel_addr = TEST_MMIO1_SIZE - 1;
-    exp_byte = 0xBE;
-    mmio1_dev->write(rel_addr, &exp_byte, 1);
-    memctl_read_u8(memctl, TEST_MMIO1_START + rel_addr, &act_byte);
-    EXPECT_EQ(act_byte, exp_byte);
-}
-
-TEST_F(MemCtlTest, Region1WriteU8) {
-    vm_addr_t rel_addr;
-    uint8_t exp_byte;
-    uint8_t act_byte;
-
-    vm_err_t err = memctl_map_region(memctl, &mmio1_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
-
-    // Read from the start.
-    rel_addr = 0x0000'0000;
-    exp_byte = 0xDE;
-    memctl_write_u8(memctl, TEST_MMIO1_START + rel_addr, exp_byte);
-    mmio1_dev->read(rel_addr, &act_byte, 1);
-    EXPECT_EQ(act_byte, exp_byte);
-
-    // Read from the middle.
-    rel_addr = TEST_MMIO1_SIZE / 2;
-    exp_byte = 0xAD;
-    memctl_write_u8(memctl, TEST_MMIO1_START + rel_addr, exp_byte);
-    mmio1_dev->read(rel_addr, &act_byte, 1);
-    EXPECT_EQ(act_byte, exp_byte);
-
-    // Read from the end.
-    rel_addr = TEST_MMIO1_SIZE - 1;
-    exp_byte = 0xBE;
-    memctl_write_u8(memctl, TEST_MMIO1_START + rel_addr, exp_byte);
-    mmio1_dev->read(rel_addr, &act_byte, 1);
-    EXPECT_EQ(act_byte, exp_byte);
 }
 
 TEST_F(MemCtlTest, Region2ReadU8) {
