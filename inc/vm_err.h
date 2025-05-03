@@ -18,6 +18,9 @@ typedef enum {
     VM_ERR_STACK_OVERFLOW,
 
     VM_ERR_INVALID_IRQ_NUM,
+
+    VM_ERR_BUS_NO_FREE_SLOT,
+    VM_ERR_BUS_NO_FREE_MEM,
     VM_ERR_MEM_MAX_REGIONS,
 } vm_err_type_t;
 

@@ -22,6 +22,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ## Library code ##
 ##################
 add_library(fcvm STATIC
+    src/busctl.c
     src/cpu.c
     src/cpu_instr_descs.c
     src/intctl.c
