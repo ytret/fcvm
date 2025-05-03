@@ -71,18 +71,32 @@ vm_err_t memctl_read_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t *out) {
     return err;
 }
 
-vm_err_t memctl_write_u8(void *memctl_ctx, vm_addr_t addr, uint8_t val) {
-    D_ASSERT(memctl_ctx);
-    (void)addr;
-    (void)val;
-    D_TODO();
+vm_err_t memctl_write_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t val) {
+    D_ASSERT(v_memctl_ctx);
+    memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    const mmio_region_t *reg;
+    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    if (err.type == VM_ERR_NONE) {
+        err = reg->mem_if.write_u8(reg->ctx, addr, val);
+    }
+
+    return err;
 }
 
-vm_err_t memctl_write_u32(void *memctl_ctx, vm_addr_t addr, uint32_t val) {
-    D_ASSERT(memctl_ctx);
-    (void)addr;
-    (void)val;
-    D_TODO();
+vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
+    D_ASSERT(v_memctl_ctx);
+    memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
+    vm_err_t err = {.type = VM_ERR_NONE};
+
+    const mmio_region_t *reg;
+    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    if (err.type == VM_ERR_NONE) {
+        err = reg->mem_if.write_u32(reg->ctx, addr, val);
+    }
+
+    return err;
 }
 
 /**
