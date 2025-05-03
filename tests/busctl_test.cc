@@ -98,6 +98,9 @@ TEST_F(BusCtlTest, RegisterDevice) {
 
 TEST_F(BusCtlTest, RegisterMaxDevices) {
     ASSERT_GT(BUS_MAX_DEVS, 0);
+    ASSERT_GE(MEMCTL_MAX_REGIONS, BUS_MAX_DEVS + 1)
+        << "Not enough regions to map " << BUS_MAX_DEVS
+        << " devices plus the bus controller MMIO";
 
     uint32_t mem_ctx = 0xDEADBEEF;
     mem_if_t mem_if;
@@ -203,4 +206,95 @@ TEST_F(BusCtlTest, TestDeviceRaiseIRQ) {
     EXPECT_TRUE(intctl_has_pending_irqs(intctl));
     EXPECT_TRUE(intctl_get_pending_irq(intctl, &pending_irq));
     EXPECT_EQ(pending_irq, dev_ctx->irq_line);
+}
+
+TEST_F(BusCtlTest, MMIORegSlotStatusNoDev) {
+    constexpr vm_addr_t slot_status_addr = BUS_MMIO_START;
+    uint32_t slot_status = 0xDEADBEEF;
+
+    vm_err_t err =
+        memctl->intf.read_u32(memctl, slot_status_addr, &slot_status);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(slot_status, 0);
+}
+
+TEST_F(BusCtlTest, MMIORegSlotStatusOneDev) {
+    TestDevice test_dev;
+    vm_err_t err;
+
+    // Register the test device.
+    busctl_req_t req = test_dev.build_req();
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_NE(dev_ctx, nullptr);
+
+    // Read the slot status register.
+    constexpr vm_addr_t slot_status_addr = BUS_MMIO_START;
+    uint32_t slot_status = 0xDEADBEEF;
+    err = memctl->intf.read_u32(memctl, slot_status_addr, &slot_status);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(slot_status, (1 << dev_ctx->bus_slot));
+}
+
+TEST_F(BusCtlTest, MMIORegSlotStatusTwoDevs) {
+    TestDevice dev1;
+    TestDevice dev2;
+    vm_err_t err;
+
+    // Register the test device #1.
+    busctl_req_t req1 = dev1.build_req();
+    const busctl_dev_ctx_t *ctx1 = nullptr;
+    err = busctl_reg_dev(busctl, &req1, &ctx1);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_NE(ctx1, nullptr);
+
+    // Register the test device #2.
+    busctl_req_t req2 = dev2.build_req();
+    const busctl_dev_ctx_t *ctx2 = nullptr;
+    err = busctl_reg_dev(busctl, &req2, &ctx2);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_NE(ctx2, nullptr);
+
+    // Ensure that they have different bus slots.
+    EXPECT_NE(ctx1->bus_slot, ctx2->bus_slot);
+
+    // Read the slot status register.
+    constexpr vm_addr_t slot_status_addr = BUS_MMIO_START;
+    uint32_t slot_status = 0xDEADBEEF;
+    err = memctl->intf.read_u32(memctl, slot_status_addr, &slot_status);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(slot_status, (1 << ctx1->bus_slot) | (1 << ctx2->bus_slot));
+}
+
+TEST_F(BusCtlTest, MMIORegDevDesc) {
+    TestDevice test_dev;
+    vm_err_t err;
+
+    // Register the test device.
+    busctl_req_t req = test_dev.build_req();
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_NE(dev_ctx, nullptr);
+
+    // Read the device slot register.
+    const vm_addr_t desc_addr = BUS_MMIO_START + BUS_MMIO_DEV_DESC_START +
+                                BUS_MMIO_DEV_DESC_SIZE * dev_ctx->bus_slot;
+    uint32_t desc[3];
+    static_assert(BUS_MMIO_DEV_DESC_SIZE == 12,
+                  "device descriptor size changed, update the test");
+    err = memctl->intf.read_u32(memctl, desc_addr + 0, &desc[0]);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    err = memctl->intf.read_u32(memctl, desc_addr + 4, &desc[1]);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+    err = memctl->intf.read_u32(memctl, desc_addr + 8, &desc[2]);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+
+    // DWORD #1 - mapped region start.
+    EXPECT_EQ(desc[0], dev_ctx->mmio.start);
+    // DWORD #2 - mapped region end.
+    EXPECT_EQ(desc[1], dev_ctx->mmio.end);
+    // DWORD #3 - device class and IRQ line.
+    EXPECT_EQ(desc[2], (dev_ctx->dev_class << 8) | dev_ctx->irq_line);
 }

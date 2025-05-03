@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define MEMCTL_MAX_REGIONS 32
+#define MEMCTL_MAX_REGIONS 33
 
 typedef vm_err_t (*mem_read_u8_cb)(void *ctx, vm_addr_t addr, uint8_t *out);
 typedef vm_err_t (*mem_read_u32_cb)(void *ctx, vm_addr_t addr, uint32_t *out);
