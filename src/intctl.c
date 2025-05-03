@@ -34,16 +34,6 @@ vm_err_t intctl_raise_irq_line(intctl_ctx_t *intctl, uint8_t irq_line) {
     return err;
 }
 
-/**
- * Returns one of the pending IRQs.
- * Resets the pending state of the returned IRQ.
- *
- * \param[in] intctl -- Interrupt controller context.
- * \param[out] out_irq -- Pending IRQ.
- *
- * \returns `true` if a pending IRQ was written to \a out_irq and reset, `false`
- * if there is no pending IRQ.
- */
 bool intctl_get_pending_irq(intctl_ctx_t *intctl, uint8_t *out_irq) {
     D_ASSERT(intctl);
     if (intctl->raised_irqs) {

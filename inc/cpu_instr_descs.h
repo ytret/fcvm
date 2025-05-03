@@ -35,8 +35,8 @@ extern "C" {
  * @{
  * \name Arithmetic and logic opcodes (0b010x_xxxx)
  * - Even opcodes require two register operands.
- * - Odd opcodes (except #CPU_NOT_R, #CPU_ROL_RV and #CPU_ROT_RV) require a
- *   register operand and an imm32 value.
+ * - Odd opcodes (except #CPU_OP_NOT_R, #CPU_OP_ROL_RV and #CPU_OP_ROR_RV)
+ *   require a register operand and an imm32 value.
  */
 #define CPU_OP_KIND_ALU 0x40
 

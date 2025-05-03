@@ -33,7 +33,7 @@ struct ALUInstrParam {
      */
     uint8_t dst_reg_code; //!< Destination register.
     uint32_t dst_val;     //!< Original destination register value.
-    /// Source register (if #src_type is #SrcType::RegSrc).
+    /// Source register (if #src_type is #SrcType::SrcInReg).
     std::optional<uint8_t> src_reg_code;
     /// Source value (if #src_type is not #SrcType::NoSrc).
     std::optional<uint32_t> src_val;
