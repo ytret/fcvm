@@ -4,9 +4,10 @@
 #include "debugm.h"
 #include "memctl.h"
 
-static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx);
-static vm_err_t prv_mem_find_mmio_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
-                                          const mmio_region_t **out_reg);
+static bool prv_memctl_find_free_reg(memctl_ctx_t *memctl, size_t *out_idx);
+static vm_err_t prv_memctl_find_reg_by_addr(memctl_ctx_t *memctl,
+                                            vm_addr_t addr,
+                                            const mmio_region_t **out_reg);
 
 memctl_ctx_t *memctl_new(void) {
     memctl_ctx_t *memctl = malloc(sizeof(*memctl));
@@ -34,21 +35,21 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
 
     // FIXME: there are two iterations over the mapped_regions array, but it
     // could be one if we checked both the start and end in a single iteration.
-    if (prv_mem_find_mmio_by_addr(memctl, mmio->start, NULL).type ==
+    if (prv_memctl_find_reg_by_addr(memctl, mmio->start, NULL).type ==
         VM_ERR_NONE) {
         err.type = VM_ERR_MEM_USED;
         return err;
     }
     // The end is exclusive, that's why we check if `end - 1`, the last byte of
     // this region, not `end`, is contained in another region.
-    if (prv_mem_find_mmio_by_addr(memctl, mmio->end - 1, NULL).type ==
+    if (prv_memctl_find_reg_by_addr(memctl, mmio->end - 1, NULL).type ==
         VM_ERR_NONE) {
         err.type = VM_ERR_MEM_USED;
         return err;
     }
 
     size_t idx;
-    if (!prv_mem_find_free_region(memctl, &idx)) {
+    if (!prv_memctl_find_free_reg(memctl, &idx)) {
         err.type = VM_ERR_MEM_MAX_REGIONS;
         return err;
     }
@@ -65,7 +66,7 @@ vm_err_t memctl_read_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t *out) {
     vm_err_t err = {.type = VM_ERR_NONE};
 
     const mmio_region_t *reg;
-    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    err = prv_memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
         if (reg->mem_if.read_u8) {
             vm_addr_t rel_addr = addr - reg->start;
@@ -84,7 +85,7 @@ vm_err_t memctl_read_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t *out) {
     vm_err_t err = {.type = VM_ERR_NONE};
 
     const mmio_region_t *reg;
-    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    err = prv_memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
         if (reg->mem_if.read_u32) {
             if (addr + 4 <= reg->end) {
@@ -107,7 +108,7 @@ vm_err_t memctl_write_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t val) {
     vm_err_t err = {.type = VM_ERR_NONE};
 
     const mmio_region_t *reg;
-    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    err = prv_memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
         if (reg->mem_if.write_u8) {
             vm_addr_t rel_addr = addr - reg->start;
@@ -126,7 +127,7 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
     vm_err_t err = {.type = VM_ERR_NONE};
 
     const mmio_region_t *reg;
-    err = prv_mem_find_mmio_by_addr(memctl, addr, &reg);
+    err = prv_memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err.type == VM_ERR_NONE) {
         if (reg->mem_if.write_u32) {
             if (addr + 4 <= reg->end) {
@@ -151,7 +152,7 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
  *          `false` if no unused index was found and \a *out_idx was not
  *          changed.
  */
-static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx) {
+static bool prv_memctl_find_free_reg(memctl_ctx_t *memctl, size_t *out_idx) {
     D_ASSERT(memctl);
     D_ASSERT(out_idx);
     for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
@@ -173,8 +174,9 @@ static bool prv_mem_find_free_region(memctl_ctx_t *memctl, size_t *out_idx) {
  * written to \a *out_reg (if it's not NULL), #VM_ERR_BAD_MEM if no
  * containing region was found and \a *out_reg was not written
  */
-static vm_err_t prv_mem_find_mmio_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
-                                          const mmio_region_t **out_reg) {
+static vm_err_t prv_memctl_find_reg_by_addr(memctl_ctx_t *memctl,
+                                            vm_addr_t addr,
+                                            const mmio_region_t **out_reg) {
     D_ASSERT(memctl);
     vm_err_t err = {.type = VM_ERR_BAD_MEM};
 
