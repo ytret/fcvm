@@ -6,7 +6,7 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "mem.h"
+#include "memctl.h"
 
 class FakeMem {
   public:

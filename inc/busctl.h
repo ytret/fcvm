@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "intctl.h"
-#include "mem.h"
+#include "memctl.h"
 #include "vm_types.h"
 
 #ifdef __cplusplus

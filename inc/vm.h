@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cpu.h"
-#include "mem.h"
+#include "memctl.h"
 
 #ifdef __cplusplus
 extern "C" {

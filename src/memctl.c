@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "debugm.h"
-#include "mem.h"
+#include "memctl.h"
 
 static bool prv_mem_find_free_region(mem_ctx_t *mem, size_t *out_idx);
 

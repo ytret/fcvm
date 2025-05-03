@@ -2,7 +2,7 @@
 
 #include "busctl.h"
 #include "common.h"
-#include "mem.h"
+#include "memctl.h"
 
 class BusCtlTest : public testing::Test {
   protected:

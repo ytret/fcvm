@@ -26,7 +26,7 @@ add_library(fcvm STATIC
     src/cpu.c
     src/cpu_instr_descs.c
     src/intctl.c
-    src/mem.c
+    src/memctl.c
     src/vm.c
 )
 target_compile_options(fcvm PRIVATE
