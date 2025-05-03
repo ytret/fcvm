@@ -4,15 +4,15 @@
 #include "debugm.h"
 #include "vm.h"
 
-vm_ctx_t *vm_new(mem_ctx_t *mem, cpu_ctx_t *cpu) {
-    D_ASSERT(mem);
+vm_ctx_t *vm_new(memctl_ctx_t *memctl, cpu_ctx_t *cpu) {
+    D_ASSERT(memctl);
     D_ASSERT(cpu);
 
     vm_ctx_t *vm = malloc(sizeof(*vm));
     D_ASSERT(vm);
     memset(vm, 0, sizeof(*vm));
 
-    vm->mem = mem;
+    vm->memctl = memctl;
     vm->cpu = cpu;
 
     return vm;

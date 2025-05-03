@@ -31,7 +31,7 @@ typedef struct {
 } busctl_dev_ctx_t;
 
 typedef struct {
-    mem_ctx_t *memctl;
+    memctl_ctx_t *memctl;
     intctl_ctx_t *intctl;
 
     bool used_slots[BUS_MAX_DEVS];
@@ -42,7 +42,7 @@ typedef struct {
     uint8_t next_irq_line;
 } busctl_ctx_t;
 
-busctl_ctx_t *busctl_new(mem_ctx_t *mem, intctl_ctx_t *cpu);
+busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *cpu);
 void busctl_free(busctl_ctx_t *busctl);
 
 vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const busctl_req_t *req,

@@ -8,16 +8,16 @@ class BusCtlTest : public testing::Test {
   protected:
     BusCtlTest() {
         intctl = intctl_new();
-        memctl = mem_new();
+        memctl = memctl_new();
         busctl = busctl_new(memctl, intctl);
     }
     ~BusCtlTest() {
         busctl_free(busctl);
-        mem_free(memctl);
+        memctl_free(memctl);
         intctl_free(intctl);
     }
 
-    mem_ctx_t *memctl;
+    memctl_ctx_t *memctl;
     intctl_ctx_t *intctl;
     busctl_ctx_t *busctl;
 };

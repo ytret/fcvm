@@ -6,15 +6,15 @@
 
 static bool prv_busctl_find_free_slot(busctl_ctx_t *busctl, size_t *out_idx);
 
-busctl_ctx_t *busctl_new(mem_ctx_t *mem, intctl_ctx_t *intctl) {
-    D_ASSERT(mem);
+busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl) {
+    D_ASSERT(memctl);
     D_ASSERT(intctl);
 
     busctl_ctx_t *busctl = malloc(sizeof(*busctl));
     D_ASSERT(busctl);
     memset(busctl, 0, sizeof(*busctl));
 
-    busctl->memctl = mem;
+    busctl->memctl = memctl;
     busctl->intctl = intctl;
     busctl->next_region_at = BUS_DEV_MAP_START;
     busctl->next_irq_line = 0;
@@ -60,7 +60,7 @@ vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const busctl_req_t *req,
         .ctx = req->ctx,
         .mem_if = req->mem_if,
     };
-    err = mem_map_region(busctl->memctl, &mmio);
+    err = memctl_map_region(busctl->memctl, &mmio);
     if (err.type != VM_ERR_NONE) { return err; }
 
     // Lock the slot and fill the device context.
