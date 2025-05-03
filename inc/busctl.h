@@ -79,7 +79,7 @@ typedef struct {
     mmio_region_t bus_mmio;
 } busctl_ctx_t;
 
-busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *cpu);
+busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
 void busctl_free(busctl_ctx_t *busctl);
 
 vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const busctl_req_t *req,
