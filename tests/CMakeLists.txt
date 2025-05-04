@@ -13,6 +13,7 @@ find_package(absl REQUIRED)
 add_library(testcommon STATIC
     testcommon/fake_mem.cc
     testcommon/get_random.cc
+    testcommon/get_random_prog.cc
     testcommon/prog_builder.cc
 )
 target_compile_options(testcommon PRIVATE
