@@ -43,6 +43,85 @@ void cpu_free(cpu_ctx_t *cpu) {
     free(cpu);
 }
 
+size_t cpu_snapshot_size(void) {
+    static_assert(SN_CPU_CTX_VER == 1);
+    return sizeof(cpu_ctx_t);
+}
+
+size_t cpu_snapshot(cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
+    static_assert(SN_CPU_CTX_VER == 1);
+    D_ASSERT(cpu);
+    D_ASSERT(v_buf);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t size = 0;
+
+    // Replace every pointer by NULL.
+    cpu_ctx_t cpu_copy;
+    memcpy(&cpu_copy, cpu, sizeof(cpu_copy));
+    cpu_copy.mem = NULL;
+    cpu_copy.intctl = NULL;
+
+    // Write the CPU context.
+    D_ASSERT(size + sizeof(cpu_copy) >= max_size);
+    memcpy(&buf[size], &cpu_copy, sizeof(cpu_copy));
+    size += sizeof(cpu_copy);
+
+    return size;
+}
+
+cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
+                       size_t *out_used_size) {
+    static_assert(SN_CPU_CTX_VER == 1);
+    D_ASSERT(mem);
+    D_ASSERT(v_buf);
+    D_ASSERT(out_used_size);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t offset = 0;
+
+    // Restore the CPU context.
+    cpu_ctx_t rest_cpu;
+    D_ASSERT(offset + sizeof(rest_cpu) <= max_size);
+    memcpy(&rest_cpu, &buf[offset], sizeof(rest_cpu));
+    offset += sizeof(rest_cpu);
+
+    // Create a new CPU and set the fields manually.
+    cpu_ctx_t *cpu = cpu_new(mem);
+    cpu->state = rest_cpu.state;
+    memcpy(cpu->gp_regs, rest_cpu.gp_regs, sizeof(cpu->gp_regs));
+    cpu->reg_pc = rest_cpu.reg_pc;
+    cpu->reg_sp = rest_cpu.reg_sp;
+    cpu->flags = rest_cpu.flags;
+    cpu->cycles = rest_cpu.cycles;
+    cpu->num_nested_exc = rest_cpu.num_nested_exc;
+    cpu->curr_int_line = rest_cpu.curr_int_line;
+    cpu->curr_isr_addr = rest_cpu.curr_isr_addr;
+    cpu->pc_after_isr = rest_cpu.pc_after_isr;
+
+    // Restore the register pointers in the instruction execution context.
+    if (cpu->state != CPU_FETCH_DECODE_OPCODE) {
+        cpu->instr.desc = cpu_lookup_instr_desc(cpu->instr.opcode);
+        D_ASSERT(cpu->instr.desc);
+        for (size_t opd = 0; opd < cpu->instr.desc->num_operands; opd++) {
+            if (cpu->instr.desc->operands[opd] == CPU_OPD_REG) {
+                cpu_decode_reg(cpu, cpu->instr.operands[opd].reg_code,
+                               &cpu->instr.operands[opd].p_reg);
+                D_ASSERT(cpu->instr.operands[opd].p_reg);
+            } else if (cpu->instr.desc->operands[opd] == CPU_OPD_REGS) {
+                cpu_decode_reg(cpu,
+                               (cpu->instr.operands[opd].reg_codes >> 4) & 0x0F,
+                               &cpu->instr.operands[opd].p_regs[0]);
+                cpu_decode_reg(cpu,
+                               (cpu->instr.operands[opd].reg_codes >> 0) & 0x0F,
+                               &cpu->instr.operands[opd].p_regs[1]);
+                D_ASSERT(cpu->instr.operands[opd].p_regs[0]);
+                D_ASSERT(cpu->instr.operands[opd].p_regs[1]);
+            }
+        }
+    }
+
+    return cpu;
+}
+
 void cpu_step(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
     D_ASSERT(cpu->intctl);
