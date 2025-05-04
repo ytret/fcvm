@@ -14,7 +14,6 @@ struct TestDevice {
         return dev_desc_t{
             .dev_class = dev_class,
             .region_size = region_size,
-            .ctx = static_cast<void *>(this),
             .mem_if = {.read_u8 = nullptr,
                        .read_u32 = read_u32,
                        .write_u8 = nullptr,
@@ -82,17 +81,16 @@ TEST_F(BusCtlTest, RegisterDevice) {
     dev_desc_t req = {
         .dev_class = 0xAA,
         .region_size = 10,
-        .ctx = &mem_ctx,
         .mem_if = mem_if,
     };
 
     const busctl_dev_ctx_t *dev_ctx = nullptr;
-    vm_err_t err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
     ASSERT_EQ(err.type, VM_ERR_NONE);
 
     ASSERT_NE(dev_ctx, nullptr);
     EXPECT_EQ(dev_ctx->dev_class, req.dev_class);
-    EXPECT_EQ(dev_ctx->mmio.ctx, req.ctx);
+    EXPECT_EQ(dev_ctx->mmio.ctx, &mem_ctx);
     EXPECT_EQ(dev_ctx->mmio.end - dev_ctx->mmio.start, req.region_size);
 }
 
@@ -107,25 +105,20 @@ TEST_F(BusCtlTest, RegisterMaxDevices) {
     dev_desc_t req;
     const busctl_dev_ctx_t *dev_ctx;
     for (size_t idx_dev = 0; idx_dev < BUS_MAX_DEVS; idx_dev++) {
-        mem_if = {
-            .read_u8 = NULL,
-            .read_u32 = NULL,
-            .write_u8 = NULL,
-            .write_u32 = NULL,
-        };
-        req = {
-            .dev_class = (uint8_t)idx_dev,
-            .region_size = 10 + (vm_addr_t)idx_dev,
-            .ctx = &mem_ctx,
-            .mem_if = mem_if,
-        };
+        mem_if = {.read_u8 = NULL,
+                  .read_u32 = NULL,
+                  .write_u8 = NULL,
+                  .write_u32 = NULL};
+        req = {.dev_class = (uint8_t)idx_dev,
+               .region_size = 10 + (vm_addr_t)idx_dev,
+               .mem_if = mem_if};
 
-        vm_err_t err = busctl_reg_dev(busctl, &req, &dev_ctx);
+        vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
         ASSERT_EQ(err.type, VM_ERR_NONE);
         ASSERT_NE(dev_ctx, nullptr);
     }
 
-    vm_err_t err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
     ASSERT_EQ(err.type, VM_ERR_BUS_NO_FREE_SLOT);
 }
 
@@ -136,7 +129,7 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU8Fails) {
     // Register the test device.
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
-    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
@@ -160,7 +153,7 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU32) {
     // Register the test device.
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
-    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
@@ -191,7 +184,7 @@ TEST_F(BusCtlTest, TestDeviceRaiseIRQ) {
     // Register the test device.
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
-    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
@@ -225,7 +218,7 @@ TEST_F(BusCtlTest, MMIORegSlotStatusOneDev) {
     // Register the test device.
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
-    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
@@ -245,14 +238,14 @@ TEST_F(BusCtlTest, MMIORegSlotStatusTwoDevs) {
     // Register the test device #1.
     dev_desc_t req1 = dev1.build_req();
     const busctl_dev_ctx_t *ctx1 = nullptr;
-    err = busctl_reg_dev(busctl, &req1, &ctx1);
+    err = busctl_connect_dev(busctl, &req1, &dev1, &ctx1);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(ctx1, nullptr);
 
     // Register the test device #2.
     dev_desc_t req2 = dev2.build_req();
     const busctl_dev_ctx_t *ctx2 = nullptr;
-    err = busctl_reg_dev(busctl, &req2, &ctx2);
+    err = busctl_connect_dev(busctl, &req2, &dev2, &ctx2);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(ctx2, nullptr);
 
@@ -274,7 +267,7 @@ TEST_F(BusCtlTest, MMIORegDevDesc) {
     // Register the test device.
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
-    err = busctl_reg_dev(busctl, &req, &dev_ctx);
+    err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
     EXPECT_EQ(err.type, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 

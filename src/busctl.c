@@ -42,10 +42,10 @@ void busctl_free(busctl_ctx_t *busctl) {
     free(busctl);
 }
 
-vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
-                        const busctl_dev_ctx_t **out_dev_ctx) {
+vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
+                            void *ctx, const busctl_dev_ctx_t **out_dev_ctx) {
     D_ASSERT(busctl);
-    D_ASSERT(req);
+    D_ASSERT(desc);
     D_ASSERT(out_dev_ctx);
     vm_err_t err = {.type = VM_ERR_NONE};
 
@@ -57,12 +57,12 @@ vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
     }
 
     // Allocate resources for the device, but don't commit them yet. Commitment
-    // is done at the end of this function if the registration is successful.
+    // is done at the end of this function if the connection is successful.
     uint8_t irq_line = busctl->next_irq_line;
     static_assert(BUS_MAX_DEVS < UINT8_MAX,
                   "cannot support this much devices because of the IRQ limit");
     vm_addr_t map_start = busctl->next_region_at;
-    vm_addr_t map_end = map_start + req->region_size;
+    vm_addr_t map_end = map_start + desc->region_size;
     if (map_end >= BUS_DEV_MAP_END) {
         err.type = VM_ERR_BUS_NO_FREE_MEM;
         return err;
@@ -72,8 +72,8 @@ vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
     mmio_region_t mmio = {
         .start = map_start,
         .end = map_end,
-        .ctx = req->ctx,
-        .mem_if = req->mem_if,
+        .ctx = ctx,
+        .mem_if = desc->mem_if,
     };
     err = memctl_map_region(busctl->memctl, &mmio);
     if (err.type != VM_ERR_NONE) { return err; }
@@ -83,7 +83,7 @@ vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
     busctl_dev_ctx_t *dev_ctx = &busctl->devs[slot];
     memset(dev_ctx, 0, sizeof(*dev_ctx));
     dev_ctx->bus_slot = slot;
-    dev_ctx->dev_class = req->dev_class;
+    dev_ctx->dev_class = desc->dev_class;
     dev_ctx->irq_line = irq_line;
     dev_ctx->mmio = mmio;
     *out_dev_ctx = dev_ctx;

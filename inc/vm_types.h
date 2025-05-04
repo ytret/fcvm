@@ -25,6 +25,5 @@ typedef struct {
 typedef struct {
     uint8_t dev_class;
     vm_addr_t region_size;
-    void *ctx;
     mem_if_t mem_if;
 } dev_desc_t;

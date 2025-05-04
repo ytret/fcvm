@@ -48,7 +48,7 @@ extern "C" {
 
 static_assert(BUS_DEV_MAP_START >= BUS_MMIO_END);
 
-/// Registered device context.
+/// Connected device context.
 typedef struct {
     uint8_t bus_slot;
     uint8_t dev_class;
@@ -74,8 +74,8 @@ typedef struct {
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
 void busctl_free(busctl_ctx_t *busctl);
 
-vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
-                        const busctl_dev_ctx_t **out_dev_ctx);
+vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
+                            void *ctx, const busctl_dev_ctx_t **out_dev_ctx);
 
 #ifdef __cplusplus
 }
