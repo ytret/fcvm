@@ -5,7 +5,6 @@
 #include "cpu_instr.h"
 #include "cpu_instr_descs.h"
 #include "intctl.h"
-#include "memctl.h"
 
 #ifdef __cplusplus
 extern "C" {
