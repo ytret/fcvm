@@ -6,16 +6,6 @@
 
 #include "testcommon/get_random.h"
 
-uint32_t *get_reg_ptr(cpu_ctx_t *cpu, uint8_t reg_code) {
-    uint32_t *p_reg;
-    cpu_decode_reg(cpu, reg_code, &p_reg);
-    if (!p_reg) {
-        fprintf(stderr, "failed to decode register code 0x%02X\n", reg_code);
-        abort();
-    }
-    return p_reg;
-}
-
 vm_addr_t get_random_base_addr(std::mt19937 &rng) {
     std::uniform_int_distribution<vm_addr_t> addr_dist(0, VM_MAX_ADDR);
     return addr_dist(rng);
@@ -26,6 +16,16 @@ vm_addr_t get_random_data_addr(std::mt19937 &rng, vm_addr_t data_start,
     std::uniform_int_distribution<vm_addr_t> addr_dist(
         data_start, data_end - min_bytes_left);
     return addr_dist(rng);
+}
+
+uint32_t *get_reg_ptr(cpu_ctx_t *cpu, uint8_t reg_code) {
+    uint32_t *p_reg;
+    cpu_decode_reg(cpu, reg_code, &p_reg);
+    if (!p_reg) {
+        fprintf(stderr, "failed to decode register code 0x%02X\n", reg_code);
+        abort();
+    }
+    return p_reg;
 }
 
 uint8_t get_random_reg_code(std::mt19937 &rng, bool unique_regs,
