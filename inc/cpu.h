@@ -89,7 +89,7 @@ typedef struct cpu_ctx {
 cpu_ctx_t *cpu_new(mem_if_t *mem);
 void cpu_free(cpu_ctx_t *cpu);
 size_t cpu_snapshot_size(void);
-size_t cpu_snapshot(cpu_ctx_t *cpu, void *buf, size_t max_size);
+size_t cpu_snapshot(const cpu_ctx_t *cpu, void *buf, size_t max_size);
 cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *buf, size_t max_size,
                        size_t *out_used_size);
 

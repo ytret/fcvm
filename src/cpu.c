@@ -48,7 +48,7 @@ size_t cpu_snapshot_size(void) {
     return sizeof(cpu_ctx_t);
 }
 
-size_t cpu_snapshot(cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
+size_t cpu_snapshot(const cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
     static_assert(SN_CPU_CTX_VER == 1);
     D_ASSERT(cpu);
     D_ASSERT(v_buf);
@@ -62,7 +62,7 @@ size_t cpu_snapshot(cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
     cpu_copy.intctl = NULL;
 
     // Write the CPU context.
-    D_ASSERT(size + sizeof(cpu_copy) >= max_size);
+    D_ASSERT(size + sizeof(cpu_copy) < max_size);
     memcpy(&buf[size], &cpu_copy, sizeof(cpu_copy));
     size += sizeof(cpu_copy);
 
