@@ -6,7 +6,7 @@
 
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
-                                             void *v_out);
+                                             cpu_opd_val_t *out_val);
 static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu);
@@ -222,9 +222,9 @@ vm_err_t cpu_raise_irq(cpu_ctx_t *cpu, uint8_t irq_line) {
 
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
-                                             void *v_out) {
+                                             cpu_opd_val_t *out_val) {
     D_ASSERT(cpu);
-    D_ASSERT(v_out);
+    D_ASSERT(out_val);
     vm_err_t err = {.type = VM_ERR_NONE};
     uint32_t opd_size = 0;
 
@@ -238,8 +238,8 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         err = cpu_decode_reg(cpu, reg_code, &p_reg);
         if (err.type) { return err; }
 
-        uint32_t **out_reg = (uint32_t **)v_out;
-        *out_reg = p_reg;
+        out_val->reg_code = reg_code;
+        out_val->p_reg = p_reg;
 
         opd_size = 1;
         break;
@@ -256,9 +256,9 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         err = cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg2);
         if (err.type) { return err; }
 
-        uint32_t **out_regs = (uint32_t **)v_out;
-        out_regs[0] = p_reg1;
-        out_regs[1] = p_reg2;
+        out_val->reg_codes = reg_codes;
+        out_val->p_regs[0] = p_reg1;
+        out_val->p_regs[1] = p_reg2;
         opd_size = 1;
         break;
     }
@@ -271,8 +271,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
             return err;
         }
 
-        uint8_t *out_imm5 = (uint8_t *)v_out;
-        *out_imm5 = imm5;
+        out_val->imm5 = imm5;
         opd_size = 1;
         break;
     }
@@ -281,8 +280,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm8);
         if (err.type) { return err; }
 
-        uint32_t *out_imm8 = (uint32_t *)v_out;
-        *out_imm8 = imm8;
+        out_val->u8 = imm8;
         opd_size = 1;
         break;
     }
@@ -291,8 +289,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         err = cpu->mem->read_u32(cpu->mem, cpu->reg_pc, &imm32);
         if (err.type) { return err; }
 
-        uint32_t *out_imm32 = (uint32_t *)v_out;
-        *out_imm32 = imm32;
+        out_val->u32 = imm32;
         opd_size = 4;
         break;
     }

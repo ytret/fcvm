@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "cpu_instr.h"
 #include "cpu_instr_descs.h"
 #include "intctl.h"
 #include "memctl.h"
@@ -22,7 +23,7 @@ static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
 #define CPU_IVT_ADDR        ((vm_addr_t)0x0000'0000)
 #define CPU_IVT_ENTRY_SIZE  sizeof(vm_addr_t)
 #define CPU_IVT_NUM_ENTRIES 256
-#define CPU_IVT_SIZE            (CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES)
+#define CPU_IVT_SIZE        (CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES)
 #define CPU_IVT_ENTRY_ADDR(entry_idx)                                          \
     (CPU_IVT_ADDR + CPU_IVT_ENTRY_SIZE * (entry_idx))
 #define CPU_IVT_FIRST_IRQ_ENTRY 32
@@ -39,22 +40,6 @@ typedef enum {
     CPU_INT_JUMP,
     CPU_TRIPLE_FAULT,
 } cpu_state_t;
-
-/// Instruction execution context.
-typedef struct {
-    vm_addr_t start_addr; //!< Address of the opcode.
-    uint8_t opcode;       //!< Fetched opcode value.
-    union {
-        uint32_t *p_reg;
-        uint32_t *p_regs[2];
-        uint8_t imm5;
-        uint8_t u8;
-        uint32_t u32;
-    } operands[CPU_MAX_OPERANDS]; //!< Decoded operand values.
-
-    size_t next_operand;          //!< Next operand to fetch and decode.
-    const cpu_instr_desc_t *desc; //!< Descriptor of the instruction.
-} cpu_instr_t;
 
 /// Exception numbers, with values corresponding to IVT entries.
 /// These must fit into `uint8_t`.
