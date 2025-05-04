@@ -3,9 +3,9 @@
 #include <iomanip>
 #include <random>
 
-#include "common.h"
 #include "cpu.h"
-#include "fake_mem.h"
+#include "testcommon/fake_mem.h"
+#include "testcommon/get_random.h"
 
 #define TEST_MEM_SIZE       100
 #define TEST_MEM_START_DATA 50

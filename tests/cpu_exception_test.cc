@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "common.h"
 #include "cpu.h"
-#include "fake_mem.h"
+#include "testcommon/fake_mem.h"
+#include "testcommon/prog_builder.h"
 
 #define TEST_BAD_MEM      0x1000'0000
 #define TEST_BAD_OPCODE   0x00

@@ -10,6 +10,17 @@ include(GoogleTest)
 
 find_package(absl REQUIRED)
 
+add_library(testcommon STATIC
+    testcommon/fake_mem.cc
+    testcommon/get_random.cc
+    testcommon/prog_builder.cc
+)
+target_compile_options(testcommon PRIVATE
+    -Wall -Wextra -fdiagnostics-color=always
+)
+target_include_directories(testcommon PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(testcommon PUBLIC fcvm)
+
 function(my_add_test name)
     set(compile_defs)
     foreach(arg ${ARGN})
@@ -19,11 +30,11 @@ function(my_add_test name)
     add_executable(${name} ${name}.cc)
     target_compile_options(${name} PRIVATE
         -Wall -Wextra -fdiagnostics-color=always
-        -Wno-unknown-warning-option # sol.hpp
     )
     target_compile_definitions(${name} PRIVATE ${compile_defs})
     target_link_libraries(${name}
-        fcvm GTest::gtest_main GTest::gmock_main absl::str_format
+        testcommon
+        GTest::gtest_main GTest::gmock_main absl::str_format
     )
     gtest_discover_tests(${name})
 endfunction()
