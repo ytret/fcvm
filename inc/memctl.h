@@ -9,6 +9,11 @@
 extern "C" {
 #endif
 
+/// Version of the `memctl_ctx_t` structure and its member structures.
+/// Increment this every time anything in the `memctl_ctx_t` structure or its
+/// member structures is changed: field order, size, type, etc.
+#define SN_MEMCTL_CTX_VER ((uint32_t)1)
+
 #define MEMCTL_MAX_REGIONS 33
 
 typedef vm_err_t (*mem_read_u8_cb)(void *ctx, vm_addr_t addr, uint8_t *out);
@@ -45,6 +50,11 @@ typedef struct {
 
 memctl_ctx_t *memctl_new(void);
 void memctl_free(memctl_ctx_t *memctl);
+size_t memctl_snapshot_size(void);
+size_t memctl_snapshot(const memctl_ctx_t *memctl, void *buf, size_t max_size);
+memctl_ctx_t *memctl_restore(const void *buf, size_t max_size,
+                             size_t *out_used_size);
+
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio);
 
 vm_err_t memctl_read_u8(void *memctl_ctx, vm_addr_t addr, uint8_t *out);

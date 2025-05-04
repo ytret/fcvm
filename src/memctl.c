@@ -27,6 +27,72 @@ void memctl_free(memctl_ctx_t *memctl) {
     free(memctl);
 }
 
+size_t memctl_snapshot_size(void) {
+    static_assert(SN_MEMCTL_CTX_VER == 1);
+    return sizeof(memctl_ctx_t);
+}
+
+size_t memctl_snapshot(const memctl_ctx_t *memctl, void *v_buf,
+                       size_t max_size) {
+    static_assert(SN_MEMCTL_CTX_VER == 1);
+    D_ASSERT(memctl);
+    D_ASSERT(v_buf);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t size = 0;
+
+    // Replace every pointer by NULL.
+    memctl_ctx_t memctl_copy;
+    memcpy(&memctl_copy, memctl, sizeof(memctl_copy));
+    memctl_copy.intf.read_u8 = NULL;
+    memctl_copy.intf.read_u32 = NULL;
+    memctl_copy.intf.write_u8 = NULL;
+    memctl_copy.intf.write_u32 = NULL;
+    for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
+        mmio_region_t *reg = &memctl_copy.mapped_regions[idx];
+        reg->ctx = NULL;
+        reg->mem_if.read_u8 = NULL;
+        reg->mem_if.read_u32 = NULL;
+        reg->mem_if.write_u8 = NULL;
+        reg->mem_if.write_u32 = NULL;
+    }
+
+    // Write the memctl context.
+    D_ASSERT(size + sizeof(memctl_copy) <= max_size);
+    memcpy(&buf[size], &memctl_copy, sizeof(memctl_copy));
+    size += sizeof(memctl_copy);
+
+    return size;
+}
+
+memctl_ctx_t *memctl_restore(const void *v_buf, size_t max_size,
+                             size_t *out_used_size) {
+    static_assert(SN_MEMCTL_CTX_VER == 1);
+    D_ASSERT(v_buf);
+    D_ASSERT(out_used_size);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t offset = 0;
+
+    // Restore the memctl context.
+    memctl_ctx_t rest_memctl;
+    D_ASSERT(offset + sizeof(rest_memctl) <= max_size);
+    memcpy(&rest_memctl, &buf[offset], sizeof(rest_memctl));
+    offset += sizeof(rest_memctl);
+
+    // Create a new memctl and set the fields manually.
+    // memctl_new() sets the memctl's interface pointers.
+    memctl_ctx_t *memctl = memctl_new();
+    memcpy(memctl->used_regions, rest_memctl.used_regions,
+           sizeof(rest_memctl.used_regions));
+    memcpy(memctl->mapped_regions, rest_memctl.mapped_regions,
+           sizeof(rest_memctl.mapped_regions));
+    memctl->num_mapped_regions = rest_memctl.num_mapped_regions;
+
+    // The caller must now restore the context and interface of each region.
+
+    *out_used_size = offset;
+    return memctl;
+}
+
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     D_ASSERT(memctl);
     D_ASSERT(mmio);
