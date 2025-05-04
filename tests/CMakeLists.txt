@@ -1,5 +1,7 @@
+##################
+## Dependencies ##
+##################
 include(FetchContent)
-
 message("Fetching GoogleTest")
 FetchContent_Declare(
     googletest
@@ -10,6 +12,10 @@ include(GoogleTest)
 
 find_package(absl REQUIRED)
 
+
+##############################
+## Common test code library ##
+##############################
 add_library(testcommon STATIC
     testcommon/fake_mem.cc
     testcommon/get_random.cc
@@ -22,6 +28,16 @@ target_compile_options(testcommon PRIVATE
 target_include_directories(testcommon PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 target_link_libraries(testcommon PUBLIC fcvm)
 
+
+############################
+## Programs used by tests ##
+############################
+add_subdirectory(progs)
+
+
+###################################
+## CMake test definition wrapper ##
+###################################
 function(my_add_test name)
     set(compile_defs)
     foreach(arg ${ARGN})
@@ -40,11 +56,19 @@ function(my_add_test name)
     gtest_discover_tests(${name})
 endfunction()
 
+
+########################
+## Test configuration ##
+########################
 set(TEST_RNG_SEED 12345 CACHE STRING
     "Random number generator seed used by the tests.")
 set(TEST_NUM_RANDOM_CASES 50 CACHE STRING
     "Number of randomly generated tests for each instruction.")
 
+
+######################
+## Test definitions ##
+######################
 my_add_test(cpu_instr_data_test
     -DTEST_RNG_SEED=${TEST_RNG_SEED}
     -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
