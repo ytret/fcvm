@@ -48,14 +48,6 @@ extern "C" {
 
 static_assert(BUS_DEV_MAP_START >= BUS_MMIO_END);
 
-/// Device registration request.
-typedef struct {
-    uint8_t dev_class;
-    vm_addr_t region_size;
-    void *ctx;
-    mem_if_t mem_if;
-} busctl_req_t;
-
 /// Registered device context.
 typedef struct {
     uint8_t bus_slot;
@@ -82,7 +74,7 @@ typedef struct {
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
 void busctl_free(busctl_ctx_t *busctl);
 
-vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const busctl_req_t *req,
+vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
                         const busctl_dev_ctx_t **out_dev_ctx);
 
 #ifdef __cplusplus

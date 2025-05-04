@@ -16,19 +16,6 @@ extern "C" {
 
 #define MEMCTL_MAX_REGIONS 33
 
-typedef vm_err_t (*mem_read_u8_cb)(void *ctx, vm_addr_t addr, uint8_t *out);
-typedef vm_err_t (*mem_read_u32_cb)(void *ctx, vm_addr_t addr, uint32_t *out);
-typedef vm_err_t (*mem_write_u8_cb)(void *ctx, vm_addr_t addr, uint8_t val);
-typedef vm_err_t (*mem_write_u32_cb)(void *ctx, vm_addr_t addr, uint32_t val);
-
-/// Memory interface used by the CPU.
-typedef struct {
-    mem_read_u8_cb read_u8;
-    mem_read_u32_cb read_u32;
-    mem_write_u8_cb write_u8;
-    mem_write_u32_cb write_u32;
-} mem_if_t;
-
 typedef struct {
     vm_addr_t start;
     vm_addr_t end; // exclusive

@@ -42,7 +42,7 @@ void busctl_free(busctl_ctx_t *busctl) {
     free(busctl);
 }
 
-vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const busctl_req_t *req,
+vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const dev_desc_t *req,
                         const busctl_dev_ctx_t **out_dev_ctx) {
     D_ASSERT(busctl);
     D_ASSERT(req);
