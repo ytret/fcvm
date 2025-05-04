@@ -119,6 +119,7 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
         }
     }
 
+    *out_used_size = offset;
     return cpu;
 }
 
