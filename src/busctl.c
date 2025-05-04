@@ -46,7 +46,6 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
                             void *ctx, const busctl_dev_ctx_t **out_dev_ctx) {
     D_ASSERT(busctl);
     D_ASSERT(desc);
-    D_ASSERT(out_dev_ctx);
     vm_err_t err = {.type = VM_ERR_NONE};
 
     // Find a free device slot.
@@ -86,7 +85,7 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     dev_ctx->dev_class = desc->dev_class;
     dev_ctx->irq_line = irq_line;
     dev_ctx->mmio = mmio;
-    *out_dev_ctx = dev_ctx;
+    if (out_dev_ctx) { *out_dev_ctx = dev_ctx; }
 
     D_ASSERT(err.type == VM_ERR_NONE);
     busctl->next_irq_line++;
