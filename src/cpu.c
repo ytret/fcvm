@@ -62,7 +62,7 @@ size_t cpu_snapshot(const cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
     cpu_copy.intctl = NULL;
 
     // Write the CPU context.
-    D_ASSERT(size + sizeof(cpu_copy) < max_size);
+    D_ASSERT(size + sizeof(cpu_copy) <= max_size);
     memcpy(&buf[size], &cpu_copy, sizeof(cpu_copy));
     size += sizeof(cpu_copy);
 
