@@ -40,6 +40,7 @@ cpu_ctx_t *cpu_new(mem_if_t *mem) {
 
 void cpu_free(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
+    intctl_free(cpu->intctl);
     free(cpu);
 }
 
