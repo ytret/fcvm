@@ -151,6 +151,7 @@ void cpu_step(cpu_ctx_t *cpu) {
     switch (cpu->state) {
     case CPU_RESET: {
         cpu->curr_int_line = 0;
+        cpu->num_nested_exc = 0;
         cpu->state = CPU_INT_FETCH_ISR_ADDR;
         break;
     }
