@@ -27,8 +27,6 @@ typedef enum {
     VM_ERR_MEM_BAD_OP,
 
     VM_ERR_MAX_DEV_REGS,
-    VM_ERR_DEV_CLASS_EXISTS,
-    VM_ERR_DEV_CLASS_UNKNOWN,
 } vm_err_type_t;
 
 typedef struct {
