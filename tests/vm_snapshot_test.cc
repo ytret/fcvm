@@ -12,7 +12,7 @@
 #include <testcommon/get_random_prog.h>
 #include <vm.h>
 
-#define TEST_VM_SNAPSHOT_NUM_PROGS 1
+#define TEST_VM_SNAPSHOT_NUM_PROGS 100
 #define TEST_VM_SNAPSHOT_NUM_STEPS 100
 
 #define TEST_VM_SNAPSHOT_PROG_START (CPU_IVT_ADDR + CPU_IVT_SIZE)
@@ -184,7 +184,7 @@ TEST_P(VMSnapshotTest, SnapshotRestoreNoSegFaults) {
     delete[] snapshot;
 }
 
-TEST_P(VMSnapshotTest, DISABLED_SnapshotRestoreInSeparateProcess) {
+TEST_P(VMSnapshotTest, SnapshotRestoreInSeparateProcess) {
     // Same as above, except that the process of restoring from a snapshot,
     // doing a VM step, and creating a snapshot is duplicated in a separate
     // process, and the resulting snapshots are expected to be equal.
