@@ -24,10 +24,10 @@ void vm_free(vm_ctx_t *vm) {
     free(vm);
 }
 
-size_t vm_snapshot_size(void) {
+size_t vm_snapshot_size(const vm_ctx_t *vm) {
     static_assert(SN_VM_CTX_VER == 1);
     return sizeof(vm_ctx_t) + memctl_snapshot_size() + cpu_snapshot_size() +
-           busctl_snapshot_size();
+           busctl_snapshot_size(vm->busctl);
 }
 
 size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size) {
@@ -61,10 +61,8 @@ size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size) {
     return size;
 }
 
-vm_ctx_t *vm_restore(void (*f_restore_dev)(uint8_t dev_class, void **ctx,
-                                           mem_if_t *mem_if),
-                     const void *v_buf, size_t max_size,
-                     size_t *out_used_size) {
+vm_ctx_t *vm_restore(cb_restore_dev_t f_restore_dev, const void *v_buf,
+                     size_t max_size, size_t *out_used_size) {
     static_assert(SN_VM_CTX_VER == 1);
     D_ASSERT(f_restore_dev);
     D_ASSERT(v_buf);

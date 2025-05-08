@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "vm_err.h"
@@ -21,9 +22,20 @@ typedef struct {
     mem_write_u32_cb write_u32;
 } mem_if_t;
 
+typedef size_t (*cb_snapshot_size_dev_t)(const void *ctx);
+typedef size_t (*cb_snapshot_dev_t)(const void *ctx, void *v_buf,
+                                    size_t max_size);
+typedef size_t (*cb_restore_dev_t)(uint8_t dev_class, void **out_snapshot_ctx,
+                                   void **out_mem_ctx, mem_if_t *out_mem_if,
+                                   void *v_buf, size_t max_size);
+
 /// Device descriptor.
 typedef struct {
     uint8_t dev_class;
     vm_addr_t region_size;
     mem_if_t mem_if;
+
+    void *snapshot_ctx;
+    cb_snapshot_size_dev_t f_snapshot_size;
+    cb_snapshot_dev_t f_snapshot;
 } dev_desc_t;

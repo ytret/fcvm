@@ -23,11 +23,10 @@ typedef struct {
 
 vm_ctx_t *vm_new(void);
 void vm_free(vm_ctx_t *vm);
-size_t vm_snapshot_size(void);
+size_t vm_snapshot_size(const vm_ctx_t *vm);
 size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size);
-vm_ctx_t *vm_restore(void (*f_restore_dev)(uint8_t dev_class, void **ctx,
-                                           mem_if_t *mem_if),
-                     const void *v_buf, size_t max_size, size_t *out_size);
+vm_ctx_t *vm_restore(cb_restore_dev_t f_restore_dev, const void *v_buf,
+                     size_t max_size, size_t *out_size);
 
 vm_err_t vm_connect_dev(vm_ctx_t *vm, const dev_desc_t *dev_desc, void *ctx);
 void vm_step(vm_ctx_t *vm);

@@ -59,6 +59,10 @@ typedef struct {
     uint8_t dev_class;
     uint8_t irq_line;
     mmio_region_t mmio;
+
+    void *snapshot_ctx;
+    cb_snapshot_size_dev_t f_snapshot_size;
+    cb_snapshot_dev_t f_snapshot;
 } busctl_dev_ctx_t;
 
 typedef struct {
@@ -78,13 +82,12 @@ typedef struct {
 
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
 void busctl_free(busctl_ctx_t *busctl);
-size_t busctl_snapshot_size(void);
+size_t busctl_snapshot_size(const busctl_ctx_t *busctl);
 size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
                        size_t max_size);
-busctl_ctx_t *busctl_restore(
-    memctl_ctx_t *memctl, intctl_ctx_t *intctl,
-    void (*f_restore_dev)(uint8_t dev_class, void **ctx, mem_if_t *mem_if),
-    const void *v_buf, size_t max_size, size_t *out_used_size);
+busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                             cb_restore_dev_t f_restore_dev, const void *v_buf,
+                             size_t max_size, size_t *out_used_size);
 
 vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
                             void *ctx, const busctl_dev_ctx_t **out_dev_ctx);

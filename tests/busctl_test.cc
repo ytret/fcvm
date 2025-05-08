@@ -18,6 +18,9 @@ struct TestDevice {
                        .read_u32 = read_u32,
                        .write_u8 = nullptr,
                        .write_u32 = write_u32},
+            .snapshot_ctx = nullptr,
+            .f_snapshot_size = nullptr,
+            .f_snapshot = nullptr,
         };
     }
 
@@ -82,6 +85,9 @@ TEST_F(BusCtlTest, RegisterDevice) {
         .dev_class = 0xAA,
         .region_size = 10,
         .mem_if = mem_if,
+        .snapshot_ctx = nullptr,
+        .f_snapshot_size = nullptr,
+        .f_snapshot = nullptr,
     };
 
     const busctl_dev_ctx_t *dev_ctx = nullptr;
@@ -109,9 +115,14 @@ TEST_F(BusCtlTest, RegisterMaxDevices) {
                   .read_u32 = NULL,
                   .write_u8 = NULL,
                   .write_u32 = NULL};
-        req = {.dev_class = (uint8_t)idx_dev,
-               .region_size = 10 + (vm_addr_t)idx_dev,
-               .mem_if = mem_if};
+        req = {
+            .dev_class = (uint8_t)idx_dev,
+            .region_size = 10 + (vm_addr_t)idx_dev,
+            .mem_if = mem_if,
+            .snapshot_ctx = nullptr,
+            .f_snapshot_size = nullptr,
+            .f_snapshot = nullptr,
+        };
 
         vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
         ASSERT_EQ(err.type, VM_ERR_NONE);

@@ -42,9 +42,16 @@ void busctl_free(busctl_ctx_t *busctl) {
     free(busctl);
 }
 
-size_t busctl_snapshot_size(void) {
+size_t busctl_snapshot_size(const busctl_ctx_t *busctl) {
     static_assert(SN_BUSCTL_CTX_VER == 1);
-    return sizeof(busctl_ctx_t);
+    size_t size = sizeof(busctl_ctx_t);
+    for (size_t idx = 0; idx < BUS_MAX_DEVS; idx++) {
+        const busctl_dev_ctx_t *dev = &busctl->devs[idx];
+        if (busctl->used_slots[idx] && dev->f_snapshot_size) {
+            size += dev->f_snapshot_size(dev->snapshot_ctx);
+        }
+    }
+    return size;
 }
 
 size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
@@ -66,6 +73,9 @@ size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
         busctl_copy.devs[idx].mmio.mem_if.read_u32 = NULL;
         busctl_copy.devs[idx].mmio.mem_if.write_u8 = NULL;
         busctl_copy.devs[idx].mmio.mem_if.write_u32 = NULL;
+        busctl_copy.devs[idx].snapshot_ctx = NULL;
+        busctl_copy.devs[idx].f_snapshot_size = NULL;
+        busctl_copy.devs[idx].f_snapshot = NULL;
     }
     busctl_copy.bus_mmio.mem_if.read_u8 = NULL;
     busctl_copy.bus_mmio.mem_if.read_u32 = NULL;
@@ -77,13 +87,21 @@ size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
     memcpy(&buf[size], &busctl_copy, sizeof(busctl_copy));
     size += sizeof(busctl_copy);
 
+    // Snapshot every connected device.
+    for (size_t idx = 0; idx < BUS_MAX_DEVS; idx++) {
+        const busctl_dev_ctx_t *dev = &busctl->devs[idx];
+        if (busctl->used_slots[idx] && dev->f_snapshot) {
+            size +=
+                dev->f_snapshot(dev->snapshot_ctx, &buf[size], max_size - size);
+        }
+    }
+
     return size;
 }
 
-busctl_ctx_t *busctl_restore(
-    memctl_ctx_t *memctl, intctl_ctx_t *intctl,
-    void (*f_restore_dev)(uint8_t dev_class, void **ctx, mem_if_t *mem_if),
-    const void *v_buf, size_t max_size, size_t *out_used_size) {
+busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                             cb_restore_dev_t f_restore_dev, const void *v_buf,
+                             size_t max_size, size_t *out_used_size) {
     static_assert(SN_BUSCTL_CTX_VER == 1);
     D_ASSERT(memctl);
     D_ASSERT(intctl);
@@ -99,14 +117,16 @@ busctl_ctx_t *busctl_restore(
     memcpy(busctl, &buf[offset], sizeof(*busctl));
     offset += sizeof(*busctl);
 
-    // Restore the device memory interfaces.
+    // Restore the devices.
     for (size_t idx = 0; idx < BUS_MAX_DEVS; idx++) {
         if (busctl->used_slots[idx]) {
             // Restore the device entry in busctl.
             uint8_t dev_class = busctl->devs[idx].dev_class;
-            void **ctx = &busctl->devs[idx].mmio.ctx;
+            void **snapshot_ctx = &busctl->devs[idx].snapshot_ctx;
+            void **mem_ctx = &busctl->devs[idx].mmio.ctx;
             mem_if_t *mem_if = &busctl->devs[idx].mmio.mem_if;
-            f_restore_dev(dev_class, ctx, mem_if);
+            offset += f_restore_dev(dev_class, snapshot_ctx, mem_ctx, mem_if,
+                                    &buf[offset], max_size - offset);
 
             // Restore the ctx and mem interface in memctl.
             mmio_region_t *memctl_reg = NULL;
@@ -165,6 +185,9 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     dev_ctx->dev_class = desc->dev_class;
     dev_ctx->irq_line = irq_line;
     dev_ctx->mmio = mmio;
+    dev_ctx->snapshot_ctx = desc->snapshot_ctx;
+    dev_ctx->f_snapshot_size = desc->f_snapshot_size;
+    dev_ctx->f_snapshot = desc->f_snapshot;
     if (out_dev_ctx) { *out_dev_ctx = dev_ctx; }
 
     D_ASSERT(err.type == VM_ERR_NONE);
