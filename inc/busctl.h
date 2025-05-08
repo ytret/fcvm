@@ -10,6 +10,11 @@
 extern "C" {
 #endif
 
+/// Version of the `busctl_ctx_t` structure and its member structures.
+/// Increment this every time anything in the `busctl_ctx_t` structure or its
+/// member structures is changed: field order, size, type, etc.
+#define SN_BUSCTL_CTX_VER ((uint32_t)1)
+
 /**
  * Maximum number of devices that can be registered with the bus.
  *
@@ -43,26 +48,22 @@ extern "C" {
     (BUS_MMIO_DEV_DESC_START + BUS_MMIO_DEV_DESC_SIZE * BUS_MAX_DEVS)
 /// @}
 
-#define BUS_DEV_MAP_START 0xFF00'0000
-#define BUS_DEV_MAP_END   0xFFFF'F000 // exclusive
+#define BUS_DEV_MAP_START 0x0000'0000
+#define BUS_DEV_MAP_END   0xF000'0000 // exclusive
 
-static_assert(BUS_DEV_MAP_START >= BUS_MMIO_END);
+static_assert(BUS_MMIO_START >= BUS_DEV_MAP_END);
 
-/// Device registration request.
-typedef struct {
-    uint8_t dev_class;
-    vm_addr_t region_size;
-    void *ctx;
-    mem_if_t mem_if;
-} busctl_req_t;
-
-/// Registered device context.
-typedef struct {
+/// Connected device context.
+struct busctl_dev_ctx {
     uint8_t bus_slot;
     uint8_t dev_class;
     uint8_t irq_line;
     mmio_region_t mmio;
-} busctl_dev_ctx_t;
+
+    void *snapshot_ctx;
+    cb_snapshot_size_dev_t f_snapshot_size;
+    cb_snapshot_dev_t f_snapshot;
+};
 
 typedef struct {
     memctl_ctx_t *memctl;
@@ -80,10 +81,18 @@ typedef struct {
 } busctl_ctx_t;
 
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
+busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                                mmio_region_t *in_reg);
 void busctl_free(busctl_ctx_t *busctl);
+size_t busctl_snapshot_size(const busctl_ctx_t *busctl);
+size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
+                       size_t max_size);
+busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                             cb_restore_dev_t f_restore_dev, const void *v_buf,
+                             size_t max_size, size_t *out_used_size);
 
-vm_err_t busctl_reg_dev(busctl_ctx_t *busctl, const busctl_req_t *req,
-                        const busctl_dev_ctx_t **out_dev_ctx);
+vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
+                            void *ctx, const busctl_dev_ctx_t **out_dev_ctx);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,7 @@
+##################
+## Dependencies ##
+##################
 include(FetchContent)
-
 message("Fetching GoogleTest")
 FetchContent_Declare(
     googletest
@@ -9,7 +11,34 @@ FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
 find_package(absl REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system process)
 
+
+##############################
+## Common test code library ##
+##############################
+add_library(testcommon STATIC
+    testcommon/fake_mem.cc
+    testcommon/get_random.cc
+    testcommon/get_random_prog.cc
+    testcommon/prog_builder.cc
+)
+target_compile_options(testcommon PRIVATE
+    -Wall -Wextra -fdiagnostics-color=always
+)
+target_include_directories(testcommon PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+target_link_libraries(testcommon PUBLIC fcvm)
+
+
+############################
+## Programs used by tests ##
+############################
+add_subdirectory(progs)
+
+
+###################################
+## CMake test definition wrapper ##
+###################################
 function(my_add_test name)
     set(compile_defs)
     foreach(arg ${ARGN})
@@ -19,19 +48,31 @@ function(my_add_test name)
     add_executable(${name} ${name}.cc)
     target_compile_options(${name} PRIVATE
         -Wall -Wextra -fdiagnostics-color=always
-        -Wno-unknown-warning-option # sol.hpp
     )
     target_compile_definitions(${name} PRIVATE ${compile_defs})
     target_link_libraries(${name}
-        fcvm GTest::gtest_main GTest::gmock_main absl::str_format
+        testcommon
+        GTest::gtest_main GTest::gmock_main
+        absl::str_format
+        Boost::system Boost::process
     )
     gtest_discover_tests(${name})
 endfunction()
 
+
+########################
+## Test configuration ##
+########################
 set(TEST_RNG_SEED 12345 CACHE STRING
     "Random number generator seed used by the tests.")
 set(TEST_NUM_RANDOM_CASES 50 CACHE STRING
     "Number of randomly generated tests for each instruction.")
+
+
+######################
+## Test definitions ##
+######################
+my_add_test(fakemem_test)
 
 my_add_test(cpu_instr_data_test
     -DTEST_RNG_SEED=${TEST_RNG_SEED}
@@ -57,3 +98,8 @@ my_add_test(cpu_interrupt_test)
 my_add_test(intctl_test)
 my_add_test(memctl_test)
 my_add_test(busctl_test)
+
+my_add_test(vm_snapshot_test
+    -DTEST_RNG_SEED=${TEST_RNG_SEED}
+    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+)

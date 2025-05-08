@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "common.h"
 #include "cpu.h"
-#include "fake_mem.h"
+#include "testcommon/fake_mem.h"
+#include "testcommon/prog_builder.h"
 
 #define TEST_MEM_BASE 0x0000'0000
 #define TEST_MEM_SIZE 500
@@ -140,4 +140,7 @@ TEST_F(CPUResetTest, TripleFaultCausesReset) {
     ASSERT_EQ(cpu->state, CPU_TRIPLE_FAULT);
     cpu_step(cpu);
     ASSERT_EQ(cpu->state, CPU_RESET);
+
+    cpu_step(cpu);
+    EXPECT_EQ(cpu->num_nested_exc, 0);
 }

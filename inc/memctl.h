@@ -9,20 +9,12 @@
 extern "C" {
 #endif
 
+/// Version of the `memctl_ctx_t` structure and its member structures.
+/// Increment this every time anything in the `memctl_ctx_t` structure or its
+/// member structures is changed: field order, size, type, etc.
+#define SN_MEMCTL_CTX_VER ((uint32_t)1)
+
 #define MEMCTL_MAX_REGIONS 33
-
-typedef vm_err_t (*mem_read_u8_cb)(void *ctx, vm_addr_t addr, uint8_t *out);
-typedef vm_err_t (*mem_read_u32_cb)(void *ctx, vm_addr_t addr, uint32_t *out);
-typedef vm_err_t (*mem_write_u8_cb)(void *ctx, vm_addr_t addr, uint8_t val);
-typedef vm_err_t (*mem_write_u32_cb)(void *ctx, vm_addr_t addr, uint32_t val);
-
-/// Memory interface used by the CPU.
-typedef struct {
-    mem_read_u8_cb read_u8;
-    mem_read_u32_cb read_u32;
-    mem_write_u8_cb write_u8;
-    mem_write_u32_cb write_u32;
-} mem_if_t;
 
 typedef struct {
     vm_addr_t start;
@@ -45,7 +37,25 @@ typedef struct {
 
 memctl_ctx_t *memctl_new(void);
 void memctl_free(memctl_ctx_t *memctl);
+size_t memctl_snapshot_size(void);
+size_t memctl_snapshot(const memctl_ctx_t *memctl, void *buf, size_t max_size);
+memctl_ctx_t *memctl_restore(const void *buf, size_t max_size,
+                             size_t *out_used_size);
+
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio);
+
+/**
+ * Finds a mapped region that contains address \a addr.
+ * \param[in] memctl -- Memory controller.
+ * \param[in] addr -- Contained memory address to search by.
+ * \param[out] out_reg -- Output pointer to the found memory region (may be
+ *                        NULL).
+ * \returns #VM_ERR_NONE if a region containing \a addr was found and
+ * written to \a *out_reg (if it's not NULL), #VM_ERR_BAD_MEM if no
+ * containing region was found and \a *out_reg was not written
+ */
+vm_err_t memctl_find_reg_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
+                                 mmio_region_t **out_reg);
 
 vm_err_t memctl_read_u8(void *memctl_ctx, vm_addr_t addr, uint8_t *out);
 vm_err_t memctl_read_u32(void *memctl_ctx, vm_addr_t addr, uint32_t *out);

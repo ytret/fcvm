@@ -5,11 +5,15 @@
 #include "cpu_instr.h"
 #include "cpu_instr_descs.h"
 #include "intctl.h"
-#include "memctl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/// Version of the `cpu_ctx_t` structure and its member structures.
+/// Increment this every time anything in the `cpu_ctx_t` structure or its
+/// member structures is changed: field order, size, type, etc.
+#define SN_CPU_CTX_VER ((uint32_t)1)
 
 #define CPU_NUM_GP_REGS 8
 static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
@@ -73,6 +77,7 @@ typedef struct cpu_ctx {
     /// An interrupt controller built into the CPU.
     /// It is not meant to be used anywhere other than #cpu.c. An IRQ that is
     /// supposed to be handled by the CPU is raised using #cpu_raise_irq().
+    /// FIXME: mention busctl's usage of this intctl
     intctl_ctx_t *intctl;
 
     size_t num_nested_exc;
@@ -83,6 +88,10 @@ typedef struct cpu_ctx {
 
 cpu_ctx_t *cpu_new(mem_if_t *mem);
 void cpu_free(cpu_ctx_t *cpu);
+size_t cpu_snapshot_size(void);
+size_t cpu_snapshot(const cpu_ctx_t *cpu, void *buf, size_t max_size);
+cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *buf, size_t max_size,
+                       size_t *out_used_size);
 
 void cpu_step(cpu_ctx_t *cpu);
 

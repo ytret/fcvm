@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "fake_mem.h"
 #include "memctl.h"
+#include "testcommon/fake_mem.h"
 
 #define TEST_MMIO1_START 0x0000'0000
 #define TEST_MMIO1_SIZE  8
@@ -420,4 +420,41 @@ TEST_F(MemCtlTest, Region3CannotReadWriteU32) {
     rel_addr = TEST_MMIO3_SIZE / 2;
     memctl_write_u32(memctl, TEST_MMIO3_START + rel_addr, dword);
     EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+}
+
+TEST_F(MemCtlTest, SnapshotRestore) {
+    static_assert(SN_MEMCTL_CTX_VER == 1);
+
+    size_t snapshot_size = memctl_snapshot_size();
+    uint8_t *snapshot_buf = new uint8_t[snapshot_size];
+    size_t used_size = memctl_snapshot(memctl, snapshot_buf, snapshot_size);
+    EXPECT_EQ(used_size, snapshot_size);
+
+    size_t rest_size = 0;
+    memctl_ctx_t *rest_memctl =
+        memctl_restore(snapshot_buf, used_size, &rest_size);
+    EXPECT_EQ(rest_size, used_size);
+
+    EXPECT_NE(rest_memctl->intf.read_u8, nullptr);
+    EXPECT_NE(rest_memctl->intf.read_u32, nullptr);
+    EXPECT_NE(rest_memctl->intf.write_u8, nullptr);
+    EXPECT_NE(rest_memctl->intf.write_u32, nullptr);
+
+    ASSERT_EQ(rest_memctl->num_mapped_regions, memctl->num_mapped_regions);
+    for (size_t idx = 0; idx < rest_memctl->num_mapped_regions; idx++) {
+        EXPECT_EQ(rest_memctl->used_regions[idx], memctl->used_regions[idx]);
+
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].start,
+                  memctl->mapped_regions[idx].start);
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].end,
+                  memctl->mapped_regions[idx].end);
+
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].ctx, nullptr);
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].mem_if.read_u8, nullptr);
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].mem_if.read_u32, nullptr);
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].mem_if.write_u8, nullptr);
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].mem_if.write_u32, nullptr);
+    }
+
+    delete[] snapshot_buf;
 }
