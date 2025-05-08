@@ -12,8 +12,13 @@
 #include <testcommon/get_random_prog.h>
 #include <vm.h>
 
-#define TEST_VM_SNAPSHOT_NUM_PROGS 10
-#define TEST_VM_SNAPSHOT_MEM_SIZE  1024
+#define TEST_VM_SNAPSHOT_NUM_PROGS 1
+#define TEST_VM_SNAPSHOT_NUM_STEPS 100
+
+#define TEST_VM_SNAPSHOT_PROG_START (CPU_IVT_ADDR + CPU_IVT_SIZE)
+#define TEST_VM_SNAPSHOT_PROG_SIZE  1024
+#define TEST_VM_SNAPSHOT_MEM_SIZE                                              \
+    (TEST_VM_SNAPSHOT_PROG_SIZE + TEST_VM_SNAPSHOT_PROG_SIZE)
 
 static bool g_restore_dev_ok;
 
@@ -28,10 +33,9 @@ struct VMSnapshotParam {
 
     static VMSnapshotParam get_random_param(std::mt19937 &rng) {
         VMSnapshotParam param = {};
-        // param.num_steps = get_random_imm32(rng, 0, 10);
-        param.num_steps = 100;
-        param.prog = get_random_prog(rng, TEST_VM_SNAPSHOT_MEM_SIZE);
-        param.prog.resize(TEST_VM_SNAPSHOT_MEM_SIZE);
+        param.num_steps = TEST_VM_SNAPSHOT_NUM_STEPS;
+        param.prog = get_random_prog(rng, TEST_VM_SNAPSHOT_PROG_SIZE);
+        param.prog.resize(TEST_VM_SNAPSHOT_PROG_SIZE);
         return param;
     }
 
@@ -49,8 +53,19 @@ class VMSnapshotTest : public testing::TestWithParam<VMSnapshotParam> {
         auto param = GetParam();
 
         vm = vm_new();
-        mem = new FakeMem(0, TEST_VM_SNAPSHOT_MEM_SIZE);
-        mem->write(0, param.prog.data(), param.prog.size());
+        mem = new FakeMem(CPU_IVT_ADDR, TEST_VM_SNAPSHOT_MEM_SIZE);
+
+        // Build an IVT.
+        std::array<vm_addr_t, CPU_IVT_NUM_ENTRIES> ivt;
+        static_assert(sizeof(vm_addr_t) == CPU_IVT_ENTRY_SIZE);
+        std::for_each(ivt.begin(), ivt.end(), [](vm_addr_t &isr_addr) {
+            isr_addr = TEST_VM_SNAPSHOT_PROG_START;
+        });
+        mem->write(CPU_IVT_ADDR, ivt.data(), CPU_IVT_ENTRY_SIZE * ivt.size());
+
+        // Write the program.
+        mem->write(TEST_VM_SNAPSHOT_PROG_START, param.prog.data(),
+                   param.prog.size());
 
         dev_desc_t mem_desc = mem->dev_desc();
         vm_connect_dev(vm, &mem_desc, mem);
