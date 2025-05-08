@@ -10,6 +10,11 @@
 extern "C" {
 #endif
 
+/// Version of the `busctl_ctx_t` structure and its member structures.
+/// Increment this every time anything in the `busctl_ctx_t` structure or its
+/// member structures is changed: field order, size, type, etc.
+#define SN_BUSCTL_CTX_VER ((uint32_t)1)
+
 /**
  * Maximum number of devices that can be registered with the bus.
  *
@@ -73,6 +78,14 @@ typedef struct {
 
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
 void busctl_free(busctl_ctx_t *busctl);
+size_t busctl_snapshot_size(void);
+size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
+                       size_t max_size);
+busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                             void (*f_restore_dev)(uint8_t dev_class, void *ctx,
+                                                   mem_if_t *mem_if),
+                             const void *v_buf, size_t max_size,
+                             size_t *out_used_size);
 
 vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
                             void *ctx, const busctl_dev_ctx_t **out_dev_ctx);
