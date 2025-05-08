@@ -64,3 +64,25 @@ TEST_F(IntCtlTest, LowerNumIsHigherPriority) {
         EXPECT_EQ(pending_irq, irq);
     }
 }
+
+TEST_F(IntCtlTest, SnapshotRestore) {
+    static_assert(SN_INTCTL_CTX_VER == 1);
+
+    uint8_t raised_irq = 1;
+    vm_err_t err = intctl_raise_irq_line(intctl, raised_irq);
+    EXPECT_EQ(err.type, VM_ERR_NONE);
+
+    size_t snapshot_size = intctl_snapshot_size();
+    uint8_t *snapshot_buf = new uint8_t[snapshot_size];
+    size_t used_size = intctl_snapshot(intctl, snapshot_buf, snapshot_size);
+    EXPECT_EQ(used_size, snapshot_size);
+
+    size_t rest_size = 0;
+    intctl_ctx_t *rest_intctl =
+        intctl_restore(snapshot_buf, used_size, &rest_size);
+    EXPECT_EQ(rest_size, used_size);
+
+    EXPECT_EQ(rest_intctl->raised_irqs, intctl->raised_irqs);
+
+    delete[] snapshot_buf;
+}
