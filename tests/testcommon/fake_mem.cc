@@ -118,7 +118,7 @@ size_t FakeMem::restore(FakeMem **out_fakemem,
 
     // Fill in the busctl dev ctx.
     if (busdev_ctx) {
-        busdev_ctx->mmio.ctx = fake_mem;
+        busdev_ctx->mmio.ctx = &fake_mem->mem_if;
         busdev_ctx->mmio.mem_if = fake_mem->mem_if;
         busdev_ctx->snapshot_ctx = fake_mem;
         busdev_ctx->f_snapshot_size = snapshot_size_cb;
