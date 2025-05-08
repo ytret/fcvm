@@ -106,7 +106,7 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
     if (cpu->state == CPU_FETCH_DECODE_OPERANDS || cpu->state == CPU_EXECUTE) {
         cpu->instr.desc = cpu_lookup_instr_desc(cpu->instr.opcode);
         D_ASSERT(cpu->instr.desc);
-        for (size_t opd = 0; opd < cpu->instr.desc->num_operands; opd++) {
+        for (size_t opd = 0; opd < cpu->instr.next_operand; opd++) {
             if (cpu->instr.desc->operands[opd] == CPU_OPD_REG) {
                 cpu_decode_reg(cpu, cpu->instr.operands[opd].reg_code,
                                &cpu->instr.operands[opd].p_reg);
