@@ -60,13 +60,19 @@ function(my_add_test name)
 endfunction()
 
 
-########################
-## Test configuration ##
-########################
+#########################
+## Tests configuration ##
+#########################
 set(TEST_RNG_SEED 12345 CACHE STRING
     "Random number generator seed used by the tests.")
 set(TEST_NUM_RANDOM_CASES 50 CACHE STRING
     "Number of randomly generated tests for each instruction.")
+set(TEST_VM_SNAPSHOT_NUM_PROGS 100 CACHE STRING
+    "Number of randomly generated programs for testing VM snapshots.")
+set(TEST_VM_SNAPSHOT_NUM_STEPS 100 CACHE STRING
+    "Number of VM steps to perform when testing VM snapshots.")
+set(TEST_VM_SNAPSHOT_PROG_SIZE 1024 CACHE STRING
+    "Maximum size (bytes) of a program generated for testing VM snapshots.")
 
 
 ######################
@@ -101,5 +107,8 @@ my_add_test(busctl_test)
 
 my_add_test(vm_snapshot_test
     -DTEST_RNG_SEED=${TEST_RNG_SEED}
-    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+    -DTEST_VM_SNAPSHOT_PROG_PATH="$<TARGET_FILE:cpu_snapshot_step>"
+    -DTEST_VM_SNAPSHOT_NUM_PROGS=${TEST_VM_SNAPSHOT_NUM_PROGS}
+    -DTEST_VM_SNAPSHOT_NUM_STEPS=${TEST_VM_SNAPSHOT_NUM_STEPS}
+    -DTEST_VM_SNAPSHOT_PROG_SIZE=${TEST_VM_SNAPSHOT_PROG_SIZE}
 )

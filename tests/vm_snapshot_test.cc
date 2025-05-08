@@ -13,11 +13,7 @@
 #include <testcommon/get_random_prog.h>
 #include <vm.h>
 
-#define TEST_VM_SNAPSHOT_NUM_PROGS 100
-#define TEST_VM_SNAPSHOT_NUM_STEPS 100
-
 #define TEST_VM_SNAPSHOT_PROG_START (CPU_IVT_ADDR + CPU_IVT_SIZE)
-#define TEST_VM_SNAPSHOT_PROG_SIZE  1024
 #define TEST_VM_SNAPSHOT_MEM_SIZE                                              \
     (TEST_VM_SNAPSHOT_PROG_SIZE + TEST_VM_SNAPSHOT_PROG_SIZE)
 
@@ -29,8 +25,7 @@ static size_t restore_dev(uint8_t dev_class, busctl_dev_ctx_t *busdev_ctx,
 struct VMSnapshotParam {
     size_t num_steps;
     std::vector<uint8_t> prog;
-    const boost::filesystem::path test_proc_path =
-        "./tests/progs/cpu_snapshot_step";
+    const boost::filesystem::path test_proc_path = TEST_VM_SNAPSHOT_PROG_PATH;
 
     static VMSnapshotParam get_random_param(std::mt19937 &rng) {
         VMSnapshotParam param = {};
