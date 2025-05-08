@@ -73,6 +73,11 @@ TEST_P(VMSnapshotTest, SnapshotRestoreNoSegFaults) {
         ASSERT_EQ(used_size, req_size)
             << "snapshot on step " << step << ": used size mismatch";
         vm_free(res_vm);
+
+        // Delete the allocated memory device.
+        void *mem_ctx = res_vm->busctl->devs[0].snapshot_ctx;
+        ASSERT_NE(mem_ctx, nullptr);
+        delete reinterpret_cast<FakeMem *>(mem_ctx);
     }
 
     delete[] snapshot;
