@@ -11,6 +11,7 @@ FetchContent_MakeAvailable(googletest)
 include(GoogleTest)
 
 find_package(absl REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system process)
 
 
 ##############################
@@ -51,7 +52,9 @@ function(my_add_test name)
     target_compile_definitions(${name} PRIVATE ${compile_defs})
     target_link_libraries(${name}
         testcommon
-        GTest::gtest_main GTest::gmock_main absl::str_format
+        GTest::gtest_main GTest::gmock_main
+        absl::str_format
+        Boost::system Boost::process
     )
     gtest_discover_tests(${name})
 endfunction()

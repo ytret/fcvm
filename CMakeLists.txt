@@ -11,6 +11,14 @@ if(CMAKE_VERSION VERSION_GREATER 3.23)
     # 3.24+
     cmake_policy(SET CMP0135 NEW)
 endif()
+if(CMAKE_VERSION VERSION_GREATER 3.29)
+    # CMP0167: CMake 3.30 and above prefer to not provide the `FindBoost` module
+    # so that `find_package(Boost)` calls, without the `CONFIG` or `NO_MODULE`
+    # options, find the upstream `BoostConfig.cmake` directly. This policy
+    # provides compatibility for projects that have not been ported to use the
+    # upstream Boost package.
+    cmake_policy(SET CMP0167 NEW)
+endif()
 
 project(fcvm C CXX)
 enable_testing()
