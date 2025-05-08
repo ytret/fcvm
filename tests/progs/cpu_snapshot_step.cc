@@ -45,8 +45,10 @@ int main() {
         abort();
     }
 
-    fprintf(stderr, "Writing snapshot (%zu bytes) to stdout\n",
-            snapshot_bytes.size());
+    size_t out_size = snapshot_bytes.size();
+    fprintf(stderr, "Writing snapshot (%zu bytes) to stdout\n", out_size);
+    std::cout.write(reinterpret_cast<const char *>(&out_size),
+                    sizeof(out_size));
     std::cout.write(reinterpret_cast<const char *>(snapshot_bytes.data()),
                     snapshot_bytes.size());
     std::cout.flush();
