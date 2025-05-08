@@ -25,7 +25,7 @@ vm_ctx_t *vm_new(void);
 void vm_free(vm_ctx_t *vm);
 size_t vm_snapshot_size(void);
 size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size);
-vm_ctx_t *vm_restore(void (*f_restore_dev)(uint8_t dev_class, void *ctx,
+vm_ctx_t *vm_restore(void (*f_restore_dev)(uint8_t dev_class, void **ctx,
                                            mem_if_t *mem_if),
                      const void *v_buf, size_t max_size, size_t *out_size);
 

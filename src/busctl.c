@@ -80,11 +80,10 @@ size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
     return size;
 }
 
-busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
-                             void (*f_restore_dev)(uint8_t dev_class, void *ctx,
-                                                   mem_if_t *mem_if),
-                             const void *v_buf, size_t max_size,
-                             size_t *out_used_size) {
+busctl_ctx_t *busctl_restore(
+    memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+    void (*f_restore_dev)(uint8_t dev_class, void **ctx, mem_if_t *mem_if),
+    const void *v_buf, size_t max_size, size_t *out_used_size) {
     static_assert(SN_BUSCTL_CTX_VER == 1);
     D_ASSERT(memctl);
     D_ASSERT(intctl);
