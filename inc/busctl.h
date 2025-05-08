@@ -54,7 +54,7 @@ extern "C" {
 static_assert(BUS_DEV_MAP_START >= BUS_MMIO_END);
 
 /// Connected device context.
-typedef struct {
+struct busctl_dev_ctx {
     uint8_t bus_slot;
     uint8_t dev_class;
     uint8_t irq_line;
@@ -63,7 +63,7 @@ typedef struct {
     void *snapshot_ctx;
     cb_snapshot_size_dev_t f_snapshot_size;
     cb_snapshot_dev_t f_snapshot;
-} busctl_dev_ctx_t;
+};
 
 typedef struct {
     memctl_ctx_t *memctl;

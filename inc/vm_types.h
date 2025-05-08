@@ -8,6 +8,7 @@
 #define VM_MAX_ADDR 0xFFFF'FFFF
 
 typedef uint32_t vm_addr_t;
+typedef struct busctl_dev_ctx busctl_dev_ctx_t;
 
 typedef vm_err_t (*mem_read_u8_cb)(void *ctx, vm_addr_t addr, uint8_t *out);
 typedef vm_err_t (*mem_read_u32_cb)(void *ctx, vm_addr_t addr, uint32_t *out);
