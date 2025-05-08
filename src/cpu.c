@@ -67,6 +67,9 @@ size_t cpu_snapshot(const cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
     memcpy(&buf[size], &cpu_copy, sizeof(cpu_copy));
     size += sizeof(cpu_copy);
 
+    // Write the intctl context.
+    size += intctl_snapshot(cpu->intctl, &buf[size], max_size - size);
+
     return size;
 }
 
@@ -119,6 +122,12 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
             }
         }
     }
+
+    // Delete the intctl allocated in cpu_new() and restore it from the buf.
+    intctl_free(cpu->intctl);
+    size_t intctl_size = 0;
+    cpu->intctl = intctl_restore(&buf[offset], max_size - offset, &intctl_size);
+    offset += intctl_size;
 
     *out_used_size = offset;
     return cpu;
