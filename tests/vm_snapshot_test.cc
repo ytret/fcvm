@@ -20,17 +20,28 @@ struct VMSnapshotParam {
     static VMSnapshotParam get_random_param(std::mt19937 &rng) {
         VMSnapshotParam param = {};
         // param.num_steps = get_random_imm32(rng, 0, 10);
-        param.num_steps = 10;
+        param.num_steps = 1000;
         param.prog = get_random_prog(rng, TEST_VM_SNAPSHOT_MEM_SIZE);
+        param.prog.resize(TEST_VM_SNAPSHOT_MEM_SIZE);
         return param;
+    }
+
+    friend std::ostream &operator<<(std::ostream &os,
+                                    const VMSnapshotParam &param) {
+        os << "{ random program, " << param.prog.size() << " bytes, "
+           << param.num_steps << " steps }";
+        return os;
     }
 };
 
 class VMSnapshotTest : public testing::TestWithParam<VMSnapshotParam> {
   protected:
     VMSnapshotTest() {
+        auto param = GetParam();
+
         vm = vm_new();
         mem = new FakeMem(0, TEST_VM_SNAPSHOT_MEM_SIZE);
+        mem->write(0, param.prog.data(), param.prog.size());
 
         dev_desc_t mem_desc = mem->dev_desc();
         vm_connect_dev(vm, &mem_desc, mem);
@@ -66,6 +77,9 @@ TEST_P(VMSnapshotTest, SnapshotRestoreNoSegFaults) {
             << "restore on step " << step << ": failed to restore the device";
         delete[] snapshot;
 
+        // Do a step.
+        vm_step(res_vm);
+
         // Create a snapshot.
         req_size = vm_snapshot_size(res_vm);
         snapshot = new uint8_t[req_size];
@@ -84,7 +98,6 @@ TEST_P(VMSnapshotTest, SnapshotRestoreNoSegFaults) {
 }
 
 TEST_P(VMSnapshotTest, DISABLED_SnapshotRestoreInSeparateProcess) {
-    FAIL();
 }
 
 INSTANTIATE_TEST_SUITE_P(RandomProg, VMSnapshotTest, testing::ValuesIn([&] {
