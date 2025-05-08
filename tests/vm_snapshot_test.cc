@@ -5,6 +5,7 @@
 #include <boost/asio/writable_pipe.hpp>
 #include <boost/process/v2/process.hpp>
 #include <boost/process/v2/stdio.hpp>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <testcommon/fake_mem.h>
@@ -234,6 +235,10 @@ TEST_P(VMSnapshotTest, SnapshotRestoreInSeparateProcess) {
         EXPECT_EQ(ec, 0)
             << "launched process exited with non-zero code, stderr:\n"
             << std::string(proc_stderr.begin(), proc_stderr.end());
+
+        // Compare the snapshots created in this process and the separate
+        // process, they must be equal.
+        ASSERT_THAT(this_snap, testing::ContainerEq(proc_snap));
     }
 }
 
