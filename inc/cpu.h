@@ -77,6 +77,7 @@ typedef struct cpu_ctx {
     /// An interrupt controller built into the CPU.
     /// It is not meant to be used anywhere other than #cpu.c. An IRQ that is
     /// supposed to be handled by the CPU is raised using #cpu_raise_irq().
+    /// FIXME: mention busctl's usage of this intctl
     intctl_ctx_t *intctl;
 
     size_t num_nested_exc;
