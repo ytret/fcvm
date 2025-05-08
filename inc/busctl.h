@@ -48,10 +48,10 @@ extern "C" {
     (BUS_MMIO_DEV_DESC_START + BUS_MMIO_DEV_DESC_SIZE * BUS_MAX_DEVS)
 /// @}
 
-#define BUS_DEV_MAP_START 0xFF00'0000
-#define BUS_DEV_MAP_END   0xFFFF'F000 // exclusive
+#define BUS_DEV_MAP_START 0x0000'0000
+#define BUS_DEV_MAP_END   0xF000'0000 // exclusive
 
-static_assert(BUS_DEV_MAP_START >= BUS_MMIO_END);
+static_assert(BUS_MMIO_START >= BUS_DEV_MAP_END);
 
 /// Connected device context.
 struct busctl_dev_ctx {
