@@ -69,6 +69,8 @@ set(TEST_NUM_RANDOM_CASES 50 CACHE STRING
 ######################
 ## Test definitions ##
 ######################
+my_add_test(fakemem_test)
+
 my_add_test(cpu_instr_data_test
     -DTEST_RNG_SEED=${TEST_RNG_SEED}
     -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
