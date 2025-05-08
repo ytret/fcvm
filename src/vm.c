@@ -4,9 +4,6 @@
 #include "debugm.h"
 #include "vm.h"
 
-static bool prv_vm_find_dev_desc(const vm_ctx_t *vm, uint8_t dev_class,
-                                 const dev_desc_t **out_dev_desc);
-
 vm_ctx_t *vm_new(void) {
     vm_ctx_t *vm = malloc(sizeof(*vm));
     D_ASSERT(vm);
@@ -15,8 +12,6 @@ vm_ctx_t *vm_new(void) {
     vm->memctl = memctl_new();
     vm->cpu = cpu_new(&vm->memctl->intf);
     vm->busctl = busctl_new(vm->memctl, vm->cpu->intctl);
-
-    vm->num_dev_regs = 0;
 
     return vm;
 }
@@ -29,56 +24,85 @@ void vm_free(vm_ctx_t *vm) {
     free(vm);
 }
 
-vm_err_t vm_reg_dev(vm_ctx_t *vm, const dev_desc_t *dev_desc) {
+size_t vm_snapshot_size(void) {
+    static_assert(SN_VM_CTX_VER == 1);
+    return sizeof(vm_ctx_t) + memctl_snapshot_size() + cpu_snapshot_size() +
+           busctl_snapshot_size();
+}
+
+size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size) {
+    static_assert(SN_VM_CTX_VER == 1);
     D_ASSERT(vm);
-    D_ASSERT(dev_desc);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    D_ASSERT(v_buf);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t size = 0;
 
-    if (vm->num_dev_regs >= VM_MAX_DEV_REGS) {
-        err.type = VM_ERR_MAX_DEV_REGS;
-        return err;
-    } else if (prv_vm_find_dev_desc(vm, dev_desc->dev_class, NULL)) {
-        err.type = VM_ERR_DEV_CLASS_EXISTS;
-        return err;
-    }
+    // Replace every pointer by NULL.
+    vm_ctx_t vm_copy;
+    memcpy(&vm_copy, vm, sizeof(vm_copy));
+    vm_copy.memctl = NULL;
+    vm_copy.cpu = NULL;
+    vm_copy.busctl = NULL;
 
-    memcpy(&vm->dev_regs[vm->num_dev_regs], dev_desc, sizeof(dev_desc_t));
-    vm->num_dev_regs++;
+    // Write the VM context.
+    D_ASSERT(size + sizeof(vm_copy) <= max_size);
+    memcpy(&buf[size], &vm_copy, sizeof(vm_copy));
+    size += sizeof(vm_copy);
 
-    D_PRINTF("registered a device class 0x%02X", dev_desc->dev_class);
-    return err;
+    // Save the vm->memctl context.
+    size += memctl_snapshot(vm->memctl, &buf[size], max_size - size);
+
+    // Save the vm->cpu context.
+    size += cpu_snapshot(vm->cpu, &buf[size], max_size - size);
+
+    // Save the vm->busctl context.
+    size += busctl_snapshot(vm->busctl, &buf[size], max_size - size);
+
+    return size;
+}
+
+vm_ctx_t *vm_restore(void (*f_restore_dev)(uint8_t dev_class, void *ctx,
+                                           mem_if_t *mem_if),
+                     const void *v_buf, size_t max_size,
+                     size_t *out_used_size) {
+    static_assert(SN_VM_CTX_VER == 1);
+    D_ASSERT(f_restore_dev);
+    D_ASSERT(v_buf);
+    D_ASSERT(out_used_size);
+    uint8_t *buf = (uint8_t *)v_buf;
+    size_t offset = 0;
+
+    vm_ctx_t *vm = malloc(sizeof(*vm));
+    D_ASSERT(vm);
+    memset(vm, 0, sizeof(*vm));
+
+    size_t memctl_size = 0;
+    vm->memctl = memctl_restore(&buf[offset], max_size - offset, &memctl_size);
+    offset += memctl_size;
+
+    size_t cpu_size = 0;
+    vm->cpu = cpu_restore(&vm->memctl->intf, &buf[offset], max_size - offset,
+                          &cpu_size);
+    offset += cpu_size;
+
+    size_t busctl_size = 0;
+    vm->busctl = busctl_restore(vm->memctl, vm->cpu->intctl, f_restore_dev,
+                                &buf[offset], max_size - offset, &busctl_size);
+    offset += busctl_size;
+
+    *out_used_size = offset;
+    return vm;
 }
 
 vm_err_t vm_connect_dev(vm_ctx_t *vm, const dev_desc_t *dev_desc, void *ctx) {
     D_ASSERT(vm);
     D_ASSERT(dev_desc);
     D_ASSERT(ctx);
-    vm_err_t err = {.type = VM_ERR_NONE};
-
-    if (prv_vm_find_dev_desc(vm, dev_desc->dev_class, NULL)) {
-        err = busctl_connect_dev(vm->busctl, dev_desc, ctx, NULL);
-    } else {
-        err.type = VM_ERR_DEV_CLASS_UNKNOWN;
-    }
-
-    return err;
+    return busctl_connect_dev(vm->busctl, dev_desc, ctx, NULL);
 }
 
 void vm_step(vm_ctx_t *vm) {
     D_ASSERT(vm);
     D_ASSERT(vm->cpu);
     cpu_step(vm->cpu);
-}
-
-static bool prv_vm_find_dev_desc(const vm_ctx_t *vm, uint8_t dev_class,
-                                 const dev_desc_t **out_dev_desc) {
-    D_ASSERT(vm);
-    for (size_t idx = 0; idx < vm->num_dev_regs; idx++) {
-        const dev_desc_t *dev_desc = &vm->dev_regs[idx];
-        if (dev_desc->dev_class == dev_class) {
-            if (out_dev_desc) { *out_dev_desc = dev_desc; }
-            return true;
-        }
-    }
-    return false;
 }
