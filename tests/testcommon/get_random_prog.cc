@@ -6,8 +6,12 @@
 std::vector<uint8_t> get_random_instr(std::mt19937 &rng) {
     std::vector<uint8_t> bytes;
 
-    uint8_t opcode = get_random_opcode(rng);
-    const cpu_instr_desc_t *desc = cpu_lookup_instr_desc(opcode);
+    uint8_t opcode;
+    const cpu_instr_desc_t *desc;
+    do {
+        opcode = get_random_opcode(rng);
+        desc = cpu_lookup_instr_desc(opcode);
+    } while (desc == NULL);
 
     bytes.push_back(opcode);
     for (size_t opd = 0; opd < desc->num_operands; opd++) {

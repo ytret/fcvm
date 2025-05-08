@@ -18,7 +18,8 @@ TEST_F(FakeMemTest, SnapshotRestore) {
     EXPECT_EQ(used_size, snapshot_size);
 
     FakeMem *rest_mem = nullptr;
-    size_t rest_size = FakeMem::restore(&rest_mem, snapshot_bytes, used_size);
+    size_t rest_size =
+        FakeMem::restore(&rest_mem, NULL, snapshot_bytes, used_size);
     EXPECT_EQ(rest_size, used_size);
     ASSERT_NE(rest_mem, nullptr);
 

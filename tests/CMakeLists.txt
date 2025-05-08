@@ -95,3 +95,8 @@ my_add_test(cpu_interrupt_test)
 my_add_test(intctl_test)
 my_add_test(memctl_test)
 my_add_test(busctl_test)
+
+my_add_test(vm_snapshot_test
+    -DTEST_RNG_SEED=${TEST_RNG_SEED}
+    -DTEST_NUM_RANDOM_CASES=${TEST_NUM_RANDOM_CASES}
+)

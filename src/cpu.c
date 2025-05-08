@@ -46,7 +46,7 @@ void cpu_free(cpu_ctx_t *cpu) {
 
 size_t cpu_snapshot_size(void) {
     static_assert(SN_CPU_CTX_VER == 1);
-    return sizeof(cpu_ctx_t);
+    return sizeof(cpu_ctx_t) + intctl_snapshot_size();
 }
 
 size_t cpu_snapshot(const cpu_ctx_t *cpu, void *v_buf, size_t max_size) {
@@ -102,7 +102,7 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
     cpu->pc_after_isr = rest_cpu.pc_after_isr;
 
     // Restore the register pointers in the instruction execution context.
-    if (cpu->state != CPU_FETCH_DECODE_OPCODE) {
+    if (cpu->state == CPU_FETCH_DECODE_OPERANDS || cpu->state == CPU_EXECUTE) {
         cpu->instr.desc = cpu_lookup_instr_desc(cpu->instr.opcode);
         D_ASSERT(cpu->instr.desc);
         for (size_t opd = 0; opd < cpu->instr.desc->num_operands; opd++) {

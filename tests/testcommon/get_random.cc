@@ -78,8 +78,9 @@ uint8_t get_random_reg_codes(std::mt19937 &rng, bool unique_regs,
     return (reg_code1 << 4) | reg_code2;
 }
 
-uint32_t get_random_imm32(std::mt19937 &rng) {
-    std::uniform_int_distribution<uint32_t> val_dist(0, UINT32_MAX);
+uint32_t get_random_imm32(std::mt19937 &rng, uint32_t min_val,
+                          uint32_t max_val) {
+    std::uniform_int_distribution<uint32_t> val_dist(min_val, max_val);
     return val_dist(rng);
 }
 

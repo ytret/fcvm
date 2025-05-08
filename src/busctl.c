@@ -10,6 +10,11 @@ static vm_err_t prv_busctl_mmio_read_u32(void *ctx, vm_addr_t addr,
                                          uint32_t *out_val);
 
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl) {
+    return busctl_new_in_reg(memctl, intctl, NULL);
+}
+
+busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                                mmio_region_t *in_reg) {
     D_ASSERT(memctl);
     D_ASSERT(intctl);
 
@@ -30,9 +35,13 @@ busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl) {
     busctl->bus_mmio.mem_if.read_u32 = prv_busctl_mmio_read_u32;
     busctl->bus_mmio.mem_if.write_u8 = NULL;
     busctl->bus_mmio.mem_if.write_u32 = NULL;
-    vm_err_t err = memctl_map_region(memctl, &busctl->bus_mmio);
-    D_ASSERTMF(err.type == VM_ERR_NONE,
-               "failed to map the bus MMIO, error type: %u", err.type);
+    if (in_reg) {
+        memcpy(in_reg, &busctl->bus_mmio, sizeof(mmio_region_t));
+    } else {
+        vm_err_t err = memctl_map_region(memctl, &busctl->bus_mmio);
+        D_ASSERTMF(err.type == VM_ERR_NONE,
+                   "failed to map the bus MMIO, error type: %u", err.type);
+    }
 
     return busctl;
 }
@@ -111,8 +120,14 @@ busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
     uint8_t *buf = (uint8_t *)v_buf;
     size_t offset = 0;
 
-    // Restore the busctl conctext.
-    busctl_ctx_t *busctl = busctl_new(memctl, intctl);
+    // Find the busctl MMIO region in the memory controller.
+    mmio_region_t *bus_mmio = NULL;
+    vm_err_t err = memctl_find_reg_by_addr(memctl, BUS_MMIO_START, &bus_mmio);
+    D_ASSERT(err.type == VM_ERR_NONE);
+    D_ASSERT(bus_mmio);
+
+    // Restore the busctl context.
+    busctl_ctx_t *busctl = busctl_new_in_reg(memctl, intctl, bus_mmio);
     D_ASSERT(offset + sizeof(*busctl) <= max_size);
     memcpy(busctl, &buf[offset], sizeof(*busctl));
     offset += sizeof(*busctl);
@@ -122,11 +137,8 @@ busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
         if (busctl->used_slots[idx]) {
             // Restore the device entry in busctl.
             uint8_t dev_class = busctl->devs[idx].dev_class;
-            void **snapshot_ctx = &busctl->devs[idx].snapshot_ctx;
-            void **mem_ctx = &busctl->devs[idx].mmio.ctx;
-            mem_if_t *mem_if = &busctl->devs[idx].mmio.mem_if;
-            offset += f_restore_dev(dev_class, snapshot_ctx, mem_ctx, mem_if,
-                                    &buf[offset], max_size - offset);
+            offset += f_restore_dev(dev_class, &busctl->devs[idx], &buf[offset],
+                                    max_size - offset);
 
             // Restore the ctx and mem interface in memctl.
             mmio_region_t *memctl_reg = NULL;
@@ -185,7 +197,7 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     dev_ctx->dev_class = desc->dev_class;
     dev_ctx->irq_line = irq_line;
     dev_ctx->mmio = mmio;
-    dev_ctx->snapshot_ctx = desc->snapshot_ctx;
+    dev_ctx->snapshot_ctx = ctx;
     dev_ctx->f_snapshot_size = desc->f_snapshot_size;
     dev_ctx->f_snapshot = desc->f_snapshot;
     if (out_dev_ctx) { *out_dev_ctx = dev_ctx; }

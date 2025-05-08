@@ -18,7 +18,6 @@ struct TestDevice {
                        .read_u32 = read_u32,
                        .write_u8 = nullptr,
                        .write_u32 = write_u32},
-            .snapshot_ctx = nullptr,
             .f_snapshot_size = nullptr,
             .f_snapshot = nullptr,
         };
@@ -85,7 +84,6 @@ TEST_F(BusCtlTest, RegisterDevice) {
         .dev_class = 0xAA,
         .region_size = 10,
         .mem_if = mem_if,
-        .snapshot_ctx = nullptr,
         .f_snapshot_size = nullptr,
         .f_snapshot = nullptr,
     };
@@ -119,7 +117,6 @@ TEST_F(BusCtlTest, RegisterMaxDevices) {
             .dev_class = (uint8_t)idx_dev,
             .region_size = 10 + (vm_addr_t)idx_dev,
             .mem_if = mem_if,
-            .snapshot_ctx = nullptr,
             .f_snapshot_size = nullptr,
             .f_snapshot = nullptr,
         };

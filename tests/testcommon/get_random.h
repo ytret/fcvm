@@ -18,5 +18,6 @@ uint8_t get_random_reg_code(std::mt19937 &rng, bool unique_regs = false,
 uint8_t get_random_reg_codes(std::mt19937 &rng, bool unique_regs = {},
                              std::vector<uint8_t> used_reg_codes = {});
 
-uint32_t get_random_imm32(std::mt19937 &rng);
+uint32_t get_random_imm32(std::mt19937 &rng, uint32_t min_val = 0,
+                          uint32_t max_val = UINT32_MAX);
 bool get_random_bool(std::mt19937 &rng);

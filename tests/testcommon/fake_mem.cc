@@ -3,9 +3,10 @@
 #include <assert.h>
 #include <string.h>
 
+#include "busctl.h"
 #include "testcommon/fake_mem.h"
 
-std::map<void *, FakeMem *> FakeMem::_ctx_to_this;
+std::map<void *, FakeMem *> FakeMem::_mmio_ctx_to_this;
 
 FakeMem::FakeMem(vm_addr_t abase, vm_addr_t aend, bool fail_on_wrong_access) {
     assert(aend > abase);
@@ -23,12 +24,22 @@ FakeMem::FakeMem(vm_addr_t abase, vm_addr_t aend, bool fail_on_wrong_access) {
     mem_if.write_u32 = write_u32;
     this->fail_on_wrong_access = fail_on_wrong_access;
 
-    _ctx_to_this[&mem_if] = this;
+    _mmio_ctx_to_this[&mem_if] = this;
 }
 
 FakeMem::~FakeMem() {
-    _ctx_to_this.erase(&mem_if);
+    _mmio_ctx_to_this.erase(&mem_if);
     delete[] bytes;
+}
+
+dev_desc_t FakeMem::dev_desc() const {
+    return dev_desc_t{
+        .dev_class = dev_class,
+        .region_size = end - base,
+        .mem_if = mem_if,
+        .f_snapshot_size = snapshot_size_cb,
+        .f_snapshot = snapshot_cb,
+    };
 }
 
 vm_err_t FakeMem::read(vm_addr_t addr, void *out_buf, size_t num_bytes) {
@@ -45,7 +56,7 @@ vm_err_t FakeMem::write(vm_addr_t addr, const void *buf, size_t num_bytes) {
 
 size_t FakeMem::snapshot_size() const {
     size_t mem_size = end - base;
-    return 2 * sizeof(vm_addr_t) + sizeof(bool) + mem_size;
+    return sizeof(base) + sizeof(end) + sizeof(fail_on_wrong_access) + mem_size;
 }
 
 size_t FakeMem::snapshot(void *v_buf, size_t max_size) const {
@@ -72,7 +83,9 @@ size_t FakeMem::snapshot(void *v_buf, size_t max_size) const {
     return offset;
 }
 
-size_t FakeMem::restore(FakeMem **out_ctx, void *v_buf, size_t max_size) {
+size_t FakeMem::restore(FakeMem **out_fakemem,
+                        struct busctl_dev_ctx *busdev_ctx, void *v_buf,
+                        size_t max_size) {
     uint8_t *buf = static_cast<uint8_t *>(v_buf);
     size_t offset = 0;
 
@@ -94,7 +107,7 @@ size_t FakeMem::restore(FakeMem **out_ctx, void *v_buf, size_t max_size) {
 
     // Create the new FakeMem object.
     FakeMem *fake_mem = new FakeMem(base, end, fail_on_wrong_access);
-    *out_ctx = fake_mem;
+    *out_fakemem = fake_mem;
 
     // Copy the memory buffer.
     assert(end > base);
@@ -103,37 +116,40 @@ size_t FakeMem::restore(FakeMem **out_ctx, void *v_buf, size_t max_size) {
     memcpy(fake_mem->bytes, &buf[offset], mem_size);
     offset += mem_size;
 
+    // Fill in the busctl dev ctx.
+    if (busdev_ctx) {
+        busdev_ctx->mmio.ctx = fake_mem;
+        busdev_ctx->mmio.mem_if = fake_mem->mem_if;
+        busdev_ctx->snapshot_ctx = fake_mem;
+        busdev_ctx->f_snapshot_size = snapshot_size_cb;
+        busdev_ctx->f_snapshot = snapshot_cb;
+    }
+
     return offset;
 }
 
-FakeMem *FakeMem::find_obj(void *ctx) {
-    assert(_ctx_to_this.contains(ctx));
-    return _ctx_to_this[ctx];
-}
-
-const FakeMem *FakeMem::find_obj(const void *const_ctx) {
-    void *ctx = const_cast<void *>(const_ctx);
-    assert(_ctx_to_this.contains(ctx));
-    return const_cast<const FakeMem *>(_ctx_to_this[ctx]);
+FakeMem *FakeMem::find_obj_by_mmio_ctx(void *ctx) {
+    assert(_mmio_ctx_to_this.contains(ctx));
+    return _mmio_ctx_to_this[ctx];
 }
 
 vm_err_t FakeMem::read_u8(void *ctx, vm_addr_t addr, uint8_t *out) {
-    FakeMem *obj = find_obj(ctx);
+    FakeMem *obj = find_obj_by_mmio_ctx(ctx);
     return obj->read(addr, out, 1);
 }
 
 vm_err_t FakeMem::read_u32(void *ctx, vm_addr_t addr, uint32_t *out) {
-    FakeMem *obj = find_obj(ctx);
+    FakeMem *obj = find_obj_by_mmio_ctx(ctx);
     return obj->read(addr, out, 4);
 }
 
 vm_err_t FakeMem::write_u8(void *ctx, vm_addr_t addr, uint8_t val) {
-    FakeMem *obj = find_obj(ctx);
+    FakeMem *obj = find_obj_by_mmio_ctx(ctx);
     return obj->write(addr, &val, 1);
 }
 
 vm_err_t FakeMem::write_u32(void *ctx, vm_addr_t addr, uint32_t val) {
-    FakeMem *obj = find_obj(ctx);
+    FakeMem *obj = find_obj_by_mmio_ctx(ctx);
     return obj->write(addr, &val, 4);
 }
 
@@ -174,25 +190,12 @@ void FakeMem::write_impl(vm_addr_t addr, const void *buf, size_t num_bytes,
 }
 
 size_t FakeMem::snapshot_size_cb(const void *snapshot_ctx) {
-    const FakeMem *obj = find_obj(snapshot_ctx);
+    const FakeMem *obj = reinterpret_cast<const FakeMem *>(snapshot_ctx);
     return obj->snapshot_size();
 }
 
 size_t FakeMem::snapshot_cb(const void *snapshot_ctx, void *v_buf,
                             size_t max_size) {
-    const FakeMem *obj = find_obj(snapshot_ctx);
+    const FakeMem *obj = reinterpret_cast<const FakeMem *>(snapshot_ctx);
     return obj->snapshot(v_buf, max_size);
-}
-
-size_t FakeMem::restore_cb(void **snapshot_ctx, void **mem_ctx,
-                           mem_if_t *mem_if, void *v_buf, size_t max_size) {
-    FakeMem *rest_mem = nullptr;
-    size_t used_size = FakeMem::restore(&rest_mem, v_buf, max_size);
-    assert(rest_mem != nullptr);
-
-    *snapshot_ctx = rest_mem;
-    *mem_ctx = rest_mem;
-    memcpy(mem_if, &rest_mem->mem_if, sizeof(*mem_if));
-
-    return used_size;
 }

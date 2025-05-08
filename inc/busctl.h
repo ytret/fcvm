@@ -81,6 +81,8 @@ typedef struct {
 } busctl_ctx_t;
 
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
+busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                                mmio_region_t *in_reg);
 void busctl_free(busctl_ctx_t *busctl);
 size_t busctl_snapshot_size(const busctl_ctx_t *busctl);
 size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,

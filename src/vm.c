@@ -70,19 +70,25 @@ vm_ctx_t *vm_restore(cb_restore_dev_t f_restore_dev, const void *v_buf,
     uint8_t *buf = (uint8_t *)v_buf;
     size_t offset = 0;
 
+    // Restore the VM context.
     vm_ctx_t *vm = malloc(sizeof(*vm));
     D_ASSERT(vm);
-    memset(vm, 0, sizeof(*vm));
+    D_ASSERT(offset + sizeof(*vm) <= max_size);
+    memcpy(vm, &buf[offset], sizeof(*vm));
+    offset += sizeof(*vm);
 
+    // Restore the memctl context.
     size_t memctl_size = 0;
     vm->memctl = memctl_restore(&buf[offset], max_size - offset, &memctl_size);
     offset += memctl_size;
 
+    // Restore the CPU context.
     size_t cpu_size = 0;
     vm->cpu = cpu_restore(&vm->memctl->intf, &buf[offset], max_size - offset,
                           &cpu_size);
     offset += cpu_size;
 
+    // Restore the busctl context.
     size_t busctl_size = 0;
     vm->busctl = busctl_restore(vm->memctl, vm->cpu->intctl, f_restore_dev,
                                 &buf[offset], max_size - offset, &busctl_size);
