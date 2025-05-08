@@ -91,6 +91,7 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
     // Create a new CPU and set the fields manually.
     cpu_ctx_t *cpu = cpu_new(mem);
     cpu->state = rest_cpu.state;
+    cpu->instr = rest_cpu.instr;
     memcpy(cpu->gp_regs, rest_cpu.gp_regs, sizeof(cpu->gp_regs));
     cpu->reg_pc = rest_cpu.reg_pc;
     cpu->reg_sp = rest_cpu.reg_sp;
