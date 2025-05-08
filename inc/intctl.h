@@ -9,9 +9,15 @@
 extern "C" {
 #endif
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include "vm_err.h"
+
+/// Version of the `intctl_ctx_t` structure and its member structures.
+/// Increment this every time anything in the `intctl_ctx_t` structure or its
+/// member structures is changed: field order, size, type, etc.
+#define SN_INTCTL_CTX_VER ((uint32_t)1)
 
 #define INTCTL_MAX_IRQ_NUM 31
 
@@ -21,6 +27,11 @@ typedef struct {
 
 intctl_ctx_t *intctl_new(void);
 void intctl_free(intctl_ctx_t *intctl);
+size_t intctl_snapshot_size(void);
+size_t intctl_snapshot(const intctl_ctx_t *intctl, void *v_buf,
+                       size_t max_size);
+intctl_ctx_t *intctl_restore(const void *v_buf, size_t max_size,
+                             size_t *out_used_size);
 
 bool intctl_has_pending_irqs(intctl_ctx_t *intctl);
 
