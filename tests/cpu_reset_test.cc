@@ -140,4 +140,7 @@ TEST_F(CPUResetTest, TripleFaultCausesReset) {
     ASSERT_EQ(cpu->state, CPU_TRIPLE_FAULT);
     cpu_step(cpu);
     ASSERT_EQ(cpu->state, CPU_RESET);
+
+    cpu_step(cpu);
+    EXPECT_EQ(cpu->num_nested_exc, 0);
 }
