@@ -33,7 +33,7 @@ target_link_libraries(testcommon PUBLIC fcvm)
 ############################
 ## Programs used by tests ##
 ############################
-add_subdirectory(progs)
+add_subdirectory(helpers)
 
 
 ###################################
