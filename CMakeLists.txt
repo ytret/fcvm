@@ -36,8 +36,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 ##################
 add_library(fcvm STATIC
     src/busctl.c
-    src/cpu.c
-    src/cpu_instr_descs.c
+    src/cpu/cpu.c
+    src/cpu/cpu_instr_descs.c
     src/intctl.c
     src/memctl.c
     src/vm.c
@@ -46,7 +46,7 @@ target_compile_options(fcvm PRIVATE
     -g -Wall -Wextra -Wmissing-prototypes
     -fdiagnostics-color=always
 )
-target_include_directories(fcvm PUBLIC inc)
+target_include_directories(fcvm PUBLIC inc src)
 
 
 ###########
