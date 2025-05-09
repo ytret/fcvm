@@ -1,3 +1,8 @@
+/**
+ * \file vm_types.h
+ * Type definitions used in the API
+ */
+
 #pragma once
 
 #include <stddef.h>
@@ -5,7 +10,7 @@
 
 #include <fcvm/vm_err.h>
 
-#define VM_MAX_ADDR 0xFFFF'FFFF
+#define VM_MAX_ADDR 0xFFFFFFFF
 
 typedef uint32_t vm_addr_t;
 typedef struct busctl_dev_ctx busctl_dev_ctx_t;
