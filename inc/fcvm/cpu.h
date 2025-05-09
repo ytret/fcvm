@@ -24,7 +24,7 @@ static_assert(CPU_NUM_GP_REGS == CPU_NUM_GP_REG_CODES,
 #define CPU_FLAG_CARRY    (1 << 2)
 #define CPU_FLAG_OVERFLOW (1 << 3)
 
-#define CPU_IVT_ADDR        ((vm_addr_t)0x0000'0000)
+#define CPU_IVT_ADDR        ((vm_addr_t)0x00000000)
 #define CPU_IVT_ENTRY_SIZE  sizeof(vm_addr_t)
 #define CPU_IVT_NUM_ENTRIES 256
 #define CPU_IVT_SIZE        (CPU_IVT_ENTRY_SIZE * CPU_IVT_NUM_ENTRIES)
