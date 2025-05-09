@@ -1,6 +1,6 @@
 /**
  * \file cpu_exec.c
- * Instruction execution implementation
+ * CPU instruction execution implementation
  */
 
 #include "cpu_exec.h"

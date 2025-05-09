@@ -1,6 +1,6 @@
 /**
- * \file cpu_exec.c
- * Instruction execution API
+ * \file cpu_exec.h
+ * CPU instruction execution API
  */
 
 #pragma once
