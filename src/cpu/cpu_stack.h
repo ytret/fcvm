@@ -1,5 +1,5 @@
 /**
- * \file cpu_stack.h
+ * @file cpu_stack.h
  * CPU stack operations API
  */
 

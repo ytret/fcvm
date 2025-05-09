@@ -1,5 +1,5 @@
 /**
- * \file cpu_stack.c
+ * @file cpu_stack.c
  * CPU stack operations implementation
  */
 

@@ -1,5 +1,5 @@
 /**
- * \file cpu_exec.h
+ * @file cpu_exec.h
  * CPU instruction execution API
  */
 

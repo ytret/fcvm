@@ -13,7 +13,7 @@ extern "C" {
 
 /**
  * @{
- * \name Data movement opcodes (0b001x_xxxx)
+ * @name Data movement opcodes (0b001x_xxxx)
  */
 #define CPU_OP_KIND_DATA 0x20
 
@@ -33,7 +33,7 @@ extern "C" {
 
 /**
  * @{
- * \name Arithmetic and logic opcodes (0b010x_xxxx)
+ * @name Arithmetic and logic opcodes (0b010x_xxxx)
  * - Even opcodes require two register operands.
  * - Odd opcodes (except #CPU_OP_NOT_R, #CPU_OP_ROL_RV and #CPU_OP_ROR_RV)
  *   require a register operand and an imm32 value.
@@ -74,7 +74,7 @@ extern "C" {
 
 /**
  * @{
- * \name Control flow opcodes (0b011x_xxxx)
+ * @name Control flow opcodes (0b011x_xxxx)
  * Lower 2 bits indicate the operand type:
  * - `0b00` - imm8,
  * - `0b01` - imm32,
@@ -113,7 +113,7 @@ extern "C" {
 
 /**
  * @{
- * \name Stack instructions (0b100x_xxxx)
+ * @name Stack instructions (0b100x_xxxx)
  */
 #define CPU_OP_KIND_STACK 0x80
 
@@ -124,7 +124,7 @@ extern "C" {
 
 /**
  * @{
- * \name Other instructions (0b101x_xxxx)
+ * @name Other instructions (0b101x_xxxx)
  */
 #define CPU_OP_KIND_OTHER 0xA0
 

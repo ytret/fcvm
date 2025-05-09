@@ -1,5 +1,5 @@
 /**
- * \file vm_types.h
+ * @file vm_types.h
  * Type definitions used in the API
  */
 

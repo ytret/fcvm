@@ -226,10 +226,10 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
 
 /**
  * Finds an unused index in the #memctl_ctx_t.mapped_regions array.
- * \param[in] memctl -- Memory controller.
- * \param[out] out_idx -- Output pointer to the unused index.
- * \returns `true` if an unused index was found and written at \a *out_idx,
- *          `false` if no unused index was found and \a *out_idx was not
+ * @param[in]  memctl  Memory controller.
+ * @param[out] out_idx Output pointer to the unused index.
+ * @returns `true` if an unused index was found and written at @a *out_idx,
+ *          `false` if no unused index was found and @a *out_idx was not
  *          changed.
  */
 static bool prv_memctl_find_free_reg(memctl_ctx_t *memctl, size_t *out_idx) {

@@ -1,5 +1,5 @@
 /**
- * \file cpu_exec.c
+ * @file cpu_exec.c
  * CPU instruction execution implementation
  */
 

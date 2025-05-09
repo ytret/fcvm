@@ -46,39 +46,49 @@ void vm_free(vm_ctx_t *vm);
  *
  * @{
  */
-/// Calculates the size of a buffer required to store a snapshot of @a vm.
-/// @param vm VM context.
-/// @returns Minimum size of a buffer in bytes that is enough to fit the current
-/// state of @a vm.
+/**
+ * Calculates the size of a buffer required to store a snapshot of @a vm.
+ * @param vm VM context.
+ * @returns Minimum size of a buffer in bytes that is enough to fit the current
+ * state of @a vm.
+ */
 size_t vm_snapshot_size(const vm_ctx_t *vm);
-/// Writes a snapshot of @a vm into the buffer @a v_buf.
-/// @param vm VM context to save a snapshot of.
-/// @param v_buf Snapshot buffer.
-/// @param max_size Size of @a v_buf.
-/// @returns Size of the saved snapshot in bytes.
-/// @note @a max_size should be more than or equal to the size returned by
-/// #vm_snapshot_size().
+/**
+ * Writes a snapshot of @a vm into the buffer @a v_buf.
+ * @param vm       VM context to save a snapshot of.
+ * @param v_buf    Snapshot buffer.
+ * @param max_size Size of @a v_buf.
+ * @returns Size of the saved snapshot in bytes.
+ * @note @a max_size should be more than or equal to the size returned by
+ * #vm_snapshot_size().
+ */
 size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size);
-/// Restores the VM state from a snapshot buffer.
-/// The function specified by @a f_restore_dev is called for every device
-/// separately in order to restore the connected device context (see
-/// #cb_restore_dev_t).
-/// @param f_restore_dev Device restoration callback.
-/// @param v_buf Snapshot buffer.
-/// @param max_size Size of @a v_buf.
-/// @param[out] out_size Size of the restored snapshot in bytes.
-/// @returns A newly created VM context structure with the state restored from
-/// the buffer @a v_buf.
+/**
+ * Restores the VM state from a snapshot buffer.
+ * The function specified by @a f_restore_dev is called for every device
+ * separately in order to restore the connected device context (see
+ * #cb_restore_dev_t).
+ * @param      f_restore_dev Device restoration callback.
+ * @param      v_buf         Snapshot buffer.
+ * @param      max_size      Size of @a v_buf.
+ * @param[out] out_size      Size of the restored snapshot in bytes.
+ * @returns A newly created VM context structure with the state restored from
+ * the buffer @a v_buf.
+ */
 vm_ctx_t *vm_restore(cb_restore_dev_t f_restore_dev, const void *v_buf,
                      size_t max_size, size_t *out_size);
 /// @}
 
-/// Connects a device described by @a dev_desc to the @a vm context.
-/// See #busctl_connect_dev().
+/**
+ * Connects a device described by @a dev_desc to the @a vm context.
+ * See #busctl_connect_dev().
+ */
 vm_err_t vm_connect_dev(vm_ctx_t *vm, const dev_desc_t *dev_desc, void *ctx);
 
-/// Performs a VM state step.
-/// See #cpu_step().
+/**
+ * Performs a VM state step.
+ * See #cpu_step().
+ */
 void vm_step(vm_ctx_t *vm);
 
 #ifdef __cplusplus
