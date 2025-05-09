@@ -7,11 +7,11 @@
 #define D_PRINT(F)                                                             \
     do {                                                                       \
         fprintf(stderr, "" F "\n");                                            \
-    } while (0);
+    } while (0)
 #define D_PRINTF(F, ...)                                                       \
     do {                                                                       \
         fprintf(stderr, "" F "\n", __VA_ARGS__);                               \
-    } while (0);
+    } while (0)
 
 #define D_ASSERT(X)                D_ASSERT_IMPL(X, false, "%s", "")
 #define D_ASSERTM(X, MSG)          D_ASSERT_IMPL(X, true, "%s", MSG)
@@ -27,6 +27,6 @@
             D_PRINTF("        Line: %u", __LINE__);                            \
             abort();                                                           \
         }                                                                      \
-    } while (0);
+    } while (0)
 
 #define D_TODO() D_ASSERTM(false, "not implemented")
