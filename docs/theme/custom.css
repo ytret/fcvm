@@ -1,0 +1,24 @@
+html {
+    --font-family: sans-serif;
+    --navigation-font-size: 13px;
+
+    --spacing-small: 4px;
+    --spacing-medium: 7px;
+    --spacing-large: 10px;
+
+    --border-radius-small: 2px;
+    --border-radius-medium: 4px;
+    --border-radius-large: 6px;
+
+    --primary-color: #885ee2;
+    --primary-dark-color: #8757ee;
+    --primary-light-color: #cf9fff;
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not(.light-mode) {
+        --primary-color: #a890da;
+        --primary-dark-color: #9c80d7;
+        --primary-light-color: #ae97dc;
+    }
+}
