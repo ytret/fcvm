@@ -26,7 +26,7 @@ TEST_F(IntCtlTest, InitHasNoPendingIRQs) {
 
 TEST_F(IntCtlTest, RaiseInvalidIRQ) {
     vm_err_t err = intctl_raise_irq_line(intctl, TEST_INVALID_IRQ);
-    EXPECT_EQ(err.type, VM_ERR_INVALID_IRQ_NUM);
+    EXPECT_EQ(err, VM_ERR_INVALID_IRQ_NUM);
 
     uint8_t pending_irq;
     EXPECT_EQ(intctl_has_pending_irqs(intctl), false);
@@ -36,7 +36,7 @@ TEST_F(IntCtlTest, RaiseInvalidIRQ) {
 TEST_F(IntCtlTest, RaiseSingleIRQ) {
     uint8_t raised_irq = 0;
     vm_err_t err = intctl_raise_irq_line(intctl, raised_irq);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 
     uint8_t pending_irq = ~raised_irq;
     EXPECT_EQ(intctl_has_pending_irqs(intctl), true);
@@ -54,7 +54,7 @@ TEST_F(IntCtlTest, LowerNumIsHigherPriority) {
     };
     for (uint8_t irq : raise_order) {
         vm_err_t err = intctl_raise_irq_line(intctl, (uint8_t)irq);
-        EXPECT_EQ(err.type, VM_ERR_NONE);
+        EXPECT_EQ(err, VM_ERR_NONE);
     }
 
     for (uint8_t irq = 0; irq < INTCTL_MAX_IRQ_NUM; irq++) {
@@ -70,7 +70,7 @@ TEST_F(IntCtlTest, SnapshotRestore) {
 
     uint8_t raised_irq = 1;
     vm_err_t err = intctl_raise_irq_line(intctl, raised_irq);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 
     size_t snapshot_size = intctl_snapshot_size();
     uint8_t *snapshot_buf = new uint8_t[snapshot_size];

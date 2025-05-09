@@ -28,14 +28,14 @@ struct TestDevice {
         ASSERT_NE(out_u32, nullptr);
         ASSERT_NE(out_err, nullptr);
         *out_u32 = contained_dword;
-        out_err->type = VM_ERR_NONE;
+        *out_err = VM_ERR_NONE;
     }
 
     void write_u32_impl(vm_addr_t addr, uint32_t u32, vm_err_t *out_err) {
         ASSERT_LT(addr, region_size);
         ASSERT_NE(out_err, nullptr);
         contained_dword = u32;
-        out_err->type = VM_ERR_NONE;
+        *out_err = VM_ERR_NONE;
     }
 
   private:
@@ -90,7 +90,7 @@ TEST_F(BusCtlTest, RegisterDevice) {
 
     const busctl_dev_ctx_t *dev_ctx = nullptr;
     vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     ASSERT_NE(dev_ctx, nullptr);
     EXPECT_EQ(dev_ctx->dev_class, req.dev_class);
@@ -122,12 +122,12 @@ TEST_F(BusCtlTest, RegisterMaxDevices) {
         };
 
         vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
-        ASSERT_EQ(err.type, VM_ERR_NONE);
+        ASSERT_EQ(err, VM_ERR_NONE);
         ASSERT_NE(dev_ctx, nullptr);
     }
 
     vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
-    ASSERT_EQ(err.type, VM_ERR_BUS_NO_FREE_SLOT);
+    ASSERT_EQ(err, VM_ERR_BUS_NO_FREE_SLOT);
 }
 
 TEST_F(BusCtlTest, TestDeviceReadWriteU8Fails) {
@@ -138,19 +138,19 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU8Fails) {
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
     err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
     // Try to read u8.
     uint8_t byte = 0xAA;
     err = memctl_read_u8(memctl, dev_ctx->mmio.start, &byte);
-    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+    EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
     EXPECT_EQ(byte, 0xAA);
 
     // Try to write u8.
     byte = 0xAA;
     err = memctl_write_u8(memctl, dev_ctx->mmio.start, byte);
-    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+    EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
     EXPECT_EQ(byte, 0xAA);
 }
 
@@ -162,7 +162,7 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU32) {
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
     err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
     // Try to read u32.
@@ -172,7 +172,7 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU32) {
         << "update the initial value of variable 'read_dword' to be different "
            "than the initial value of TestDevice::contained_dword";
     err = memctl_read_u32(memctl, dev_ctx->mmio.start, &read_dword);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     EXPECT_EQ(read_dword, dev_dword);
 
     // Try to write u32.
@@ -181,7 +181,7 @@ TEST_F(BusCtlTest, TestDeviceReadWriteU32) {
         << "update the initial value of variable 'write_dword' to be different "
            "than the initial value of TestDevice::contained_dword";
     err = memctl_write_u32(memctl, dev_ctx->mmio.start, write_dword);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     EXPECT_EQ(test_dev.contained_dword, write_dword);
 }
 
@@ -193,7 +193,7 @@ TEST_F(BusCtlTest, TestDeviceRaiseIRQ) {
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
     err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
     // Raise the assigned IRQ line.
@@ -203,7 +203,7 @@ TEST_F(BusCtlTest, TestDeviceRaiseIRQ) {
            "different, because busctl assigned this IRQ line to the device";
     EXPECT_FALSE(intctl_has_pending_irqs(intctl));
     err = intctl_raise_irq_line(intctl, dev_ctx->irq_line);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     EXPECT_TRUE(intctl_has_pending_irqs(intctl));
     EXPECT_TRUE(intctl_get_pending_irq(intctl, &pending_irq));
     EXPECT_EQ(pending_irq, dev_ctx->irq_line);
@@ -215,7 +215,7 @@ TEST_F(BusCtlTest, MMIORegSlotStatusNoDev) {
 
     vm_err_t err =
         memctl->intf.read_u32(memctl, slot_status_addr, &slot_status);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     EXPECT_EQ(slot_status, 0);
 }
 
@@ -227,14 +227,14 @@ TEST_F(BusCtlTest, MMIORegSlotStatusOneDev) {
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
     err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
     // Read the slot status register.
     constexpr vm_addr_t slot_status_addr = BUS_MMIO_START;
     uint32_t slot_status = 0xDEADBEEF;
     err = memctl->intf.read_u32(memctl, slot_status_addr, &slot_status);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     EXPECT_EQ(slot_status, (1 << dev_ctx->bus_slot));
 }
 
@@ -247,14 +247,14 @@ TEST_F(BusCtlTest, MMIORegSlotStatusTwoDevs) {
     dev_desc_t req1 = dev1.build_req();
     const busctl_dev_ctx_t *ctx1 = nullptr;
     err = busctl_connect_dev(busctl, &req1, &dev1, &ctx1);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(ctx1, nullptr);
 
     // Register the test device #2.
     dev_desc_t req2 = dev2.build_req();
     const busctl_dev_ctx_t *ctx2 = nullptr;
     err = busctl_connect_dev(busctl, &req2, &dev2, &ctx2);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(ctx2, nullptr);
 
     // Ensure that they have different bus slots.
@@ -264,7 +264,7 @@ TEST_F(BusCtlTest, MMIORegSlotStatusTwoDevs) {
     constexpr vm_addr_t slot_status_addr = BUS_MMIO_START;
     uint32_t slot_status = 0xDEADBEEF;
     err = memctl->intf.read_u32(memctl, slot_status_addr, &slot_status);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     EXPECT_EQ(slot_status, (1 << ctx1->bus_slot) | (1 << ctx2->bus_slot));
 }
 
@@ -276,7 +276,7 @@ TEST_F(BusCtlTest, MMIORegDevDesc) {
     dev_desc_t req = test_dev.build_req();
     const busctl_dev_ctx_t *dev_ctx = nullptr;
     err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     ASSERT_NE(dev_ctx, nullptr);
 
     // Read the device slot register.
@@ -286,11 +286,11 @@ TEST_F(BusCtlTest, MMIORegDevDesc) {
     static_assert(BUS_MMIO_DEV_DESC_SIZE == 12,
                   "device descriptor size changed, update the test");
     err = memctl->intf.read_u32(memctl, desc_addr + 0, &desc[0]);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     err = memctl->intf.read_u32(memctl, desc_addr + 4, &desc[1]);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     err = memctl->intf.read_u32(memctl, desc_addr + 8, &desc[2]);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 
     // DWORD #1 - mapped region start.
     EXPECT_EQ(desc[0], dev_ctx->mmio.start);

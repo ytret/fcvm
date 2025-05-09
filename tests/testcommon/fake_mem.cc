@@ -158,16 +158,16 @@ void FakeMem::read_impl(vm_addr_t addr, void *out_buf, size_t num_bytes,
     if (base <= addr && (addr + num_bytes) <= end) {
         vm_addr_t rel_addr = addr - base;
         memcpy(out_buf, &bytes[rel_addr], num_bytes);
-        *out_err = {.type = VM_ERR_NONE};
+        *out_err = VM_ERR_NONE;
     } else if (fail_on_wrong_access) {
         EXPECT_LE(base, addr);
         EXPECT_LE(addr + num_bytes, end);
-        *out_err = {.type = VM_ERR_BAD_MEM};
+        *out_err = VM_ERR_BAD_MEM;
     } else {
         fprintf(stderr,
                 "FakeMem: tried to read %zu bytes at bad address 0x%08X\n",
                 num_bytes, addr);
-        *out_err = {.type = VM_ERR_BAD_MEM};
+        *out_err = VM_ERR_BAD_MEM;
     }
 }
 
@@ -176,16 +176,16 @@ void FakeMem::write_impl(vm_addr_t addr, const void *buf, size_t num_bytes,
     if (base <= addr && (addr + num_bytes) <= end) {
         vm_addr_t rel_addr = addr - base;
         memcpy(&bytes[rel_addr], buf, num_bytes);
-        *out_err = {.type = VM_ERR_NONE};
+        *out_err = VM_ERR_NONE;
     } else if (fail_on_wrong_access) {
         EXPECT_LE(base, addr);
         EXPECT_LE(addr + num_bytes, end);
-        *out_err = {.type = VM_ERR_BAD_MEM};
+        *out_err = VM_ERR_BAD_MEM;
     } else {
         fprintf(stderr,
                 "FakeMem: tried to write %zu bytes at bad address 0x%08X\n",
                 num_bytes, addr);
-        *out_err = {.type = VM_ERR_BAD_MEM};
+        *out_err = VM_ERR_BAD_MEM;
     }
 }
 

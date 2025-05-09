@@ -174,7 +174,7 @@ void cpu_step(cpu_ctx_t *cpu) {
         } else {
             D_PRINTF("bad opcode 0x%02X at 0x%08X", cpu->instr.opcode,
                      cpu->reg_pc);
-            vm_err_t err = {.type = VM_ERR_BAD_OPCODE};
+            vm_err_t err = VM_ERR_BAD_OPCODE;
             prv_cpu_raise_exception(cpu, err);
         }
         break;
@@ -257,7 +257,7 @@ vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
                         uint32_t **out_reg_ptr) {
     D_ASSERT(cpu);
     D_ASSERT(out_reg_ptr);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
 
     uint32_t *code_addr_map[0xFF] = {
         [CPU_CODE_R0] = &cpu->gp_regs[0], [CPU_CODE_R1] = &cpu->gp_regs[1],
@@ -273,13 +273,13 @@ vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
         *out_reg_ptr = p_reg;
     } else {
         D_PRINTF("bad register code: 0x%02X", reg_code);
-        err.type = VM_ERR_BAD_REG_CODE;
+        err = VM_ERR_BAD_REG_CODE;
         *out_reg_ptr = NULL;
     }
     return err;
 }
 
-cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_type_t err) {
+cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_t err) {
     D_ASSERT(cpu);
     switch (err) {
     case VM_ERR_BAD_MEM:
@@ -317,18 +317,18 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_opd_val_t *out_val) {
     D_ASSERT(cpu);
     D_ASSERT(out_val);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
     uint32_t opd_size = 0;
 
     switch (opd_type) {
     case CPU_OPD_REG: {
         uint8_t reg_code;
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &reg_code);
-        if (err.type) { return err; }
+        if (err) { return err; }
 
         uint32_t *p_reg;
         err = cpu_decode_reg(cpu, reg_code, &p_reg);
-        if (err.type) { return err; }
+        if (err) { return err; }
 
         out_val->reg_code = reg_code;
         out_val->p_reg = p_reg;
@@ -339,14 +339,14 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
     case CPU_OPD_REGS: {
         uint8_t reg_codes;
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &reg_codes);
-        if (err.type) { return err; }
+        if (err) { return err; }
 
         uint32_t *p_reg1;
         uint32_t *p_reg2;
         err = cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg1);
-        if (err.type) { return err; }
+        if (err) { return err; }
         err = cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg2);
-        if (err.type) { return err; }
+        if (err) { return err; }
 
         out_val->reg_codes = reg_codes;
         out_val->p_regs[0] = p_reg1;
@@ -357,9 +357,9 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
     case CPU_OPD_IMM5: {
         uint8_t imm5;
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm5);
-        if (err.type) { return err; }
+        if (err) { return err; }
         if ((imm5 & ~31) != 0) {
-            err.type = VM_ERR_BAD_IMM5;
+            err = VM_ERR_BAD_IMM5;
             return err;
         }
 
@@ -370,7 +370,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
     case CPU_OPD_IMM8: {
         uint8_t imm8;
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm8);
-        if (err.type) { return err; }
+        if (err) { return err; }
 
         out_val->u8 = imm8;
         opd_size = 1;
@@ -379,7 +379,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
     case CPU_OPD_IMM32: {
         uint32_t imm32;
         err = cpu->mem->read_u32(cpu->mem, cpu->reg_pc, &imm32);
-        if (err.type) { return err; }
+        if (err) { return err; }
 
         out_val->u32 = imm32;
         opd_size = 4;
@@ -395,7 +395,7 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
 
 static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
 
     uint8_t opcode_kind = cpu->instr.opcode & CPU_OP_KIND_MASK;
     if (opcode_kind == CPU_OP_KIND_DATA) {
@@ -418,7 +418,7 @@ static vm_err_t prv_cpu_execute_instr(cpu_ctx_t *cpu) {
 
 static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
 
     switch (cpu->instr.opcode) {
     case CPU_OP_MOV_VR: {
@@ -506,7 +506,7 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
 }
 
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
 
     uint32_t *p_reg_dst;
     uint32_t src_val;
@@ -583,7 +583,7 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     case CPU_OP_IDIV_RR:
     case CPU_OP_IDIV_RV: {
         if (src_val == 0) {
-            err.type = VM_ERR_DIV_BY_ZERO;
+            err = VM_ERR_DIV_BY_ZERO;
             return err;
         }
         uint32_t res;
@@ -691,14 +691,14 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
                    cpu->instr.opcode);
     }
 
-    if (err.type == VM_ERR_NONE) {
+    if (err == VM_ERR_NONE) {
         prv_cpu_set_flags(cpu, flag_zero, flag_sign, flag_carry, flag_ovf);
     }
     return err;
 }
 
 static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
 
     bool do_jump;
     bool flag_zero = (cpu->flags & CPU_FLAG_ZERO) != 0;
@@ -797,13 +797,13 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
                    cpu->instr.opcode);
     }
 
-    if (err.type == VM_ERR_NONE && do_jump) { cpu->reg_pc = jump_pc; }
+    if (err == VM_ERR_NONE && do_jump) { cpu->reg_pc = jump_pc; }
     return err;
 }
 
 static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
 
     switch (cpu->instr.opcode) {
     case CPU_OP_PUSH_V32:
@@ -827,7 +827,7 @@ static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu) {
 }
 
 static vm_err_t prv_cpu_execute_other_instr(cpu_ctx_t *cpu) {
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
     switch (cpu->instr.opcode) {
     case CPU_OP_INT_V8:
         err = cpu_raise_irq(cpu, cpu->instr.operands[0].u8);
@@ -854,7 +854,7 @@ static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val) {
         cpu->reg_sp -= 4;
         return cpu->mem->write_u32(cpu->mem, cpu->reg_sp, val);
     } else {
-        vm_err_t err = {.type = VM_ERR_STACK_OVERFLOW};
+        vm_err_t err = VM_ERR_STACK_OVERFLOW;
         return err;
     }
 }
@@ -862,11 +862,11 @@ static vm_err_t prv_cpu_stack_push_u32(cpu_ctx_t *cpu, uint32_t val) {
 static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val) {
     D_ASSERT(cpu != NULL);
     vm_err_t err = cpu->mem->read_u32(cpu->mem, cpu->reg_sp, out_val);
-    if (err.type == VM_ERR_NONE) {
+    if (err == VM_ERR_NONE) {
         if (cpu->reg_sp <= 0xFFFFFFFF - 4) {
             cpu->reg_sp += 4;
         } else {
-            err.type = VM_ERR_STACK_OVERFLOW;
+            err = VM_ERR_STACK_OVERFLOW;
         }
     }
     return err;
@@ -874,7 +874,7 @@ static vm_err_t prv_cpu_stack_pop_u32(cpu_ctx_t *cpu, uint32_t *out_val) {
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err) {
     D_ASSERT(cpu);
-    if (err.type != VM_ERR_NONE) {
+    if (err != VM_ERR_NONE) {
         prv_cpu_raise_exception(cpu, err);
         return true;
     } else {
@@ -886,7 +886,7 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     D_ASSERT(cpu);
     cpu->state = CPU_INT_FETCH_ISR_ADDR;
 
-    uint8_t exc_num = (uint8_t)cpu_exc_type_of_err(cpu, err.type);
+    uint8_t exc_num = (uint8_t)cpu_exc_type_of_err(cpu, err);
 
     cpu->num_nested_exc++;
     cpu->curr_int_line = exc_num;

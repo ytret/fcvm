@@ -68,11 +68,11 @@ bool intctl_has_pending_irqs(intctl_ctx_t *intctl) {
 
 vm_err_t intctl_raise_irq_line(intctl_ctx_t *intctl, uint8_t irq_line) {
     D_ASSERT(intctl);
-    vm_err_t err = {.type = VM_ERR_NONE};
+    vm_err_t err = VM_ERR_NONE;
     if (irq_line <= INTCTL_MAX_IRQ_NUM) {
         intctl->raised_irqs |= (1 << irq_line);
     } else {
-        err.type = VM_ERR_INVALID_IRQ_NUM;
+        err = VM_ERR_INVALID_IRQ_NUM;
     }
     return err;
 }

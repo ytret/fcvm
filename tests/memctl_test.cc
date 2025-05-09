@@ -85,27 +85,27 @@ TEST_F(MemCtlTest, InitNoRegions) {
 
 TEST_F(MemCtlTest, MapOneRegion) {
     vm_err_t err = memctl_map_region(memctl, &mmio1_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 }
 
 TEST_F(MemCtlTest, MapTwoRegions) {
     vm_err_t err;
 
     err = memctl_map_region(memctl, &mmio1_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 
     err = memctl_map_region(memctl, &mmio2_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 }
 
 TEST_F(MemCtlTest, MapSameRegionTwiceFails) {
     vm_err_t err;
 
     err = memctl_map_region(memctl, &mmio1_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 
     err = memctl_map_region(memctl, &mmio1_reg);
-    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
 TEST_F(MemCtlTest, MapEndR2ToStartR1) {
@@ -118,11 +118,11 @@ TEST_F(MemCtlTest, MapEndR2ToStartR1) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.end = mmio_reg.start;
     mmio_reg.start = mmio_reg.end - 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 }
 
 TEST_F(MemCtlTest, MapStartR2ToEndR1) {
@@ -135,11 +135,11 @@ TEST_F(MemCtlTest, MapStartR2ToEndR1) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start = mmio_reg.end;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
 }
 
 TEST_F(MemCtlTest, MapWithOverlapFails1) {
@@ -152,11 +152,11 @@ TEST_F(MemCtlTest, MapWithOverlapFails1) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start += 5;
     mmio_reg.end += 5;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
 TEST_F(MemCtlTest, MapWithOverlapFails2) {
@@ -169,10 +169,10 @@ TEST_F(MemCtlTest, MapWithOverlapFails2) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start += 5;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
 TEST_F(MemCtlTest, MapWithOverlapFails3) {
@@ -185,11 +185,11 @@ TEST_F(MemCtlTest, MapWithOverlapFails3) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start = mmio_reg.start;
     mmio_reg.end += 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
 TEST_F(MemCtlTest, MapWithOverlapFails4) {
@@ -202,11 +202,11 @@ TEST_F(MemCtlTest, MapWithOverlapFails4) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start -= 5;
     mmio_reg.end -= 5;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
 TEST_F(MemCtlTest, MapWithOverlapFails5) {
@@ -219,37 +219,37 @@ TEST_F(MemCtlTest, MapWithOverlapFails5) {
     mmio_reg.start = 1024;
     mmio_reg.end = mmio_reg.start + 10;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_NONE);
+    EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start -= 10;
     mmio_reg.end = mmio_reg.end;
     err = memctl_map_region(memctl, &mmio_reg);
-    EXPECT_EQ(err.type, VM_ERR_MEM_USED);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
 TEST_F(MemCtlTest, NoRegionReadU8Fails) {
     uint8_t val = 0x12;
     vm_err_t err = memctl->intf.read_u8(memctl, 0x0000'0000, &val);
     EXPECT_EQ(val, 0x12);
-    EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+    EXPECT_EQ(err, VM_ERR_BAD_MEM);
 }
 
 TEST_F(MemCtlTest, NoRegionReadU32Fails) {
     uint32_t val = 0xDEADBEEF;
     vm_err_t err = memctl->intf.read_u32(memctl, 0x0000'0000, &val);
     EXPECT_EQ(val, 0xDEADBEEF);
-    EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+    EXPECT_EQ(err, VM_ERR_BAD_MEM);
 }
 
 TEST_F(MemCtlTest, NoRegionWriteU8Fails) {
     uint8_t val = 0x12;
     vm_err_t err = memctl->intf.write_u8(memctl, 0x0000'0000, val);
-    EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+    EXPECT_EQ(err, VM_ERR_BAD_MEM);
 }
 
 TEST_F(MemCtlTest, NoRegionWriteU32Fails) {
     uint32_t val = 0xDEADBEEF;
     vm_err_t err = memctl->intf.write_u32(memctl, 0x0000'0000, val);
-    EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+    EXPECT_EQ(err, VM_ERR_BAD_MEM);
 }
 
 TEST_F(MemCtlTest, Region2ReadU8) {
@@ -258,7 +258,7 @@ TEST_F(MemCtlTest, Region2ReadU8) {
     uint8_t act_byte;
 
     vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     // Read from the start.
     rel_addr = 0x0000'0000;
@@ -288,7 +288,7 @@ TEST_F(MemCtlTest, Region2ReadU32) {
     uint32_t act_dword;
 
     vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     // Read from the start.
     rel_addr = 0x0000'0000;
@@ -315,7 +315,7 @@ TEST_F(MemCtlTest, Region2ReadU32) {
     for (vm_addr_t i = 0; i < 3; i++) {
         err = memctl_read_u32(memctl, TEST_MMIO2_START + TEST_MMIO2_SIZE - i,
                               &act_dword);
-        EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+        EXPECT_EQ(err, VM_ERR_BAD_MEM);
     }
 }
 
@@ -325,7 +325,7 @@ TEST_F(MemCtlTest, Region2WriteU8) {
     uint8_t act_byte;
 
     vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     // Write at the start.
     rel_addr = 0x0000'0000;
@@ -355,7 +355,7 @@ TEST_F(MemCtlTest, Region2WriteU32) {
     uint32_t act_dword;
 
     vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     // Write at the start.
     rel_addr = 0x0000'0000;
@@ -382,7 +382,7 @@ TEST_F(MemCtlTest, Region2WriteU32) {
     for (vm_addr_t i = 0; i < 3; i++) {
         err = memctl_write_u32(memctl, TEST_MMIO2_START + TEST_MMIO2_SIZE - i,
                                exp_dword);
-        EXPECT_EQ(err.type, VM_ERR_BAD_MEM);
+        EXPECT_EQ(err, VM_ERR_BAD_MEM);
     }
 }
 
@@ -391,17 +391,17 @@ TEST_F(MemCtlTest, Region3CannotReadWriteU8) {
     uint8_t byte = 0xAE;
 
     vm_err_t err = memctl_map_region(memctl, &mmio3_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     // Read
     rel_addr = TEST_MMIO3_SIZE / 2;
     err = memctl_read_u8(memctl, TEST_MMIO3_START + rel_addr, &byte);
-    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+    EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
 
     // Write
     rel_addr = TEST_MMIO3_SIZE / 2;
     err = memctl_write_u32(memctl, TEST_MMIO3_START + rel_addr, byte);
-    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+    EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
 }
 
 TEST_F(MemCtlTest, Region3CannotReadWriteU32) {
@@ -409,17 +409,17 @@ TEST_F(MemCtlTest, Region3CannotReadWriteU32) {
     uint32_t dword = 0xDEADBEEF;
 
     vm_err_t err = memctl_map_region(memctl, &mmio3_reg);
-    ASSERT_EQ(err.type, VM_ERR_NONE);
+    ASSERT_EQ(err, VM_ERR_NONE);
 
     // Read
     rel_addr = TEST_MMIO3_SIZE / 2;
     err = memctl_read_u32(memctl, TEST_MMIO3_START + rel_addr, &dword);
-    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+    EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
 
     // Write
     rel_addr = TEST_MMIO3_SIZE / 2;
     memctl_write_u32(memctl, TEST_MMIO3_START + rel_addr, dword);
-    EXPECT_EQ(err.type, VM_ERR_MEM_BAD_OP);
+    EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
 }
 
 TEST_F(MemCtlTest, SnapshotRestore) {

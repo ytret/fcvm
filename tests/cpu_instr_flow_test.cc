@@ -141,7 +141,7 @@ struct FlowInstrParam {
         case FlowInstrParam::RelToPC:
             addr_desc = absl::StrFormat("%+d", *param.pc_offset);
             break;
-        case FlowInstrParam::AddrInReg:
+        case  FlowInstrParam::AddrInReg:
             addr_desc = absl::StrFormat("R[%u]", *param.reg_code);
             break;
         case FlowInstrParam::AddrInIMM32:
@@ -247,7 +247,7 @@ TEST_P(FlowInstrTest, CheckStack) {
         uint32_t next_instr_at = orig_pc + instr_size;
         uint32_t val_on_stack = 0xDEADBEEF;
         vm_err_t err = mem->read(cpu->reg_sp, &val_on_stack, 4);
-        ASSERT_EQ(err.type, VM_ERR_NONE);
+        ASSERT_EQ(err, VM_ERR_NONE);
         EXPECT_EQ(val_on_stack, next_instr_at);
         break;
     }

@@ -25,10 +25,6 @@ typedef enum {
     VM_ERR_MEM_BAD_OP,
 
     VM_ERR_MAX_DEV_REGS,
-} vm_err_type_t;
-
-typedef struct {
-    vm_err_type_t type;
 } vm_err_t;
 
 #ifdef __cplusplus
