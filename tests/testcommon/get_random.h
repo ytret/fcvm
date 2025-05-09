@@ -1,10 +1,9 @@
 #pragma once
 
 #include <random>
+#include <cstdint>
 
-#include <stdint.h>
-
-#include "cpu.h"
+#include <fcvm/cpu.h>
 
 vm_addr_t get_random_base_addr(std::mt19937 &rng);
 vm_addr_t get_random_data_addr(std::mt19937 &rng, vm_addr_t data_start,

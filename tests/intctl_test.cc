@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "intctl.h"
+#include <fcvm/intctl.h>
 
 #define TEST_INVALID_IRQ (INTCTL_MAX_IRQ_NUM + 1)
 

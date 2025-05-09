@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "busctl.h"
+#include <fcvm/busctl.h>
 #include "debugm.h"
 
 static bool prv_busctl_find_free_slot(busctl_ctx_t *busctl, size_t *out_idx);

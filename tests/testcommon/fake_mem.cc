@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "busctl.h"
+#include <fcvm/busctl.h>
 #include "testcommon/fake_mem.h"
 
 std::map<void *, FakeMem *> FakeMem::_mmio_ctx_to_this;

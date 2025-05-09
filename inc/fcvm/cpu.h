@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 
-#include "cpu_instr.h"
-#include "cpu_instr_descs.h"
-#include "intctl.h"
+#include <fcvm/cpu_instr.h>
+#include <fcvm/cpu_instr_descs.h>
+#include <fcvm/intctl.h>
 
 #ifdef __cplusplus
 extern "C" {

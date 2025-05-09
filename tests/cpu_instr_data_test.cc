@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <random>
 
-#include "cpu.h"
+#include <fcvm/cpu.h>
 #include "testcommon/fake_mem.h"
 #include "testcommon/get_random.h"
 

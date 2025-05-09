@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "cpu.h"
+#include <fcvm/cpu.h>
 #include "testcommon/fake_mem.h"
 #include "testcommon/prog_builder.h"
 

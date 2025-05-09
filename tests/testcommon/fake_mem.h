@@ -2,7 +2,7 @@
 
 #include <map>
 
-#include "vm_types.h"
+#include <fcvm/vm_types.h>
 
 class FakeMem {
   public:

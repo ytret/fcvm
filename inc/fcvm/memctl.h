@@ -1,9 +1,7 @@
 #pragma once
 
-#include <stddef.h>
-
-#include "vm_err.h"
-#include "vm_types.h"
+#include <fcvm/vm_err.h>
+#include <fcvm/vm_types.h>
 
 #ifdef __cplusplus
 extern "C" {

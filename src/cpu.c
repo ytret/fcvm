@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cpu.h"
+#include <fcvm/cpu.h>
 #include "debugm.h"
 
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,

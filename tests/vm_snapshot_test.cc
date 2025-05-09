@@ -8,10 +8,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <fcvm/vm.h>
 #include <testcommon/fake_mem.h>
 #include <testcommon/get_random.h>
 #include <testcommon/get_random_prog.h>
-#include <vm.h>
 
 #define TEST_VM_SNAPSHOT_PROG_START (CPU_IVT_ADDR + CPU_IVT_SIZE)
 #define TEST_VM_SNAPSHOT_MEM_SIZE                                              \

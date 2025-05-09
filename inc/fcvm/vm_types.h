@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "vm_err.h"
+#include <fcvm/vm_err.h>
 
 #define VM_MAX_ADDR 0xFFFF'FFFF
 

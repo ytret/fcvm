@@ -1,8 +1,8 @@
 #include <iostream>
 #include <vector>
 
+#include <fcvm/vm.h>
 #include <testcommon/fake_mem.h>
-#include <vm.h>
 
 static bool g_restore_dev_ok = false;
 

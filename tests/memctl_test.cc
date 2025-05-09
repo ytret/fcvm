@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "memctl.h"
+#include <fcvm/memctl.h>
 #include "testcommon/fake_mem.h"
 
 #define TEST_MMIO1_START 0x0000'0000

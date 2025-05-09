@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fcvm/vm.h>
 #include "debugm.h"
-#include "vm.h"
 
 vm_ctx_t *vm_new(void) {
     vm_ctx_t *vm = malloc(sizeof(*vm));

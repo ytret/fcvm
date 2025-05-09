@@ -12,7 +12,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdint.h>
 
-#include "vm_err.h"
+#include <fcvm/vm_err.h>
 
 /// Version of the `intctl_ctx_t` structure and its member structures.
 /// Increment this every time anything in the `intctl_ctx_t` structure or its

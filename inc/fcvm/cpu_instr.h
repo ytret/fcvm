@@ -3,8 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "cpu_instr_descs.h"
-#include "vm_types.h"
+#include <fcvm/cpu_instr_descs.h>
+#include <fcvm/vm_types.h>
 
 typedef union {
     struct {

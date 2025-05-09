@@ -2,9 +2,9 @@
 
 #include <stdint.h>
 
-#include "intctl.h"
-#include "memctl.h"
-#include "vm_types.h"
+#include <fcvm/memctl.h>
+#include <fcvm/intctl.h>
+#include <fcvm/vm_types.h>
 
 #ifdef __cplusplus
 extern "C" {

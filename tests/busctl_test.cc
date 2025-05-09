@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "busctl.h"
-#include "memctl.h"
+#include <fcvm/busctl.h>
+#include <fcvm/memctl.h>
 
 /// A test memory mapped device.
 struct TestDevice {

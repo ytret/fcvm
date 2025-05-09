@@ -1,8 +1,8 @@
 #pragma once
 
-#include "busctl.h"
-#include "cpu.h"
-#include "memctl.h"
+#include <fcvm/busctl.h>
+#include <fcvm/cpu.h>
+#include <fcvm/memctl.h>
 
 #ifdef __cplusplus
 extern "C" {
