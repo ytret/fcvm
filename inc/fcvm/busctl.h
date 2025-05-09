@@ -147,12 +147,68 @@ busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
  */
 void busctl_free(busctl_ctx_t *busctl);
 
+/// @addtogroup snapshots
+/// @{
+
+/**
+ * Calculates the size of a buffer required to store a #busctl_ctx_t snapshot.
+ *
+ * Each connected device may define a #busctl_dev_ctx_t.f_snapshot_size function
+ * pointer, which is called by this function to calculate the total snapshot
+ * size required for both the bus controller and all connected devices.
+ */
 size_t busctl_snapshot_size(const busctl_ctx_t *busctl);
+/**
+ * Writes a snapshot of @a intctl into the buffer @a v_buf.
+ *
+ * Each connected device may define a #busctl_dev_ctx_t.f_snapshot function
+ * pointer, which is called by this function to optionally write to the snapshot
+ * buffer.
+ *
+ * @param busctl   Bus controller context to save a snapshot of.
+ * @param v_buf    Snapshot buffer.
+ * @param max_size Size of @a v_buf.
+ * @returns Size of the saved snapshot in bytes.
+ *
+ * @note
+ * - @a max_size should be more than or equal to the size returned by
+ *   #busctl_snapshot_size().
+ * - Device snapshot functions must not use more space than they requested in
+ *   #busctl_dev_ctx_t.f_snapshot_size.
+ */
 size_t busctl_snapshot(const busctl_ctx_t *busctl, void *v_buf,
                        size_t max_size);
+/**
+ * Restores a #busctl_ctx_t structure from a snapshot buffer.
+ *
+ * Only a part of each device context is restored from the buffer:
+ * - @ref busctl_dev_ctx_t.bus_slot "Bus slot".
+ * - @ref busctl_dev_ctx_t.dev_class "Device class".
+ * - @ref busctl_dev_ctx_t.irq_line "Assigned IRQ line".
+ * - @ref busctl_dev_ctx_t.mmio "MMIO region" start and end addresses.
+ *
+ * The function specified by @a f_restore_dev is called for every device that
+ * was connected to the bus prior to the snapshot. This function must restore
+ * the device context and callback pointers; see #cb_restore_dev_t.
+ *
+ * @warning
+ * If the @a f_restore_dev function does not restore all pointers correctly,
+ * future access to the device may lead to a segmentation fault!
+ *
+ * @param      memctl        Memory controller for the bus controller to use.
+ * @param      intctl        Interrupt controller for the bus controller to use.
+ * @param      f_restore_dev Device restore callback.
+ * @param      v_buf         Snapshot buffer.
+ * @param      max_size      Size of @a v_buf.
+ * @param[out] out_used_size Number of bytes used from the buffer @a v_buf.
+ *
+ * @returns A newly created bus controller context restored from the buffer @a
+ * v_buf, with all connected devices restored using @a f_restore_dev.
+ */
 busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
                              cb_restore_dev_t f_restore_dev, const void *v_buf,
                              size_t max_size, size_t *out_used_size);
+/// @}
 
 vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
                             void *ctx, const busctl_dev_ctx_t **out_dev_ctx);

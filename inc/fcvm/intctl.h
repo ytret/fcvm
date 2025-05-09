@@ -27,11 +27,34 @@ typedef struct {
 
 intctl_ctx_t *intctl_new(void);
 void intctl_free(intctl_ctx_t *intctl);
+
+/// @addtogroup snapshots
+/// @{
+
+/// Calculates the size of a buffer required to store an #intctl_ctx_t snapshot.
 size_t intctl_snapshot_size(void);
+/**
+ * Writes a snapshot of @a intctl into the buffer @a v_buf.
+ * @param intctl   Interrupt controller context to save a snapshot of.
+ * @param v_buf    Snapshot buffer.
+ * @param max_size Size of @a v_buf.
+ * @returns Size of the saved snapshot in bytes.
+ * @note @a max_size should be more than or equal to the size returned by
+ * #intctl_snapshot_size().
+ */
 size_t intctl_snapshot(const intctl_ctx_t *intctl, void *v_buf,
                        size_t max_size);
+/**
+ * Restores an #intctl_ctx_t structure from a snapshot buffer.
+ * @param      v_buf         Snapshot buffer.
+ * @param      max_size      Size of @a v_buf.
+ * @param[out] out_used_size Number of bytes used from the buffer @a v_buf.
+ * @returns A newly created interrupt controller context restored from the
+ * buffer @a v_buf.
+ */
 intctl_ctx_t *intctl_restore(const void *v_buf, size_t max_size,
                              size_t *out_used_size);
+/// @}
 
 bool intctl_has_pending_irqs(intctl_ctx_t *intctl);
 

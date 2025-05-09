@@ -72,7 +72,7 @@ size_t vm_snapshot(const vm_ctx_t *vm, void *v_buf, size_t max_size);
  * Restores the VM state from a snapshot buffer.
  * The function specified by @a f_restore_dev is called for every device
  * separately in order to restore the connected device context (see
- * #cb_restore_dev_t).
+ * #busctl_restore, #cb_restore_dev_t).
  * @param      f_restore_dev Device restoration callback.
  * @param      v_buf         Snapshot buffer.
  * @param      max_size      Size of @a v_buf.

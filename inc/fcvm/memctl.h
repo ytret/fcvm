@@ -40,10 +40,34 @@ typedef struct {
 
 memctl_ctx_t *memctl_new(void);
 void memctl_free(memctl_ctx_t *memctl);
+
+/// @addtogroup snapshots
+/// @{
+
+/// Calculates the size of a buffer required to store a #memctl_ctx_t snapshot.
 size_t memctl_snapshot_size(void);
-size_t memctl_snapshot(const memctl_ctx_t *memctl, void *buf, size_t max_size);
-memctl_ctx_t *memctl_restore(const void *buf, size_t max_size,
+/**
+ * Writes a snapshot of @a memctl into the buffer @a v_buf.
+ * @param memctl   Memory controller context to save a snapshot of.
+ * @param v_buf    Snapshot buffer.
+ * @param max_size Size of @a v_buf.
+ * @returns Size of the saved snapshot in bytes.
+ * @note @a max_size should be more than or equal to the size returned by
+ * #vm_snapshot_size().
+ */
+size_t memctl_snapshot(const memctl_ctx_t *memctl, void *v_buf,
+                       size_t max_size);
+/**
+ * Restores a #memctl_ctx_t structure from a snapshot buffer.
+ * @param      v_buf         Snapshot buffer.
+ * @param      max_size      Size of @a v_buf.
+ * @param[out] out_used_size Number of bytes used from the buffer @a v_buf.
+ * @returns A newly created memory controller context restored from the buffer
+ * @a v_buf.
+ */
+memctl_ctx_t *memctl_restore(const void *v_buf, size_t max_size,
                              size_t *out_used_size);
+/// @}
 
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio);
 

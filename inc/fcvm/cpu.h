@@ -94,10 +94,34 @@ typedef struct cpu_ctx {
 
 cpu_ctx_t *cpu_new(mem_if_t *mem);
 void cpu_free(cpu_ctx_t *cpu);
+
+/// @addtogroup snapshots
+/// @{
+
+/// Calculates the size of a buffer required to store a #cpu_ctx_t snapshot.
 size_t cpu_snapshot_size(void);
-size_t cpu_snapshot(const cpu_ctx_t *cpu, void *buf, size_t max_size);
-cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *buf, size_t max_size,
+/**
+ * Writes a snapshot of @a cpu into the buffer @a v_buf.
+ * @param cpu      CPU core to save a snapshot of.
+ * @param v_buf    Snapshot buffer.
+ * @param max_size Size of @a v_buf.
+ * @returns Size of the saved snapshot in bytes.
+ * @note @a max_size should be more than or equal to the size returned by
+ * #cpu_snapshot_size().
+ */
+size_t cpu_snapshot(const cpu_ctx_t *cpu, void *v_buf, size_t max_size);
+/**
+ * Restores a #cpu_ctx_t structure from a snapshot buffer.
+ * @param      mem           Memory controller for the new CPU context.
+ * @param      v_buf         Snapshot buffer.
+ * @param      max_size      Size of @a v_buf.
+ * @param[out] out_used_size Number of bytes used from the buffer @a v_buf.
+ * @returns A newly created CPU context restored from the buffer @a v_buf, which
+ * uses @a mem as its memory controller.
+ */
+cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
                        size_t *out_used_size);
+/// @}
 
 void cpu_step(cpu_ctx_t *cpu);
 
