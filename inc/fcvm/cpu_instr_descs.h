@@ -1,3 +1,8 @@
+/**
+ * @file cpu_instr_descs.h
+ * CPU instruction descriptor API.
+ */
+
 #pragma once
 
 #include <stddef.h>

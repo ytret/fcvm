@@ -1,3 +1,8 @@
+/**
+ * @file debugm.h
+ * Macros used internally by the project.
+ */
+
 #pragma once
 
 #include <stdbool.h> // IWYU pragma: keep

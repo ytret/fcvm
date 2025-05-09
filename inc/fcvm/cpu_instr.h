@@ -1,3 +1,8 @@
+/**
+ * @file cpu_instr.h
+ * CPU instruction type definitions.
+ */
+
 #pragma once
 
 #include <stddef.h>

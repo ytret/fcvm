@@ -1,6 +1,6 @@
 /**
  * @file intctl.h
- * CPU interrupt controller.
+ * Interrupt controller API.
  */
 
 #pragma once

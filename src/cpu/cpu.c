@@ -1,3 +1,8 @@
+/**
+ * @file cpu.c
+ * CPU core implementation: instruction fetching, decoding and execution.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 

@@ -1,3 +1,8 @@
+/**
+ * @file vm.h
+ * Main virtual machine API.
+ */
+
 #pragma once
 
 #include <fcvm/busctl.h>

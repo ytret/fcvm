@@ -1,6 +1,6 @@
 /**
  * @file cpu_stack.h
- * CPU stack operations API
+ * CPU stack operations API.
  */
 
 #include <fcvm/cpu.h>

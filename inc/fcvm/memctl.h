@@ -1,3 +1,8 @@
+/**
+ * @file memctl.h
+ * Memory controller API.
+ */
+
 #pragma once
 
 #include <fcvm/vm_err.h>

@@ -1,6 +1,6 @@
 /**
  * @file cpu_stack.c
- * CPU stack operations implementation
+ * CPU stack operations implementation.
  */
 
 #include "cpu_stack.h"

@@ -1,6 +1,6 @@
 /**
  * @file vm_types.h
- * Type definitions used in the API
+ * Type definitions used in the API.
  */
 
 #pragma once

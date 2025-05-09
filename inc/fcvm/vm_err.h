@@ -1,3 +1,8 @@
+/**
+ * @file
+ * Error definitions.
+ */
+
 #pragma once
 
 #ifdef __cplusplus

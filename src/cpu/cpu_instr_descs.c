@@ -1,3 +1,8 @@
+/**
+ * @file cpu_instr_descs.c
+ * CPU instruction descriptor definitions.
+ */
+
 #include <fcvm/cpu_instr_descs.h>
 
 static const cpu_instr_desc_t cpu_instr_descs[256] = {

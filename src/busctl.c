@@ -1,3 +1,8 @@
+/**
+ * @file busctl.c
+ * Bus controller implementation.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 

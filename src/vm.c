@@ -1,3 +1,8 @@
+/**
+ * @file vm.c
+ * Main virtual machine functions.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 

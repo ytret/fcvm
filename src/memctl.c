@@ -1,3 +1,8 @@
+/**
+ * @file memctl.c
+ * Memory controller implementation.
+ */
+
 #include <stdlib.h>
 #include <string.h>
 

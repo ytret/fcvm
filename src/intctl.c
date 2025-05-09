@@ -1,3 +1,8 @@
+/**
+ * @file intctl.c
+ * Interrupt controller implementation.
+ */
+
 #include <stdbit.h>
 #include <stdlib.h>
 #include <string.h>

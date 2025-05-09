@@ -1,3 +1,8 @@
+/**
+ * @file busctl.h
+ * Bus controller API.
+ */
+
 #pragma once
 
 #include <stdint.h>

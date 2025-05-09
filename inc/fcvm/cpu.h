@@ -1,3 +1,8 @@
+/**
+ * @file cpu.h
+ * CPU core API: instruction fetching, decoding and execution.
+ */
+
 #pragma once
 
 #include <stdint.h>
