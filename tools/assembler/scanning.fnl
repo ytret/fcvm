@@ -34,10 +34,8 @@
             (add-token-char lib.type.number ch)
             (= ch "\"")
             (if (= curr-token.type lib.type.string)
-                (do
-                  (add-token-char lib.type.string ch)
-                  (push-curr-token))
-                (add-token-char lib.type.string ch))
+                (push-curr-token)
+                (set curr-token {:type lib.type.string :val ""}))
             (= curr-token.type lib.type.string)
             (add-token-char lib.type.string ch)
             (string.find ch "[%u%l%d-_.]")
