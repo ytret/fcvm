@@ -30,7 +30,7 @@
             (add-token-char lib.type.comment ch)
             (or (and (= curr-token.type nil) (string.find ch "[%d]"))
                 (and (= curr-token.type lib.type.number)
-                     (string.find ch "[Xx%x]")))
+                     (string.find ch "[%u%l%d-_.]")))
             (add-token-char lib.type.number ch)
             (= ch "\"")
             (if (= curr-token.type lib.type.string)
