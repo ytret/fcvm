@@ -35,10 +35,11 @@
               (when (not= tok.type.comma opd-type)
                 (error (.. "expected a comma token at index " i ":\n"
                            (fennel.view tokens))))
-              (if (or (= tok.type.string opd-type) (= tok.type.id opd-type))
+              (if (or (= tok.type.id opd-type) (= tok.type.string opd-type)
+                      (= tok.type.number opd-type))
                   (table.insert operands opd-tok)
-                  (error (.. "expected token type id or string, got " opd-type
-                             " on token-line:\n" (fennel.view tokens)))))))
+                  (error (.. "expected token type id, string or number, got "
+                             opd-type " on token-line:\n" (fennel.view tokens)))))))
       (values (or has-label? has-opcode?) {: label : opcode : operands})))
   (icollect [_ tokens (ipairs token-lines)]
     (let [(not-empty? instr) (parse-line (filter-comments tokens))]

@@ -1,6 +1,6 @@
 (local fennel (require :fennel))
 
-(local lib {:type {:id 1 :colon 2 :comma 3 :comment 4 :string 5}})
+(local lib {:type {:colon 1 :comma 2 :comment 3 :id 4 :string 5 :number 6}})
 
 (fn lib.run [lines]
   "Parses 'lines' into a list of lists of tokens."
@@ -28,6 +28,10 @@
       (each [ch (string.gmatch line ".")]
         (if (or (= curr-token.type lib.type.comment) (= ch ";"))
             (add-token-char lib.type.comment ch)
+            (or (and (= curr-token.type nil) (string.find ch "[%d]"))
+                (and (= curr-token.type lib.type.number)
+                     (string.find ch "[Xx%x]")))
+            (add-token-char lib.type.number ch)
             (= ch "\"")
             (if (= curr-token.type lib.type.string)
                 (do
@@ -44,8 +48,7 @@
             (push-token lib.type.comma ",")
             (= ch " ")
             (push-curr-token)
-            (error (.. "Unexpected character for token type " curr-token.type
-                       ": " ch))))
+            (error (.. "unexpected character: " ch))))
       (push-curr-token)
       tokens))
 
