@@ -38,7 +38,7 @@
                 (set curr-token {:type lib.type.string :val ""}))
             (= curr-token.type lib.type.string)
             (add-token-char lib.type.string ch)
-            (string.find ch "[%u%l%d-_.]")
+            (string.find ch "[%[%]%u%l%d-_.]")
             (add-token-char lib.type.id ch)
             (= ch ":")
             (push-token lib.type.colon ":")
