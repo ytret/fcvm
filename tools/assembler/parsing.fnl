@@ -2,8 +2,16 @@
 (local tok (require :scanning))
 (local fennel (require :fennel))
 
-(local lib {:opd (enum* [:id :string :number :mem-dir :mem-indir])
-            :indir (enum* [:id :id-imm8 :id-imm32 :id-id])})
+(local lib {;; Type of an instruction or memory access sub-operand.
+            ;; - mov r1, 2
+            ;;       ^id ^number
+            ;; - ldr r1, [r2 + 2]
+            ;;       ^id  ^id  ^number
+            :opd (enum* [:id :string :number :mem])
+            ;; Type of a memory access operand.
+            ;; - ldr r1, [0xCC00FFEE]  :no-off (i.e. without an offset)
+            ;; - ldr r1, [r2 + 3]      :off (i.e. with an offset)
+            :mem-type (enum* [:no-off :off])})
 
 (local is-in-list? (fn [list val]
                      "Returns 'true' if 'list' contains 'val', otherwise returns 'false'."
@@ -19,36 +27,8 @@
            (tonumber (string.sub x 3) 16)
            (where x (string.match x "^[%d]+")) (tonumber x 10))))
 
-(local smallest-imm
-       (fn [num]
-         "Returns a string corresponding to the smallest imm-value that can hold
-         'num', one of ':imm5', ':imm8', ':imm32'."
-         (case num
-           (where x (and (<= x 31))) :imm5
-           (where x (and (<= x 255))) :imm8
-           (where x (and (<= x (- (lshift 1 32) 1)))) :imm32
-           _ (error (.. "number value '" num
-                        "' cannot be represented as imm5/imm8/imm32")))))
-
-(local parse-indir-id-num (fn [tok-id tok-op tok-num]
-                            (let [num (parse-number tok-num.val)
-                                  imm-type (smallest-imm num)
-                                  off-type (case imm-type
-                                             :imm5 :imm8
-                                             :imm8 :imm8
-                                             _ :imm32)]
-                              {:type (case off-type
-                                       :imm8 lib.indir.id-imm8
-                                       _ lib.indir.id-imm32)
-                               :base-id tok-id.val
-                               :op tok-op.val
-                               :off-val num})))
-
 (local parse-indir-id-id (fn [tok-base tok-op tok-off]
-                           {:type lib.indir.id-id
-                            :base-id tok-base.val
-                            :op tok-op.val
-                            :off-val tok-off.val}))
+                           {}))
 
 (fn lib.parse-tokens [token-lines]
   "Parses each of 'token-lines' into a list of instructions."
@@ -84,25 +64,35 @@
                       [tok.type.number]
                       {:type lib.opd.number :val (parse-number o1.val)}
                       [tok.type.open-sq tok.type.number tok.type.close-sq]
-                      {:type lib.opd.mem-dir
-                       :val (parse-number (. opd-toks 2 :val))}
+                      {:type lib.opd.mem
+                       :val {:type lib.mem-type.no-off
+                             :val {:type lib.opd.number
+                                   :val (parse-number o2.val)}}}
                       [tok.type.open-sq tok.type.id tok.type.close-sq]
-                      {:type lib.opd.mem-indir
-                       :val {:type lib.indir.id :base-id o2.val}}
+                      {:type lib.opd.mem
+                       :val {:type lib.mem-type.no-off
+                             :val {:type lib.opd.id :val o2.val}}}
                       [tok.type.open-sq
                        tok.type.id
                        tok.type.arithm-op
                        tok.type.number
                        tok.type.close-sq]
-                      {:type lib.opd.mem-indir
-                       :val (parse-indir-id-num o2 o3 o4)}
+                      {:type lib.opd.mem
+                       :val {:type lib.mem-type.off
+                             :lhs {:type lib.opd.id :val o2.val}
+                             :op o3.val
+                             :rhs {:type lib.opd.number
+                                   :val (parse-number o4.val)}}}
                       [tok.type.open-sq
                        tok.type.id
                        tok.type.arithm-op
                        tok.type.id
                        tok.type.close-sq]
-                      {:type lib.opd.mem-indir
-                       :val (parse-indir-id-id o2 o3 o4)}
+                      {:type lib.opd.mem
+                       :val {:type lib.mem-type.off
+                             :lhs {:type lib.opd.id :val o2.val}
+                             :op o3
+                             :rhs {:type lib.opd.id :val o4.val}}}
                       _
                       (error (.. "bad operand tokens:\n" (fennel.view opd-toks))))))
 
@@ -151,7 +141,7 @@
   2. A string ('lib.opd.string').
   3. A number ('lib.opd.number').
 
-  All other operand types (e.g., 'lib.opd.mem-dir') are forbidden and produce an
+  All other operand types (e.g., 'lib.opd.mem') are forbidden and produce an
   error.
 
   Returns two values:
@@ -212,17 +202,29 @@
 
   - 'vars' is a table of variables, where the key is a variable name and the
     value is the value token.
-  - 'instrs' is a list of instruction tables, where each table is a list of
-    tokens.
+  - 'instrs' is a list of instruction tables.
   "
-  (local var-names (icollect [var-name _ (pairs vars)] var-name))
+  (fn expand-opd [vars opd]
+    (fn expand-opd [vars opd]
+      (let [var-names (icollect [name _ (pairs vars)] name)
+            var-val (?. vars opd.val)]
+        (when (and (= lib.opd.id opd.type) var-val)
+          (tset opd :type var-val.type)
+          (tset opd :val var-val.val))))
+
+    (match opd.type
+      lib.opd.id (expand-opd vars opd)
+      lib.opd.mem (match opd.val.type
+                    lib.mem-type.no-off (expand-opd vars opd.val.val)
+                    lib.mem-type.off (do
+                                       (expand-opd vars opd.val.lhs)
+                                       (expand-opd vars opd.val.rhs))
+                    _ (error (.. "unknown mem-indir operand type " opd.val.type)))))
 
   (fn expand-instr [instr]
     (for [i 1 (length instr.operands)]
       (let [opd (. instr :operands i)]
-        (when (and (= opd.type tok.type.id) (is-in-list? var-names opd.val))
-          (tset opd :type (. vars opd.val :type))
-          (tset opd :val (. vars opd.val :val)))))
+        (expand-opd vars opd)))
     instr)
 
   (icollect [_ instr (ipairs instrs)]
