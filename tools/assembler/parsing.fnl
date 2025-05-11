@@ -138,53 +138,69 @@
                          (when not-empty? instr)))))
 
 (fn lib.parse-setvars [labels instrs]
-  "Returns variables defined by '.set' pseudo-instructios in 'instrs'."
+  "Parses variables defined by '.set' pseudo-instructions in 'instrs'.
+
+  Each '.set' instruction must have two operands:
+  1. Variable name - 'lib.opd.id'.
+  2. Variable value.
+
+  Allowed variable value types:
+  1. An ID operand ('lib.opd.id') - a label, register or another variable. If
+     the token value is a previously encountered variable name, it gets expanded
+     to the appropriate variable value.
+  2. A string ('lib.opd.string').
+  3. A number ('lib.opd.number').
+
+  All other operand types (e.g., 'lib.opd.mem-dir') are forbidden and produce an
+  error.
+
+  Returns two values:
+  1. Map of variable values: key - variable name (string), value - second
+     operand of the '.set' instruction (see above for the allowed types).
+  2. Filtered instruction list, i.e. 'instrs' without any '.set' instruction.
+  "
   (local var-names {})
   (local vars {})
 
   (fn parse-setvar [instr]
     "Appends a variable name and value defined by 'instr' to 'vars'.
 
-    A variable name must be a string (token type string).
-    A variable value may be one of:
-    - another variable name (token type id and an existing value in 'vars'), in
-      which case the value variable is expanded,
-    - label (token type id and an existing value in 'labels'),
-    - string (token type string),
-    - number (token type number).
+    Note: 'instr' must be a '.set' instruction.
+
+    For the allowed types of the operands, see above.
     "
     (assert (= instr.opcode :.set))
     (if (not= (length instr.operands) 2)
         (error (.. "wrong number of operands for .set: expected 2, got "
                    (length instr.operands) " in instruction:\n"
                    (fennel.view instr))))
-    (let [tok-name (. instr :operands 1)
-          tok-val (. instr :operands 2)]
-      (if (not= tok-name.type tok.type.id)
+    (let [opd-name (. instr :operands 1)
+          opd-val (. instr :operands 2)]
+      (if (not= opd-name.type lib.opd.id)
           (error (.. "wrong type of variable name: expected id, got "
-                     tok-name.type " in instruction:\n" (fennel.view instr))))
-      (if (and (not= tok-val.type tok.type.id)
-               (not= tok-val.type tok.type.string)
-               (not= tok-val.type tok.type.number))
-          (error (.. "wrong type of variable value: expected label/string/"
-                     "number, got " tok-name.type " in instruction:\n"
+                     opd-name.type " in instruction:\n" (fennel.view instr))))
+      (if (and (not= opd-val.type lib.opd.id)
+               (not= opd-val.type lib.opd.string)
+               (not= opd-val.type lib.opd.number))
+          (error (.. "wrong type of variable value: expected variable/label/"
+                     "string/number, got " opd-val.type " in instruction:\n"
                      (fennel.view instr))))
-      (when (and (= tok-val.type tok.type.id)
-                 (not (or (is-in-list? var-names tok-val.val)
-                          (is-in-list? labels tok-val.val))))
-        (error (.. "variable '" tok-name.val
+      (when (and (= opd-val.type lib.opd.id)
+                 (not (or (is-in-list? var-names opd-val.val)
+                          (is-in-list? labels opd-val.val))))
+        (error (.. "variable '" opd-name.val
                    "' is set to a non-existent variable or label " "'"
-                   tok-val.val "' in instruction:\n" (fennel.view instr))))
-      (if (is-in-list? var-names tok-val.val)
+                   opd-val.val "' in instruction:\n" (fennel.view instr))))
+      (if (is-in-list? var-names opd-val.val)
           (do
-            ;; Add a variable with the name 'tok-name.val' and set it to the
+            ;; Add a variable with the name 'opd-name.val' and set it to the
             ;; value of an existing variable.
-            (table.insert var-names tok-name.val)
-            (tset vars tok-name.val (. vars tok-val.val)))
+            (table.insert var-names opd-name.val)
+            (tset vars opd-name.val (. vars opd-val.val)))
           (do
             ;; Add a new variable.
-            (table.insert var-names tok-name.val)
-            (tset vars tok-name.val tok-val)))))
+            (table.insert var-names opd-name.val)
+            (tset vars opd-name.val opd-val)))))
 
   (values vars (icollect [_ instr (ipairs instrs)]
                  (if (and instr.opcode (= instr.opcode :.set))
