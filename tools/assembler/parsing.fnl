@@ -45,7 +45,7 @@
 
     'tokens' must have the following format ([] means optional, / means one of):
     - [id colon] id      [opd1       [comma opd2       [comma ...]]]
-      ^label     ^opcode  ^operand 1        ^operand 2
+      ^label     ^name    ^operand 1        ^operand 2
 
     'opd1', 'opd2', and other operands must be one of:
     - id/string/number  ; A raw label, string, or number.
@@ -99,31 +99,31 @@
     (let [has-label? (and (= tok.type.id (?. tokens 1 :type))
                           (= tok.type.colon (?. tokens 2 :type)))
           label (when has-label? (. tokens 1 :val))
-          opcode-idx (if has-label? 3 1)
-          has-opcode? (>= (length tokens) opcode-idx)
-          opcode-type (?. tokens opcode-idx :type)
-          opcode (when has-opcode?
-                   (if (= tok.type.id opcode-type)
-                       (. tokens opcode-idx :val)
-                       (error (.. "expected token type id, got " opcode-type ""
+          name-idx (if has-label? 3 1)
+          has-name? (>= (length tokens) name-idx)
+          name-type (?. tokens name-idx :type)
+          name (when has-name?
+                   (if (= tok.type.id name-type)
+                       (. tokens name-idx :val)
+                       (error (.. "expected token type id, got " name-type ""
                                   " on token-line:\n" (fennel.view tokens)))))
           operands {}]
       (when has-label? (table.insert all-labels label))
       (var curr-opd-toks {})
-      (for [i (+ 1 opcode-idx) (length tokens)]
+      (for [i (+ 1 name-idx) (length tokens)]
         (let [curr-tok (. tokens i)]
           (if (= tok.type.comma curr-tok.type)
               (do
                 (table.insert operands curr-opd-toks)
                 (set curr-opd-toks {}))
               (table.insert curr-opd-toks curr-tok))))
-      (when (> (length tokens) opcode-idx)
+      (when (> (length tokens) name-idx)
         (table.insert operands curr-opd-toks))
       (each [opd-idx opd-toks (ipairs operands)]
         (tset operands opd-idx (parse-opd opd-toks)))
-      (values (or has-label? has-opcode?)
+      (values (or has-label? has-name?)
               {: label
-               : opcode
+               : name
                :operands (when (not= 0 (length operands)) operands)})))
 
   (values all-labels (icollect [_ tokens (ipairs token-lines)]
@@ -162,7 +162,7 @@
 
     For the allowed types of the operands, see above.
     "
-    (assert (= instr.opcode :.set))
+    (assert (= instr.name :.set))
     (if (not= (length instr.operands) 2)
         (error (.. "wrong number of operands for .set: expected 2, got "
                    (length instr.operands) " in instruction:\n"
@@ -196,7 +196,7 @@
             (tset vars opd-name.val opd-val)))))
 
   (values vars (icollect [_ instr (ipairs instrs)]
-                 (if (and instr.opcode (= instr.opcode :.set))
+                 (if (and instr.name (= instr.name :.set))
                      (parse-setvar instr)
                      instr))))
 
