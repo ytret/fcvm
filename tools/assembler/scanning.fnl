@@ -1,6 +1,15 @@
+(import-macros {: enum*} :auxm)
 (local fennel (require :fennel))
 
-(local lib {:type {:colon 1 :comma 2 :comment 3 :id 4 :string 5 :number 6}})
+(local lib {:type (enum* [:colon
+                          :comma
+                          :open-sq
+                          :close-sq
+                          :arithm-op
+                          :comment
+                          :id
+                          :string
+                          :number])})
 
 (fn lib.run [lines]
   "Parses 'lines' into a list of lists of tokens."
@@ -18,12 +27,14 @@
         (set curr-token {: type : val})
         (push-curr-token))
 
-      (fn add-token-char [type ch]
+      (fn add-token-char [type ch must-be-sep?]
         (if (= curr-token.type type)
             (set curr-token.val (.. curr-token.val ch))
-            (do
-              (push-curr-token)
-              (set curr-token {: type :val ch}))))
+            (if must-be-sep?
+                (error (.. "unexpected character: " ch))
+                (do
+                  (push-curr-token)
+                  (set curr-token {: type :val ch})))))
 
       (each [ch (string.gmatch line ".")]
         (if (or (= curr-token.type lib.type.comment) (= ch ";"))
@@ -38,8 +49,16 @@
                 (set curr-token {:type lib.type.string :val ""}))
             (= curr-token.type lib.type.string)
             (add-token-char lib.type.string ch)
-            (string.find ch "[%[%]%u%l%d-_.]")
+            (string.find ch "[%u%l%d_.]")
             (add-token-char lib.type.id ch)
+            (= ch "[")
+            (push-token lib.type.open-sq "[")
+            (= ch "]")
+            (push-token lib.type.close-sq "]")
+            (= ch "+")
+            (push-token lib.type.arithm-op "+")
+            (= ch "-")
+            (push-token lib.type.arithm-op "-")
             (= ch ":")
             (push-token lib.type.colon ":")
             (= ch ",")
