@@ -121,7 +121,10 @@
         (table.insert operands curr-opd-toks))
       (each [opd-idx opd-toks (ipairs operands)]
         (tset operands opd-idx (parse-opd opd-toks)))
-      (values (or has-label? has-opcode?) {: label : opcode : operands})))
+      (values (or has-label? has-opcode?)
+              {: label
+               : opcode
+               :operands (when (not= 0 (length operands)) operands)})))
 
   (values all-labels (icollect [_ tokens (ipairs token-lines)]
                        (let [(not-empty? instr) (parse-line (filter-comments tokens))]
@@ -222,9 +225,10 @@
                     _ (error (.. "unknown mem-indir operand type " opd.val.type)))))
 
   (fn expand-instr [instr]
-    (for [i 1 (length instr.operands)]
-      (let [opd (. instr :operands i)]
-        (expand-opd vars opd)))
+    (when instr.operands
+      (for [i 1 (length instr.operands)]
+        (let [opd (. instr :operands i)]
+          (expand-opd vars opd))))
     instr)
 
   (icollect [_ instr (ipairs instrs)]
