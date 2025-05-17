@@ -249,9 +249,9 @@
       (fn categorize-id [opd]
         (assert (= :id opd.type))
         (match (string.lower opd.val)
-          (where x (= 1 (string.find x :r))) lib.cat.reg
-          :sp lib.cat.reg
-          _ lib.cat.id))
+          (where x (= 1 (string.find x :r))) [lib.cat.reg]
+          :sp [lib.cat.reg]
+          _ [lib.cat.id]))
 
       (fn categorize-number [opd]
         (assert (= :number opd.type))
@@ -268,8 +268,8 @@
         (fn categorize-no-off-mem [opd]
           (let [subopd-cat (categorize-opd opd.val.val)]
             (match subopd-cat
-              lib.cat.reg lib.cat.ri0
-              (where x (is-in-list? x lib.cat.v32)) lib.cat.m32
+              lib.cat.reg [lib.cat.ri0]
+              (where x (is-in-list? x lib.cat.v32)) [lib.cat.m32]
               _ (error (.. "cannot categorize memory operand, suboperand "
                            "category " (fennel.view subopd-cat) ":\n"
                            (fennel.view opd))))))
@@ -277,17 +277,18 @@
         (fn categorize-off-mem [opd]
           (let [lhs-cat (categorize-opd opd.val.lhs)
                 rhs-cat (categorize-opd opd.val.rhs)]
-            (when (not= lib.cat.reg lhs-cat)
+            (when (not (is-in-list? lhs-cat lib.cat.reg))
               (error (.. "invalid memory address operand, lhs suboperand must "
                          "be a register id, not " (fennel.view lhs-cat) ":\n"
                          (fennel.view opd))))
             (match rhs-cat
-              lib.cat.reg lib.cat.rir
-              [lib.cat.v32] lib.cat.ri32
+              [lib.cat.reg] [lib.cat.rir]
+              [lib.cat.v32] [lib.cat.ri32]
               [lib.cat.v8] [lib.cat.ri8 lib.cat.ri32]
               [lib.cat.v5] [lib.cat.ri8 lib.cat.ri32]
-              _ (error (.. "invalid memory address operand, unrecognized rhs suboperand "
-                           (fennel.view rhs-cat) ":\n" (fennel.view opd))))))
+              _ (error (.. "invalid memory address operand, unrecognized rhs"
+                           " suboperand " (fennel.view rhs-cat) ":\n"
+                           (fennel.view opd))))))
 
         (assert (= :mem opd.type))
         (match opd.val.type
@@ -300,7 +301,7 @@
         {:type :mem} (categorize-mem opd)))
 
     (each [_ opd (ipairs instr.operands)]
-      (tset opd :cat (categorize-opd opd)))
+      (tset opd :cats (categorize-opd opd)))
     instr)
 
   (icollect [_ instr (ipairs instrs)]
