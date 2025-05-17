@@ -9,16 +9,15 @@
                   instr-fmt)
   (assert-compile (table? desc) "expected table for desc" desc)
   (let [[opcode opd-list] instr-fmt
-        {:match fn-match : size} desc]
+        {:match form-match : size} desc]
     (assert-compile (= :string (type opcode)) "expected string for opcode"
                     opcode)
     (assert-compile (list? opd-list) "expected list for opd-list" opd-list)
-    (assert-compile (list? fn-match) "expected list for match" desc)
+    (assert-compile (list? form-match) "expected list for match" desc)
     (assert-compile (= :number (type size)) "epxected number for size" desc)
     `(tset (. ,desc-tbl ,name) ,opcode
-           {:match (fn []
-                     (do
-                       ))
+           {:match (fn [,(unpack opd-list)]
+                     ,form-match)
             :size ,size})))
 
 (macro add-desc* [desc-tbl name ...]
