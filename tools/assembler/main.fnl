@@ -27,10 +27,10 @@
           (exp-instrs) (parsing.expand-vars vars instrs-no-set)
           (cat-instrs) (parsing.categorize-opds exp-instrs)
           (res-instrs) (codegen.resolve-names cat-instrs)
-          ;(sized-instrs) (codegen.size-instrs clasf-instrs)
+          (sized-instrs) (codegen.size-instrs res-instrs)
           ]
       (do)
-      (print (fennel.view res-instrs))
+      (print (fennel.view sized-instrs))
       ;
       )))
 

@@ -54,3 +54,57 @@
     (if (or (= nil instr.name) (= 1 (string.find instr.name "%.")))
         instr
         (resolve-name instr))))
+
+(fn lib.size-instrs [instrs]
+  "Appends to almost all instructions in 'instrs' a 'size' field.
+
+  - Non-pseudo-instructions have an already determined size in the 'gen-desc'
+    field; it is propagated to the 'size' field.
+  - Some pseudo-instructions (e.g., '.origin') are processed at a later stage
+    and don't have a size.
+  - Other pseudo-instructions (e.g., '.strb') have their size set in the 'size'
+    field.
+  "
+  (fn get-instr-size [instr]
+    (if (= nil instr.gen-desc)
+        (match instr.name
+          :.origin nil
+          :.skip nil
+          :.strd 4
+          :.strw 2
+          :.strb 1
+          :.strs (do
+                   (assert (not= nil instr.operands))
+                   (assert (= 1 (length instr.operands)))
+                   (assert (= prs.cat.str (. instr.operands 1 :cats 1)))
+                   (+ 1 (string.len (. instr.operands 1 :val))))
+          _ (error (.. "cannot determine size of instruction:\n"
+                       (fennel.view instr))))
+        (. instr.gen-desc :size)))
+
+  (each [_ instr (ipairs instrs)]
+    (when (not= nil instr.name)
+      (let [size (get-instr-size instr)]
+        (tset instr :size size))))
+  instrs)
+
+(fn lib.allocate-addr [instrs]
+  "Adds to each instruction in 'instrs' its address in bytes.
+
+  Initial address is zero.
+
+  - Non-pseudo-instructions always have a non-zero size and increment the
+    address by their size.
+  - Pseudo-instructions (e.g., '.origin', '.strb', '.skip') that are present at
+    this stage change the address. Some of them, like '.origin', are removed
+    from 'instrs'.
+  "
+  (var addr 0)
+
+  (fn alloc-addr-instr [instr])
+
+  (icollect [_ instr (ipairs instrs)]
+    (alloc-addr-instr instr)))
+
+lib
+
