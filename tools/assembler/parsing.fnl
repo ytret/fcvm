@@ -2,16 +2,27 @@
 (local tok (require :scanning))
 (local fennel (require :fennel))
 
-(local lib {;; Type of an instruction or memory access sub-operand.
-            ;; - mov r1, 2
-            ;;       ^id ^number
-            ;; - ldr r1, [r2 + 2]
-            ;;       ^id  ^id  ^number
-            :opd (enum* [:id :string :number :mem])
-            ;; Type of a memory access operand.
-            ;; - ldr r1, [0xCC00FFEE]  :no-off (i.e. without an offset)
-            ;; - ldr r1, [r2 + 3]      :off (i.e. with an offset)
-            :mem-type (enum* [:no-off :off])})
+(local lib
+       {;; Type of an instruction or memory access sub-operand.
+        ;; - mov r1, 2
+        ;;       ^id ^number
+        ;; - ldr r1, [r2 + 2]
+        ;;       ^id  ^id  ^number
+        :opd (enum* [:id :string :number :mem])
+        ;; Type of a memory access operand.
+        ;; - ldr r1, [0xCC00FFEE]  :no-off (i.e. without an offset)
+        ;; - ldr r1, [r2 + 3]      :off (i.e. with an offset)
+        :mem-type (enum* [:no-off :off])
+        ;; Category of an operand.
+        ;; - jmpa LABEL
+        ;;        :id
+        ;; - mov r1,   0xA
+        ;;       :reg  [:v5 :v8 :v32]
+        ;; - ldr r2,   [r3 + r4]
+        ;;       :reg  :rir
+        ;; - str [0xCAFE], 0xFF
+        ;;       :m32      [:v8 :v32]
+        :cat (enum* [:id :reg :v5 :v8 :v32 :m32 :ri0 :ri8 :ri32 :rir])})
 
 (local is-in-list? (fn [list val]
                      "Returns 'true' if 'list' contains 'val', otherwise returns 'false'."
@@ -103,10 +114,10 @@
           has-name? (>= (length tokens) name-idx)
           name-type (?. tokens name-idx :type)
           name (when has-name?
-                   (if (= tok.type.id name-type)
-                       (. tokens name-idx :val)
-                       (error (.. "expected token type id, got " name-type ""
-                                  " on token-line:\n" (fennel.view tokens)))))
+                 (if (= tok.type.id name-type)
+                     (. tokens name-idx :val)
+                     (error (.. "expected token type id, got " name-type ;
+                                " on token-line:\n" (fennel.view tokens)))))
           operands {}]
       (when has-label? (table.insert all-labels label))
       (var curr-opd-toks {})
@@ -233,6 +244,75 @@
 
   (icollect [_ instr (ipairs instrs)]
     (expand-instr instr)))
+
+(fn lib.categorize-opds [instrs]
+  "Assigns each operand of each instruction in 'instrs' one or more categories.
+
+  There are several categories, see 'lib.cat'.
+  "
+  (fn cat-instr-opds [instr]
+    (fn categorize-opd [opd]
+      (fn categorize-id [opd]
+        (assert (= :id opd.type))
+        (match (string.lower opd.val)
+          (where x (= 1 (string.find x :r))) lib.cat.reg
+          :sp lib.cat.reg
+          _ lib.cat.id))
+
+      (fn categorize-number [opd]
+        (assert (= :number opd.type))
+        (let [cats []
+              imm5_max (- (lshift 1 5) 1)
+              imm8_max (- (lshift 1 8) 1)
+              imm32_max (- (lshift 1 32) 1)]
+          (when (<= opd.val imm5_max) (table.insert cats lib.cat.v5))
+          (when (<= opd.val imm8_max) (table.insert cats lib.cat.v8))
+          (when (<= opd.val imm32_max) (table.insert cats lib.cat.v32))
+          cats))
+
+      (fn categorize-mem [opd]
+        (fn categorize-no-off-mem [opd]
+          (let [subopd-cat (categorize-opd opd.val.val)]
+            (match subopd-cat
+              lib.cat.reg lib.cat.ri0
+              (where x (is-in-list? x lib.cat.v32)) lib.cat.m32
+              _ (error (.. "cannot categorize memory operand, suboperand "
+                           "category " (fennel.view subopd-cat) ":\n"
+                           (fennel.view opd))))))
+
+        (fn categorize-off-mem [opd]
+          (let [lhs-cat (categorize-opd opd.val.lhs)
+                rhs-cat (categorize-opd opd.val.rhs)]
+            (when (not= lib.cat.reg lhs-cat)
+              (error (.. "invalid memory address operand, lhs suboperand must "
+                         "be a register id, not " (fennel.view lhs-cat) ":\n"
+                         (fennel.view opd))))
+            (match rhs-cat
+              lib.cat.reg lib.cat.rir
+              [lib.cat.v32] lib.cat.ri32
+              [lib.cat.v8] [lib.cat.ri8 lib.cat.ri32]
+              [lib.cat.v5] [lib.cat.ri8 lib.cat.ri32]
+              _ (error (.. "invalid memory address operand, unrecognized rhs suboperand "
+                           (fennel.view rhs-cat) ":\n" (fennel.view opd))))))
+
+        (assert (= :mem opd.type))
+        (match opd.val.type
+          :no-off (categorize-no-off-mem opd)
+          :off (categorize-off-mem opd)))
+
+      (match opd
+        {:type :id} (categorize-id opd)
+        {:type :number} (categorize-number opd)
+        {:type :mem} (categorize-mem opd)))
+
+    (each [_ opd (ipairs instr.operands)]
+      (tset opd :cat (categorize-opd opd)))
+    instr)
+
+  (icollect [_ instr (ipairs instrs)]
+    (if (not= nil instr.operands)
+        (cat-instr-opds instr)
+        instr)))
 
 lib
 
