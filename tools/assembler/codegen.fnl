@@ -93,15 +93,53 @@
 
   Initial address is zero.
 
-  - Non-pseudo-instructions always have a non-zero size and increment the
-    address by their size.
-  - Pseudo-instructions (e.g., '.origin', '.strb', '.skip') that are present at
-    this stage change the address. Some of them, like '.origin', are removed
-    from 'instrs'.
+  - Non-pseudo-instructions always have non-zero size and increment the address
+    by their size.
+  - Some pseudo-instructions (e.g., '.origin', '.skip') that are present at this
+    stage change the address and get removed from 'instrs'.
+  - Other pseudo-instructions must have size.
   "
   (var addr 0)
 
-  (fn alloc-addr-instr [instr])
+  (fn alloc-addr-instr [instr]
+    (fn do-addr-manip [instr]
+      "Performs an address manipulation instruction 'instr' on 'addr.
+
+      'instr' must be either an '.origin' or '.skip' instruction.
+      "
+      (assert (= :string (type instr.name)))
+      (match instr.name
+        :.origin (do
+                   (assert (not= nil instr.operands))
+                   (assert (= 1 (length instr.operands)))
+                   (assert (is-in-list? (. instr.operands 1 :cats) prs.cat.v32))
+                   (let [new-addr (. instr.operands 1 :val)]
+                     (when (< new-addr addr)
+                       (error (.. ".origin tried to lower the address from "
+                                  addr " to " new-addr " :\n"
+                                  (fennel.view instr))))
+                     (set addr new-addr)))
+        :.skip (do
+                 (assert (not= nil instr.operands))
+                 (assert (= 1 (length instr.operands)))
+                 (assert (is-in-list? (. instr.operands 1 :cats) prs.cat.v32))
+                 (set addr (+ addr (. instr.operands 1 :val))))
+        _ (error (.. "invalid instruction for do-addr-manip:\n"
+                     (fennel.view instr)))))
+
+    (let [has-name? (not= nil instr.name)
+          has-size? (not= nil instr.size)
+          is-addr-manip? (is-in-list? [:.origin :.skip] instr.name)]
+      (when (and has-name? (not is-addr-manip?) (not has-size?))
+        (error (.. "instruction '" instr.name "' must have size:\n"
+                   (fennel.view instr))))
+      (if is-addr-manip?
+          (do-addr-manip instr)
+          (do
+            (tset instr :addr addr)
+            (when has-size?
+              (set addr (+ addr instr.size)))
+            instr))))
 
   (icollect [_ instr (ipairs instrs)]
     (alloc-addr-instr instr)))

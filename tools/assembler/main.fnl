@@ -28,9 +28,10 @@
           (cat-instrs) (parsing.categorize-opds exp-instrs)
           (res-instrs) (codegen.resolve-names cat-instrs)
           (sized-instrs) (codegen.size-instrs res-instrs)
+          (addr-instrs) (codegen.allocate-addr sized-instrs)
           ]
       (do)
-      (print (fennel.view sized-instrs))
+      (print (fennel.view addr-instrs))
       ;
       )))
 
