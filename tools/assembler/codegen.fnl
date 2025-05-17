@@ -20,9 +20,9 @@
       "Returns true if the operand 'instr-opd' matches with the operand category
       'desc-opd-cat'."
       ;; HACK: at this stage labels are still not resolved and are stored as
-      ;; operands with category [id]; here we treat them as [id v32].
+      ;; operands with category [lbl]; here we treat them as [v8 v32].
       (let [instr-opd-cats (match-exact* instr-opd.cats ;;
-                                         [prs.cat.id] [prs.cat.id prs.cat.v32]
+                                         [prs.cat.lbl] [prs.cat.v8 prs.cat.v32]
                                          ;;
                                          _ instr-opd.cats)]
         (is-in-list? instr-opd-cats desc-opd-cat)))

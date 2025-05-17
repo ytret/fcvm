@@ -16,14 +16,14 @@
         :mem-type (enum* [:no-off :off])
         ;; Category of an operand.
         ;; - jmpa LABEL
-        ;;        :id
+        ;;        :lbl
         ;; - mov r1,   0xA
         ;;       :reg  [:v5 :v8 :v32]
         ;; - ldr r2,   [r3 + r4]
         ;;       :reg  :rir
         ;; - str [0xCAFE], 0xFF
         ;;       :m32      [:v8 :v32]
-        :cat (enum* [:id :reg :v5 :v8 :v32 :m32 :ri0 :ri8 :ri32 :rir :str])})
+        :cat (enum* [:lbl :reg :v5 :v8 :v32 :m32 :ri0 :ri8 :ri32 :rir :str])})
 
 (local parse-number
        (fn [num-str]
@@ -251,7 +251,7 @@
         (match (string.lower opd.val)
           (where x (= 1 (string.find x :r))) [lib.cat.reg]
           :sp [lib.cat.reg]
-          _ [lib.cat.id]))
+          _ [lib.cat.lbl]))
 
       (fn categorize-number [opd]
         (assert (= :number opd.type))

@@ -18,7 +18,7 @@
             :ldr_ri32 {:opd-cats [prs.cat.reg prs.cat.ri32] :size 6}
             :ldr_rir {:opd-cats [prs.cat.reg prs.cat.rir] :size 3}})
 
-(local jmpr {:jmpr_v8 {:opd-cats [prs.cat.id] :size 2}})
+(local jmpr {:jmpr_v8 {:opd-cats [prs.cat.v8] :size 2}})
 
 (local jmpa {:jmpa_v32 {:opd-cats [prs.cat.v32] :size 5}
              :jmpa_r {:opd-cats [prs.cat.reg] :size 2}})
