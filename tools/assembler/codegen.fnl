@@ -144,5 +144,32 @@
   (icollect [_ instr (ipairs instrs)]
     (alloc-addr-instr instr)))
 
+(fn lib.resolve-labels [instrs]
+  "Resolves category 'prs.cat.lbl' operands in 'instrs'.
+
+  Sets the 'res-val' field in the operand table to the resolved address.
+  "
+  (fn build-label-map [instrs]
+    (let [label-map {}]
+      (each [_ instr (ipairs instrs)]
+        (when (not= nil instr.label)
+          (tset label-map instr.label instr.addr)))
+      label-map))
+
+  (fn resolve-lbl-instr [label-map instr]
+    (when (not= nil instr.operands)
+      (each [_ opd (ipairs instr.operands)]
+        (when (is-in-list? opd.cats prs.cat.lbl)
+          (let [addr (?. label-map opd.val)]
+            (if (= nil addr)
+                (error (.. "cannot resolve label '" opd.val "' in:\n"
+                           (fennel.view instr)))
+                (tset opd :res-val addr))))))
+    instr)
+
+  (let [label-map (build-label-map instrs)]
+    (icollect [_ instr (ipairs instrs)]
+      (resolve-lbl-instr label-map instr))))
+
 lib
 

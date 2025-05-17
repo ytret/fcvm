@@ -29,9 +29,10 @@
           (res-instrs) (codegen.resolve-names cat-instrs)
           (sized-instrs) (codegen.size-instrs res-instrs)
           (addr-instrs) (codegen.allocate-addr sized-instrs)
+          (no-lbl-instrs) (codegen.resolve-labels addr-instrs)
           ]
       (do)
-      (print (fennel.view addr-instrs))
+      (print (fennel.view no-lbl-instrs))
       ;
       )))
 
