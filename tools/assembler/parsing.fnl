@@ -1,4 +1,5 @@
 (import-macros {: enum* : match-exact*} :auxm)
+(local {: is-in-list?} (require :auxfn))
 (local tok (require :scanning))
 (local fennel (require :fennel))
 
@@ -23,13 +24,6 @@
         ;; - str [0xCAFE], 0xFF
         ;;       :m32      [:v8 :v32]
         :cat (enum* [:id :reg :v5 :v8 :v32 :m32 :ri0 :ri8 :ri32 :rir])})
-
-(local is-in-list? (fn [list val]
-                     "Returns 'true' if 'list' contains 'val', otherwise returns 'false'."
-                     (var found false)
-                     (each [_ v (ipairs list) &until found]
-                       (set found (= v val)))
-                     found))
 
 (local parse-number
        (fn [num-str]
