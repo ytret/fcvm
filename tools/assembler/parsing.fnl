@@ -23,7 +23,7 @@
         ;;       :reg  :rir
         ;; - str [0xCAFE], 0xFF
         ;;       :m32      [:v8 :v32]
-        :cat (enum* [:id :reg :v5 :v8 :v32 :m32 :ri0 :ri8 :ri32 :rir])})
+        :cat (enum* [:id :reg :v5 :v8 :v32 :m32 :ri0 :ri8 :ri32 :rir :str])})
 
 (local parse-number
        (fn [num-str]
@@ -296,9 +296,10 @@
           :off (categorize-off-mem opd)))
 
       (match opd
-        {:type :id} (categorize-id opd)
-        {:type :number} (categorize-number opd)
-        {:type :mem} (categorize-mem opd)))
+        {:type lib.opd.id} (categorize-id opd)
+        {:type lib.opd.number} (categorize-number opd)
+        {:type lib.opd.mem} (categorize-mem opd)
+        {:type lib.opd.string} [lib.cat.str]))
 
     (each [_ opd (ipairs instr.operands)]
       (tset opd :cats (categorize-opd opd)))
