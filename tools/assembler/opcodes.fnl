@@ -1,44 +1,50 @@
 (local fennel (require :fennel))
+(local prs (require :parsing))
 
 (local lib {})
 
-(tset lib :descs [])
+(local mov {:mov_vr {:opd-cats [prs.cat.reg prs.cat.v32] :size 6}
+            :mov_rr {:opd-cats [prs.cat.reg prs.cat.reg] :size 2}})
 
-(macro add-variant* [desc-tbl name [instr-fmt desc]]
-  (assert-compile (sequence? instr-fmt) "expected sequence for instr-fmt"
-                  instr-fmt)
-  (assert-compile (table? desc) "expected table for desc" desc)
-  (let [[opcode opd-list] instr-fmt
-        {:match form-match : size} desc]
-    (assert-compile (= :string (type opcode)) "expected string for opcode"
-                    opcode)
-    (assert-compile (list? opd-list) "expected list for opd-list" opd-list)
-    (assert-compile (list? form-match) "expected list for match" desc)
-    (assert-compile (= :number (type size)) "epxected number for size" desc)
-    `(tset (. ,desc-tbl ,name) ,opcode
-           {:match (fn [,(unpack opd-list)]
-                     ,form-match)
-            :size ,size})))
+(local str {:str_rv0 {:opd-cats [prs.cat.m32 prs.cat.reg] :size 6}
+            :str_ri0 {:opd-cats [prs.cat.ri0 prs.cat.reg] :size 2}
+            :str_ri8 {:opd-cats [prs.cat.ri8 prs.cat.reg] :size 3}
+            :str_ri32 {:opd-cats [prs.cat.ri32 prs.cat.reg] :size 6}
+            :str_rir {:opd-cats [prs.cat.rir prs.cat.reg] :size 3}})
 
-(macro add-desc* [desc-tbl name ...]
-  (assert-compile (sym? desc-tbl) "expected symbol for desc-tbl" desc-tbl)
-  (assert-compile (= :string (type name)) "expected string for name" name)
-  (assert-compile (not= 0 (select "#" ...)) "expected at least one variant")
-  (let [var-forms []]
-    (each [i variant (ipairs (pack ...))]
-      (assert-compile (list? variant) (.. "expected list for variant #" i)
-                      variant)
-      (table.insert var-forms
-                    (macroexpand `(add-variant* ,desc-tbl ,name ,variant))))
-    `(do
-       (tset ,desc-tbl ,name {})
-       ,(unpack var-forms))))
+(local ldr {:ldr_rv0 {:opd-cats [prs.cat.reg prs.cat.m32] :size 6}
+            :ldr_ri0 {:opd-cats [prs.cat.reg prs.cat.ri0] :size 2}
+            :ldr_ri8 {:opd-cats [prs.cat.reg prs.cat.ri8] :size 3}
+            :ldr_ri32 {:opd-cats [prs.cat.reg prs.cat.ri32] :size 6}
+            :ldr_rir {:opd-cats [prs.cat.reg prs.cat.rir] :size 3}})
 
-(add-desc* lib.descs :mov
-           ([:mov_vr (o1 o2)] {:match (and o1.is-dreg? o2.is-imm32?) :size 6})
-           ([:mov_rr (o1 o2)] {:match (and o1.is-dreg? o2.is-dreg?) :size 2}))
+(local jmpr {:jmpr_v8 {:opd-cats [prs.cat.id] :size 2}})
 
-(print (fennel.view lib))
+(local jmpa {:jmpa_v32 {:opd-cats [prs.cat.v32] :size 5}
+             :jmpa_r {:opd-cats [prs.cat.reg] :size 2}})
+
+(local call {:calla_v32 {:opd-cats [prs.cat.v32] :size 5}
+             :calla_r {:opd-cats [prs.cat.reg] :size 2}})
+
+(local ret {:ret {:opd-cats [] :size 1}})
+
+(local halt {:halt {:opd-cats [] :size 1}})
+(local iret {:iret {:opd-cats [] :size 1}})
+
+(tset lib :descs {;; Data movement
+                  : mov
+                  : str
+                  : ldr
+                  ;; Flow control
+                  : jmpr
+                  : jmpa
+                  : call
+                  : ret
+                  ;; Other
+                  : halt
+                  : iret
+                  ;;
+                  })
 
 lib
 
