@@ -268,7 +268,7 @@
         (fn categorize-no-off-mem [opd]
           (let [subopd-cat (categorize-opd opd.val.val)]
             (match subopd-cat
-              lib.cat.reg [lib.cat.ri0]
+              [lib.cat.reg] [lib.cat.ri0]
               (where x (is-in-list? x lib.cat.v32)) [lib.cat.m32]
               _ (error (.. "cannot categorize memory operand, suboperand "
                            "category " (fennel.view subopd-cat) ":\n"
