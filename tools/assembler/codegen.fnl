@@ -148,6 +148,9 @@
   "Resolves category 'prs.cat.lbl' operands in 'instrs'.
 
   Sets the 'res-val' field in the operand table to the resolved address.
+
+  Special case: labels used as an operand to 'jmpr' instructions are resolved
+  relative to the instruction address.
   "
   (fn build-label-map [instrs]
     (let [label-map {}]
@@ -156,20 +159,25 @@
           (tset label-map instr.label instr.addr)))
       label-map))
 
-  (fn resolve-lbl-instr [label-map instr]
-    (when (not= nil instr.operands)
-      (each [_ opd (ipairs instr.operands)]
-        (when (is-in-list? opd.cats prs.cat.lbl)
-          (let [addr (?. label-map opd.val)]
-            (if (= nil addr)
-                (error (.. "cannot resolve label '" opd.val "' in:\n"
-                           (fennel.view instr)))
-                (tset opd :res-val addr))))))
-    instr)
+  (fn resolve-lbl-opds [label-map instr]
+    (each [_ opd (ipairs instr.operands)]
+      (when (is-in-list? opd.cats prs.cat.lbl)
+        (let [lbl-addr (?. label-map opd.val)
+              instr-addr instr.addr
+              val-abs lbl-addr
+              val-rel (- lbl-addr instr-addr)
+              use-rel? (= :jmpr instr.name)]
+          (if (= nil lbl-addr)
+              (error (.. "cannot resolve label '" opd.val "' in:\n"
+                         (fennel.view instr)))
+              (tset opd :res-val (if use-rel? val-rel val-abs)))))))
 
   (let [label-map (build-label-map instrs)]
     (icollect [_ instr (ipairs instrs)]
-      (resolve-lbl-instr label-map instr))))
+      (do
+        (when (not= nil instr.operands)
+          (resolve-lbl-opds label-map instr))
+        instr))))
 
 lib
 
