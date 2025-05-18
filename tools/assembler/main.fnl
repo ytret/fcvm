@@ -10,16 +10,19 @@
   (let [opts {}]
     (each [argidx argval (ipairs args)]
       (if (= "-" (string.sub argval 0 1))
-          (error (.. "Unknown option: " argval))
-          (if (= 1 argidx)
-              (tset opts :input-file argval)
-              (error (.. "Unexpected positional argument at " argidx ": "
+          (error (.. "unknown option: " argval))
+          (match argidx
+            1 (tset opts :input-file argval)
+            2 (tset opts :output-file argval)
+            _ (error (.. "unexpected positional argument at " argidx ": "
                          argval)))))
     opts))
 
-(fn main [{: input-file}]
-  (with-open [file (io.open input-file)]
-    (let [orig-text (file:read :*all)
+(fn main [{: input-file : output-file}]
+  (assert (not= nil input-file) "no input file provided")
+  (assert (not= nil output-file) "no output file provided")
+  (with-open [fin (io.open input-file) fout (io.open output-file :wb)]
+    (let [orig-text (fin:read :*all)
           proc-lines (preproc.run orig-text)
           token-lines (scanning.run proc-lines)
           (labels instrs) (parsing.parse-tokens token-lines)
@@ -30,8 +33,15 @@
           (sized-instrs) (codegen.size-instrs res-instrs)
           (addr-instrs) (codegen.allocate-addr sized-instrs)
           (no-lbl-instrs) (codegen.resolve-labels addr-instrs)
-          bytes (codegen.gen-bytes no-lbl-instrs)]
-      (print "Binary size:" (length bytes)))))
+          bytelist (codegen.gen-bytes no-lbl-instrs)]
+      (print "Binary size:" (length bytelist))
+      (var bytestr "")
+      (each [_ by (ipairs bytelist)]
+        (set bytestr (.. bytestr (string.char by))))
+      (assert (= (length bytestr) (length bytelist)))
+      (fout:write bytestr)
+      ;
+      )))
 
 (main (parse-args arg))
 
