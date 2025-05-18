@@ -220,7 +220,7 @@
       (let [reg-codes {:r0 0 :r1 1 :r2 2 :r3 3 :r4 4 :r5 5 :r6 6 :r7 7 :sp 8}
             reg-code (?. reg-codes reg-name)]
         (when (= nil reg-code)
-          (error (.. "unrecognized register '" reg-name "'")))
+          (error (.. "unrecognized register '" (fennel.view reg-name) "'")))
         reg-code))
 
     (fn reg-codes [reg1-name reg2-name]
@@ -253,7 +253,7 @@
           [c-reg c-reg]
           (add-byte (reg-codes o1.val o2.val))
           (where (or [c-reg c-ri0] [c-ri0 c-reg]))
-          (add-byte (reg-codes o1.val o2.val.val))
+          (add-byte (reg-codes o1.val o2.val.val.val))
           (where (or [c-reg c-ri8] [c-ri8 c-reg]))
           (do
             (add-byte (reg-codes o1.val o2.val.lhs.val))
@@ -270,6 +270,10 @@
           (do
             (add-byte (reg-code o1.val))
             (add-lbl-or-val add-dword o2))
+          [c-reg c-v5]
+          (do
+            (add-byte (reg-code o1.val))
+            (add-byte o2.val))
           [c-v32]
           (add-lbl-or-val add-dword o1)
           [c-v8]
