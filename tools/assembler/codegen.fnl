@@ -148,6 +148,8 @@
   "Resolves category 'prs.cat.lbl' operands in 'instrs'.
 
   Sets the 'res-val' field in the operand table to the resolved address.
+  Removes 'label' field from the instructions; if the instruction does not have
+  a name, removes it from the list.
 
   Special case: labels used as an operand to 'jmpr' instructions are resolved
   relative to the instruction address.
@@ -177,7 +179,8 @@
       (do
         (when (not= nil instr.operands)
           (resolve-lbl-opds label-map instr))
-        instr))))
+        (tset instr :label nil)
+        (when (not= nil instr.name) instr)))))
 
 lib
 
