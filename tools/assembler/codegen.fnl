@@ -244,44 +244,55 @@
             c-ri8 prs.cat.ri8
             c-ri32 prs.cat.ri32
             c-rir prs.cat.rir]
-        (match desc-opd-cats
-          ;;
-          (where (or [c-reg c-m32] [c-m32 c-reg]))
-          (do
-            (add-byte (reg-code o1.val))
-            (add-dword o2.val.val.val))
-          [c-reg c-reg]
-          (add-byte (reg-codes o1.val o2.val))
-          (where (or [c-reg c-ri0] [c-ri0 c-reg]))
-          (add-byte (reg-codes o1.val o2.val.val.val))
-          (where (or [c-reg c-ri8] [c-ri8 c-reg]))
-          (do
-            (add-byte (reg-codes o1.val o2.val.lhs.val))
-            (add-byte o2.val.rhs.val))
-          (where (or [c-reg c-ri32] [c-ri32 c-reg]))
-          (do
-            (add-byte (reg-codes o1.val o2.val.lhs.val))
-            (add-dword o2.val.rhs.val))
-          (where (or [c-rir c-reg] [c-reg c-rir]))
-          (do
-            (add-byte (reg-codes o1.val o2.val.lhs.val))
-            (add-byte (reg-code o2.val.rhs.val)))
-          [c-reg c-v32]
-          (do
-            (add-byte (reg-code o1.val))
-            (add-lbl-or-val add-dword o2))
-          [c-reg c-v5]
-          (do
-            (add-byte (reg-code o1.val))
-            (add-byte o2.val))
-          [c-v32]
-          (add-lbl-or-val add-dword o1)
-          [c-v8]
-          (add-lbl-or-val add-byte o1)
-          [c-reg]
-          (add-byte (reg-code o1.val))
-          _
-          (error (.. "cannot encode operands in:\n" (fennel.view instr))))))
+        (match-exact* desc-opd-cats ;;
+                      [c-reg c-m32]
+                      (do
+                        (add-byte (reg-code o1.val))
+                        (add-dword o2.val.val.val))
+                      [c-m32 c-reg]
+                      (do
+                        (add-byte (reg-code o2.val))
+                        (add-dword o1.val.val.val))
+                      [c-reg c-reg] (add-byte (reg-codes o1.val o2.val))
+                      [c-reg c-ri0] (add-byte (reg-codes o1.val o2.val.val.val))
+                      [c-ri0 c-reg] (add-byte (reg-codes o2.val o1.val.val.val))
+                      [c-reg c-ri8]
+                      (do
+                        (add-byte (reg-codes o1.val o2.val.lhs.val))
+                        (add-byte o2.val.rhs.val))
+                      [c-ri8 c-reg]
+                      (do
+                        (add-byte (reg-codes o2.val o1.val.lhs.val))
+                        (add-byte o1.val.rhs.val))
+                      [c-reg c-ri32]
+                      (do
+                        (add-byte (reg-codes o1.val o2.val.lhs.val))
+                        (add-dword o2.val.rhs.val))
+                      [c-ri32 c-reg]
+                      (do
+                        (add-byte (reg-codes o2.val o1.val.lhs.val))
+                        (add-dword o1.val.rhs.val))
+                      [c-rir c-reg]
+                      (do
+                        (add-byte (reg-codes o1.val o2.val.lhs.val))
+                        (add-byte (reg-code o2.val.rhs.val)))
+                      [c-reg c-rir]
+                      (do
+                        (add-byte (reg-codes o2.val o1.val.lhs.val))
+                        (add-byte (reg-code o1.val.rhs.val)))
+                      [c-reg c-v32]
+                      (do
+                        (add-byte (reg-code o1.val))
+                        (add-lbl-or-val add-dword o2))
+                      [c-reg c-v5]
+                      (do
+                        (add-byte (reg-code o1.val))
+                        (add-byte o2.val)) [c-v32]
+                      (add-lbl-or-val add-dword o1) [c-v8]
+                      (add-lbl-or-val add-byte o1) [c-reg]
+                      (add-byte (reg-code o1.val)) ;
+                      _ (error (.. "cannot encode operands in:\n"
+                                  (fennel.view instr))))))
 
     (let [pad-size (- instr.addr (length bytes))]
       (assert (>= pad-size 0)
