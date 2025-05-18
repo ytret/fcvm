@@ -182,5 +182,141 @@
         (tset instr :label nil)
         (when (not= nil instr.name) instr)))))
 
+(fn lib.gen-bytes [instrs]
+  (local bytes [])
+
+  (fn add-instr [instr]
+    (fn add-byte [by]
+      (assert (or (and (<= -127 by) (<= by 127)) (and (<= 0 by) (<= by 255))))
+      (table.insert bytes by))
+
+    (fn add-bytes [...]
+      (each [_ by (ipairs (table.pack ...))]
+        (add-byte by)))
+
+    (fn add-dword [val]
+      (let [signed-min (- (lshift 1 31))
+            signed-max (- (lshift 1 31) 1)
+            unsigned-min 0
+            unsigned-max (- (lshift 1 32) 1)
+            abs-val (if (>= val 0) val (- val))]
+        (assert (or (and (<= signed-min val) (<= val signed-max))
+                    (and (<= unsigned-min val) (<= val unsigned-max))))
+        (add-bytes (band (rshift abs-val 24) 255) ;
+                   (band (rshift abs-val 16) 255) ;
+                   (band (rshift abs-val 8) 255) ;
+                   (band (rshift abs-val 0) 255))))
+
+    (fn add-lbl-or-val [fn-add opd]
+      (let [is-label? (is-in-list? opd.cats prs.cat.lbl)]
+        (fn-add (if is-label? opd.res-val opd.val))))
+
+    (fn add-str [val]
+      (each [ch (string.gmatch val ".")]
+        (add-byte (string.byte ch)))
+      (add-byte 0))
+
+    (fn reg-code [reg-name]
+      (let [reg-codes {:r0 0 :r1 1 :r2 2 :r3 3 :r4 4 :r5 5 :r6 6 :r7 7 :sp 8}
+            reg-code (?. reg-codes reg-name)]
+        (when (= nil reg-code)
+          (error (.. "unrecognized register '" reg-name "'")))
+        reg-code))
+
+    (fn reg-codes [reg1-name reg2-name]
+      (let [reg1-code (reg-code reg1-name)
+            reg2-code (reg-code reg2-name)]
+        (assert (<= reg1-code 15))
+        (assert (<= reg2-code 15))
+        (bor (lshift reg1-code 4) reg2-code)))
+
+    (fn add-opds [instr desc-opd-cats]
+      (let [o1 (?. instr :operands 1)
+            o2 (?. instr :operands 2)
+            ;; match won't let us use multi symbols like 'prs.cat.reg', so we
+            ;; use aliases
+            c-reg prs.cat.reg
+            c-v5 prs.cat.v5
+            c-v8 prs.cat.v8
+            c-v32 prs.cat.v32
+            c-m32 prs.cat.m32
+            c-ri0 prs.cat.ri0
+            c-ri8 prs.cat.ri8
+            c-ri32 prs.cat.ri32
+            c-rir prs.cat.rir]
+        (match desc-opd-cats
+          ;;
+          (where (or [c-reg c-m32] [c-m32 c-reg]))
+          (do
+            (add-byte (reg-code o1.val))
+            (add-dword o2.val.val.val))
+          [c-reg c-reg]
+          (add-byte (reg-codes o1.val o2.val))
+          (where (or [c-reg c-ri0] [c-ri0 c-reg]))
+          (add-byte (reg-codes o1.val o2.val.val))
+          (where (or [c-reg c-ri8] [c-ri8 c-reg]))
+          (do
+            (add-byte (reg-codes o1.val o2.val.lhs.val))
+            (add-byte o2.val.rhs.val))
+          (where (or [c-reg c-ri32] [c-ri32 c-reg]))
+          (do
+            (add-byte (reg-codes o1.val o2.val.lhs.val))
+            (add-dword o2.val.rhs.val))
+          (where (or [c-rir c-reg] [c-reg c-rir]))
+          (do
+            (add-byte (reg-codes o1.val o2.val.lhs.val))
+            (add-byte (reg-code o2.val.rhs.val)))
+          [c-reg c-v32]
+          (do
+            (add-byte (reg-code o1.val))
+            (add-lbl-or-val add-dword o2))
+          [c-v32]
+          (add-lbl-or-val add-dword o1)
+          [c-v8]
+          (add-lbl-or-val add-byte o1)
+          [c-reg]
+          (add-byte (reg-code o1.val))
+          _
+          (error (.. "cannot encode operands in:\n" (fennel.view instr))))))
+
+    (let [pad-size (- instr.addr (length bytes))]
+      (assert (>= pad-size 0)
+              (.. "bad size calculation, cannot put instruction at its address "
+                  "below " (length bytes) ":\n" (fennel.view instr)))
+      (for [i 1 pad-size]
+        (table.insert bytes 0)))
+    (local size-before (length bytes))
+    (if (= nil instr.gen-desc)
+        (case instr.name
+          :.strs (do
+                   (assert (not= nil instr.operands))
+                   (assert (= 1 (length instr.operands)))
+                   (assert (is-in-list? (. instr.operands 1 :cats) prs.cat.str))
+                   (add-str (. instr.operands 1 :val)))
+          :.strd (do
+                   (assert (not= nil instr.operands))
+                   (assert (= 1 (length instr.operands)))
+                   (add-lbl-or-val add-dword (. instr.operands 1)))
+          :.strb (do
+                   (assert (not= nil instr.operands))
+                   (assert (= 1 (length instr.operands)))
+                   (assert (is-in-list? (. instr.operands 1 :cats) prs.cat.v8))
+                   (add-byte (. instr.operands 1 :val)))
+          _ (error (.. "unrecognized instruction without gen-desc:\n"
+                       (fennel.view instr))))
+        (do
+          (add-byte instr.gen-desc.opcode)
+          (when (> (length instr.gen-desc.opd-cats) 0)
+            (add-opds instr instr.gen-desc.opd-cats))))
+    (local size-after (length bytes))
+    (assert (= (- size-after size-before) instr.size)
+            (.. "bad encoded size, expected " instr.size ", got "
+                (- size-after size-before) ":\n" (fennel.view instr))))
+
+  (assert (not= 0 (length instrs)))
+  (each [_ instr (ipairs instrs)]
+    (add-instr instr))
+  bytes)
+
 lib
 

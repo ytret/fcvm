@@ -30,11 +30,8 @@
           (sized-instrs) (codegen.size-instrs res-instrs)
           (addr-instrs) (codegen.allocate-addr sized-instrs)
           (no-lbl-instrs) (codegen.resolve-labels addr-instrs)
-          ]
-      (do)
-      (print (fennel.view no-lbl-instrs))
-      ;
-      )))
+          bytes (codegen.gen-bytes no-lbl-instrs)]
+      (print "Binary size:" (length bytes)))))
 
 (main (parse-args arg))
 
