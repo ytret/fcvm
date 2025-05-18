@@ -253,7 +253,7 @@
                       (do
                         (add-byte (reg-code o2.val))
                         (add-dword o1.val.val.val))
-                      [c-reg c-reg] (add-byte (reg-codes o1.val o2.val))
+                      [c-reg c-reg] (add-byte (reg-codes o2.val o1.val))
                       [c-reg c-ri0] (add-byte (reg-codes o2.val.val.val o1.val))
                       [c-ri0 c-reg] (add-byte (reg-codes o2.val o1.val.val.val))
                       [c-reg c-ri8]

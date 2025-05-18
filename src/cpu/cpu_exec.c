@@ -135,8 +135,8 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     uint32_t src_val;
     if ((cpu->instr.opcode & 1) == 0) {
         // Even opcodes require two register operands.
-        p_reg_dst = cpu->instr.operands[0].p_regs[0];
-        src_val = *cpu->instr.operands[0].p_regs[1];
+        src_val = *cpu->instr.operands[0].p_regs[0];
+        p_reg_dst = cpu->instr.operands[0].p_regs[1];
     } else if (cpu->instr.opcode == CPU_OP_NOT_R) {
         // Only one register operand.
         p_reg_dst = cpu->instr.operands[0].p_reg;
