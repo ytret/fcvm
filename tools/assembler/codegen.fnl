@@ -151,8 +151,8 @@
   Removes 'label' field from the instructions; if the instruction does not have
   a name, removes it from the list.
 
-  Special case: labels used as an operand to 'jmpr' instructions are resolved
-  relative to the instruction address.
+  Special case: labels used as an operand to relative control flow instructions
+  are resolved relative to the instruction address.
   "
   (fn build-label-map [instrs]
     (let [label-map {}]
@@ -168,7 +168,7 @@
               instr-addr instr.addr
               val-abs lbl-addr
               val-rel (- lbl-addr instr-addr)
-              use-rel? (= :jmpr instr.name)]
+              use-rel? (is-in-list? [:jmpr :jner] instr.name)]
           (if (= nil lbl-addr)
               (error (.. "cannot resolve label '" opd.val "' in:\n"
                          (fennel.view instr)))

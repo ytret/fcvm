@@ -23,10 +23,16 @@
 
 (local _not {:not_r {:opcode 87 :opd-cats [prs.cat.reg] :size 2}})
 
+(local tst
+       {:tst_rr {:opcode 92 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+        :tst_rv {:opcode 85 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
+
 (local jmpr {:jmpr_v8 {:opcode 96 :opd-cats [prs.cat.v8] :size 2}})
 
 (local jmpa {:jmpa_v32 {:opcode 97 :opd-cats [prs.cat.v32] :size 5}
              :jmpa_r {:opcode 98 :opd-cats [prs.cat.reg] :size 2}})
+
+(local jner {:jner_v8 {:opcode 104 :opd-cats [prs.cat.v8] :size 2}})
 
 (local call
        {:calla_v32 {:opcode 125 :opd-cats [prs.cat.v32] :size 5}
@@ -43,9 +49,11 @@
                   : ldr
                   ;; ALU
                   :not _not
+                  : tst
                   ;; Flow control
                   : jmpr
                   : jmpa
+                  : jner
                   : call
                   : ret
                   ;; Other
