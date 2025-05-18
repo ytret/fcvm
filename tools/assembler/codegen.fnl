@@ -188,7 +188,7 @@
   (fn add-instr [instr]
     (fn add-byte [by]
       (assert (or (and (<= -127 by) (<= by 127)) (and (<= 0 by) (<= by 255))))
-      (table.insert bytes by))
+      (table.insert bytes (if (< by 0) (+ by 256) by)))
 
     (fn add-bytes [...]
       (each [_ by (ipairs (table.pack ...))]
@@ -202,10 +202,10 @@
             abs-val (if (>= val 0) val (- val))]
         (assert (or (and (<= signed-min val) (<= val signed-max))
                     (and (<= unsigned-min val) (<= val unsigned-max))))
-        (add-bytes (band (rshift abs-val 24) 255) ;
-                   (band (rshift abs-val 16) 255) ;
+        (add-bytes (band (rshift abs-val 0) 255) ;
                    (band (rshift abs-val 8) 255) ;
-                   (band (rshift abs-val 0) 255))))
+                   (band (rshift abs-val 16) 255) ;
+                   (band (rshift abs-val 24) 255))))
 
     (fn add-lbl-or-val [fn-add opd]
       (let [is-label? (is-in-list? opd.cats prs.cat.lbl)]
