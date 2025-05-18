@@ -168,7 +168,7 @@
               instr-addr instr.addr
               val-abs lbl-addr
               val-rel (- lbl-addr instr-addr)
-              use-rel? (is-in-list? [:jmpr :jner] instr.name)]
+              use-rel? (is-in-list? [:jmpr :jeqr :jner] instr.name)]
           (if (= nil lbl-addr)
               (error (.. "cannot resolve label '" opd.val "' in:\n"
                          (fennel.view instr)))

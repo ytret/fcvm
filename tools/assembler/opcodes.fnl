@@ -23,6 +23,16 @@
 
 (local _not {:not_r {:opcode 87 :opd-cats [prs.cat.reg] :size 2}})
 
+(local _and
+       {:and_rr {:opcode 76 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+        :and_rv {:opcode 75 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
+
+(local shr
+       {:shr_rr {:opcode 84 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+        :shr_rv {:opcode 83 :opd-cats [prs.cat.reg prs.cat.v5] :size 3}})
+
+(local cmp {:cmp_rr {:opcode 90 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}})
+
 (local tst
        {:tst_rr {:opcode 92 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
         :tst_rv {:opcode 85 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
@@ -32,6 +42,7 @@
 (local jmpa {:jmpa_v32 {:opcode 97 :opd-cats [prs.cat.v32] :size 5}
              :jmpa_r {:opcode 98 :opd-cats [prs.cat.reg] :size 2}})
 
+(local jeqr {:jqer_v8 {:opcode 104 :opd-cats [prs.cat.v8] :size 2}})
 (local jner {:jner_v8 {:opcode 104 :opd-cats [prs.cat.v8] :size 2}})
 
 (local call
@@ -48,11 +59,15 @@
                   : str
                   : ldr
                   ;; ALU
+                  :and _and
                   :not _not
+                  : shr
+                  : cmp
                   : tst
                   ;; Flow control
                   : jmpr
                   : jmpa
+                  : jeqr
                   : jner
                   : call
                   : ret
