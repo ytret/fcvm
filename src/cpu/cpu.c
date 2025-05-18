@@ -15,6 +15,7 @@
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,
                                              cpu_opd_val_t *out_val);
+static void prv_cpu_print_instr(const cpu_instr_t *instr);
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err);
@@ -195,6 +196,7 @@ void cpu_step(cpu_ctx_t *cpu) {
     }
 
     case CPU_EXECUTE: {
+        prv_cpu_print_instr(&cpu->instr);
         vm_err_t err = cpu_execute_instr(cpu);
         if (prv_cpu_check_err(cpu, err)) { goto CPU_STEP_END; }
         if (cpu->state == CPU_EXECUTE) {
@@ -387,6 +389,39 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
 
     cpu->reg_pc += opd_size;
     return err;
+}
+
+static void prv_cpu_print_instr(const cpu_instr_t *instr) {
+    D_ASSERT(instr);
+    D_ASSERT(instr->desc);
+
+    fprintf(stderr, "%08X | %02X", instr->start_addr, instr->opcode);
+    for (size_t opd = 0; opd < instr->desc->num_operands; opd++) {
+        if (opd == 0) { fprintf(stderr, " ["); }
+        switch (instr->desc->operands[opd]) {
+        case CPU_OPD_REG:
+            fprintf(stderr, "reg %02X", instr->operands[opd].reg_code);
+            break;
+        case CPU_OPD_REGS:
+            fprintf(stderr, "regs %02X", instr->operands[opd].reg_codes);
+            break;
+        case CPU_OPD_IMM5:
+            fprintf(stderr, "imm5 %02X", instr->operands[opd].imm5);
+            break;
+        case CPU_OPD_IMM8:
+            fprintf(stderr, "imm8 %02X", instr->operands[opd].u8);
+            break;
+        case CPU_OPD_IMM32:
+            fprintf(stderr, "imm32 %08X", instr->operands[opd].u32);
+            break;
+        }
+        if (opd == instr->desc->num_operands - 1) {
+            fprintf(stderr, "]");
+        } else {
+            fprintf(stderr, ", ");
+        }
+    }
+    fprintf(stderr, "\n");
 }
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err) {
