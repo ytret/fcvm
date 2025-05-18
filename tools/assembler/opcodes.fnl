@@ -42,7 +42,7 @@
 (local jmpa {:jmpa_v32 {:opcode 97 :opd-cats [prs.cat.v32] :size 5}
              :jmpa_r {:opcode 98 :opd-cats [prs.cat.reg] :size 2}})
 
-(local jeqr {:jqer_v8 {:opcode 104 :opd-cats [prs.cat.v8] :size 2}})
+(local jeqr {:jeqr_v8 {:opcode 100 :opd-cats [prs.cat.v8] :size 2}})
 (local jner {:jner_v8 {:opcode 104 :opd-cats [prs.cat.v8] :size 2}})
 
 (local call
