@@ -21,6 +21,14 @@
         :ldr_ri32 {:opcode 42 :opd-cats [prs.cat.reg prs.cat.ri32] :size 6}
         :ldr_rir {:opcode 43 :opd-cats [prs.cat.reg prs.cat.rir] :size 3}})
 
+(local add
+       {:add_rr {:opcode 66 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+        :add_rv {:opcode 65 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
+
+(local sub
+       {:sub_rr {:opcode 68 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+        :sub_rv {:opcode 67 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
+
 (local _not {:not_r {:opcode 87 :opd-cats [prs.cat.reg] :size 2}})
 
 (local _and
@@ -59,6 +67,8 @@
                   : str
                   : ldr
                   ;; ALU
+                  : add
+                  : sub
                   :and _and
                   :not _not
                   : shr
