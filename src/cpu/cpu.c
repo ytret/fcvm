@@ -409,7 +409,8 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     cpu->curr_int_line = exc_num;
     cpu->pc_after_isr = cpu->instr.start_addr;
 
-    D_PRINTF("exception %u, count %zu", exc_num, cpu->num_nested_exc);
+    D_PRINTF("exception %u, count %zu, pc = 0x%08X", exc_num,
+             cpu->num_nested_exc, cpu->reg_pc);
 
     if (cpu->num_nested_exc == 3) {
         cpu->state = CPU_TRIPLE_FAULT;
