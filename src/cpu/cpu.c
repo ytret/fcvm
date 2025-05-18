@@ -19,6 +19,7 @@ static void prv_cpu_print_instr(const cpu_instr_t *instr);
 
 static bool prv_cpu_check_err(cpu_ctx_t *cpu, vm_err_t err);
 static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err);
+static void prv_cpu_print_regs(const cpu_ctx_t *cpu);
 
 cpu_ctx_t *cpu_new(mem_if_t *mem) {
     D_ASSERT(mem);
@@ -444,11 +445,22 @@ static void prv_cpu_raise_exception(cpu_ctx_t *cpu, vm_err_t err) {
     cpu->curr_int_line = exc_num;
     cpu->pc_after_isr = cpu->instr.start_addr;
 
-    D_PRINTF("exception %u, count %zu, pc = 0x%08X", exc_num,
-             cpu->num_nested_exc, cpu->reg_pc);
+    D_PRINTF("exception %u, count %zu", exc_num, cpu->num_nested_exc);
+    prv_cpu_print_regs(cpu);
 
     if (cpu->num_nested_exc == 3) {
         cpu->state = CPU_TRIPLE_FAULT;
         return;
     }
+}
+
+static void prv_cpu_print_regs(const cpu_ctx_t *cpu) {
+    D_ASSERT(cpu);
+
+    D_PRINT("registers:");
+    D_PRINTF("  r0: %08X    r1: %08X", cpu->gp_regs[0], cpu->gp_regs[1]);
+    D_PRINTF("  r2: %08X    r3: %08X", cpu->gp_regs[2], cpu->gp_regs[3]);
+    D_PRINTF("  r4: %08X    r5: %08X", cpu->gp_regs[4], cpu->gp_regs[5]);
+    D_PRINTF("  r6: %08X    r7: %08X", cpu->gp_regs[6], cpu->gp_regs[7]);
+    D_PRINTF("  sp: %08X    pc: %08X", cpu->reg_sp, cpu->reg_pc);
 }
