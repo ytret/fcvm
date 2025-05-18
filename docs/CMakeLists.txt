@@ -8,6 +8,7 @@ if(Doxygen_FOUND)
     add_custom_command(
         OUTPUT ${DOXYGEN_INDEX_FILE}
         DEPENDS fcvm
+                ex_common
                 ${CMAKE_SOURCE_DIR}/README.md
                 ${CMAKE_CURRENT_SOURCE_DIR}/theme/
         COMMAND ${DOXYGEN_EXECUTABLE} -q ${DOXYFILE}

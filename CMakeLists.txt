@@ -51,13 +51,6 @@ target_compile_options(fcvm PRIVATE
 target_include_directories(fcvm PUBLIC inc src)
 
 
-###########
-## Tests ##
-###########
 add_subdirectory(tests)
-
-
-##########
-## Docs ##
-##########
 add_subdirectory(docs)
+add_subdirectory(examples)
