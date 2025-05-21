@@ -52,6 +52,7 @@ typedef struct {
 } print_dev_ctx_t;
 
 print_dev_ctx_t *print_dev_new(void);
+void print_dev_free(print_dev_ctx_t *ctx);
 
 size_t print_dev_snapshot_size(const void *v_ctx);
 size_t print_dev_snapshot(const void *v_ctx, void *v_buf, size_t max_size);

@@ -27,6 +27,10 @@ print_dev_ctx_t *print_dev_new(void) {
     return ctx;
 }
 
+void print_dev_free(print_dev_ctx_t *ctx) {
+    free(ctx);
+}
+
 size_t print_dev_snapshot_size(const void *v_ctx) {
     (void)v_ctx;
     fprintf(stderr, "TODO: %s\n", __func__);
