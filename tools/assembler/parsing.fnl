@@ -307,5 +307,13 @@
         (cat-instr-opds instr)
         instr)))
 
+(fn lib.run [token-lines]
+  "Parses 'token-lines' into a list of instructions."
+  (-> token-lines
+      lib.parse-tokens
+      lib.parse-setvars
+      lib.expand-vars
+      lib.categorize-opds))
+
 lib
 
