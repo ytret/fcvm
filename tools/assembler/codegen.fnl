@@ -333,5 +333,14 @@
     (add-instr instr))
   bytes)
 
+(fn lib.run [instrs]
+  "Generates bytecode (a sequential table of byte-sized integers) for 'instrs'."
+  (-> instrs
+      (lib.resolve-names)
+      (lib.size-instrs)
+      (lib.allocate-addr)
+      (lib.resolve-labels)
+      (lib.gen-bytes)))
+
 lib
 
