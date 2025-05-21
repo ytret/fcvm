@@ -1,3 +1,5 @@
+#!/usr/bin/env fennel
+
 (local fennel (require :fennel))
 
 (local preproc (require :preproc))
