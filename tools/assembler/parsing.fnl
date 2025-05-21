@@ -32,9 +32,6 @@
            (tonumber (string.sub x 3) 16)
            (where x (string.match x "^[%d]+")) (tonumber x 10))))
 
-(local parse-indir-id-id (fn [tok-base tok-op tok-off]
-                           {}))
-
 (fn lib.parse-tokens [token-lines]
   "Parses each of 'token-lines' into a list of instructions."
   (local all-labels {})
