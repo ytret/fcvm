@@ -4,10 +4,12 @@
 #include <ex_common/print_dev.h>
 #include <fcvm/vm.h>
 
-int main(void) {
-    const char *guest_prog_path = "hello-world.bin";
+#ifndef EX_HELLO_WORLD_GUEST
+#error "path to the guest program binary (EX_HELLO_WORLD_GUEST) is not provided"
+#endif
 
-    file_rom_ctx_t *file_rom = file_rom_new(guest_prog_path);
+int main(void) {
+    file_rom_ctx_t *file_rom = file_rom_new(EX_HELLO_WORLD_GUEST);
     if (!file_rom) {
         fprintf(stderr, "main: file_rom_new() returned NULL\n");
         return 1;
