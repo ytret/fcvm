@@ -14,5 +14,5 @@
 #endif
 
 #if HAS_BUILTIN_CTZ
-#define stdc_first_trailing_one(x) __builtin_ctz(x)
+#define stdc_first_trailing_one(x) (1 + __builtin_ctz(x))
 #endif
