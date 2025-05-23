@@ -3,6 +3,7 @@
  * Bus controller implementation.
  */
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -236,7 +237,7 @@ static vm_err_t prv_busctl_mmio_read_u32(void *v_ctx, vm_addr_t offset,
     if (offset == 0) {
         // Slot status register.
         uint32_t slot_status_reg = 0;
-        static_assert(BUS_MAX_DEVS <= UINT32_WIDTH,
+        static_assert(BUS_MAX_DEVS <= 32, // width of 'slot_status_reg'
                       "slot status register is too narrow");
         for (size_t slot = 0; slot < BUS_MAX_DEVS; slot++) {
             if (busctl->used_slots[slot]) { slot_status_reg |= (1 << slot); }

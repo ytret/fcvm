@@ -3,12 +3,12 @@
  * Interrupt controller implementation.
  */
 
-#include <stdbit.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <fcvm/intctl.h>
 #include "debugm.h"
+#include "portability.h"
+#include <fcvm/intctl.h>
 
 intctl_ctx_t *intctl_new(void) {
     intctl_ctx_t *intctl = malloc(sizeof(*intctl));

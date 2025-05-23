@@ -27,7 +27,7 @@ target_compile_options(testcommon PRIVATE
     -Wall -Wextra -fdiagnostics-color=always
 )
 target_include_directories(testcommon PUBLIC ${CMAKE_CURRENT_LIST_DIR})
-target_link_libraries(testcommon PUBLIC fcvm)
+target_link_libraries(testcommon PUBLIC fcvm GTest::gtest)
 
 
 ############################

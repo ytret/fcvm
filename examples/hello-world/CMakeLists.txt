@@ -18,7 +18,6 @@ add_executable(ex_hello_world
 target_compile_options(ex_hello_world PRIVATE
     -g -Wall -Wextra -Wmissing-prototypes
     -fdiagnostics-color=always
-    -fanalyzer
 )
 target_compile_definitions(ex_hello_world PRIVATE
     -DEX_HELLO_WORLD_GUEST="${CMAKE_CURRENT_BINARY_DIR}/hello-world.bin"
