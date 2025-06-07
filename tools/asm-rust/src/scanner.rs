@@ -12,7 +12,6 @@ pub enum TokenType {
     Register(String),
     Number(i64),
     String(String),
-    Comment(String),
 }
 
 pub type Token = Located<TokenType>;
@@ -209,25 +208,7 @@ fn tokenize_line(line: &preproc::PreprocLine, orig_lines: &[String]) -> Result<V
 
             ';' => {
                 // Comment until EOL.
-                let mut comment = String::new();
-                comment.push(ch);
-                let mut end_pos = start_pos;
-                while let Some(&(pos, next_ch)) = chars.peek() {
-                    comment.push(next_ch);
-                    end_pos = pos;
-                    chars.next();
-                }
-                let end_loc = SourceLoc {
-                    line: line.orig_line_num,
-                    column: line.start_col + end_pos + 1,
-                };
-                tokens.push(Located::new(
-                    TokenType::Comment(comment),
-                    SourceSpan {
-                        start: start_loc,
-                        end: end_loc,
-                    },
-                ));
+                while let Some(_) = chars.next() {}
             }
 
             _ => {
