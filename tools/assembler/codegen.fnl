@@ -274,12 +274,12 @@
                         (add-dword o1.val.rhs.val))
                       [c-rir c-reg]
                       (do
-                        (add-byte (reg-codes o2.val.lhs.val o1.val))
-                        (add-byte (reg-code o2.val.rhs.val)))
+                        (add-byte (reg-codes o1.val.lhs.val o2.val))
+                        (add-byte (reg-code o1.val.rhs.val)))
                       [c-reg c-rir]
                       (do
-                        (add-byte (reg-codes o2.val o1.val.lhs.val))
-                        (add-byte (reg-code o1.val.rhs.val)))
+                        (add-byte (reg-codes o2.val.lhs.val o1.val))
+                        (add-byte (reg-code o2.val.rhs.val)))
                       [c-reg c-v32]
                       (do
                         (add-byte (reg-code o1.val))
