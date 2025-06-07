@@ -7,7 +7,7 @@ pub enum TokenType {
     Comma,
     OpenSqBr,
     CloseSqBr,
-    ArithmOp(String),
+    ArithmOp(char),
     Identifier(String),
     Register(String),
     Number(i64),
@@ -16,7 +16,7 @@ pub enum TokenType {
 
 pub type Token = Located<TokenType>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TokenizedLine {
     pub tokens: Vec<Token>,
     pub orig_line_num: usize,
@@ -71,7 +71,7 @@ fn tokenize_line(line: &preproc::PreprocLine, orig_lines: &[String]) -> Result<V
             ',' => push_single_char_token(TokenType::Comma),
             '[' => push_single_char_token(TokenType::OpenSqBr),
             ']' => push_single_char_token(TokenType::CloseSqBr),
-            '+' | '-' => push_single_char_token(TokenType::ArithmOp(ch.to_string())),
+            '+' | '-' => push_single_char_token(TokenType::ArithmOp(ch)),
 
             _ if ch.is_alphabetic() || ch == '_' || ch == '.' => {
                 // Parse an identifier/register.
