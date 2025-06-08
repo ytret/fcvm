@@ -11,8 +11,8 @@ pub enum OperandType {
     Number(i64),
     MemoryNoMath(Box<OperandType>),
     MemoryWithMath {
-        lhs: Box<OperandType>,
-        rhs: Box<OperandType>,
+        lhs: Box<Operand>,
+        rhs: Box<Operand>,
         op: char,
     },
     String(String),
@@ -210,8 +210,14 @@ impl ProgramParser {
                 TokenType::Number(offset),
                 TokenType::CloseSqBr,
             ] => OperandType::MemoryWithMath {
-                lhs: Box::new(OperandType::Register(reg.clone())),
-                rhs: Box::new(OperandType::Number(offset.clone())),
+                lhs: Box::new(Located::new(
+                    OperandType::Register(reg.clone()),
+                    operand_tokens[1].span,
+                )),
+                rhs: Box::new(Located::new(
+                    OperandType::Number(offset.clone()),
+                    operand_tokens[3].span,
+                )),
                 op: arithm_op.clone(),
             },
             [
@@ -221,8 +227,14 @@ impl ProgramParser {
                 TokenType::Register(reg_offset),
                 TokenType::CloseSqBr,
             ] => OperandType::MemoryWithMath {
-                lhs: Box::new(OperandType::Register(reg_base.clone())),
-                rhs: Box::new(OperandType::Register(reg_offset.clone())),
+                lhs: Box::new(Located::new(
+                    OperandType::Register(reg_base.clone()),
+                    operand_tokens[1].span,
+                )),
+                rhs: Box::new(Located::new(
+                    OperandType::Register(reg_offset.clone()),
+                    operand_tokens[3].span,
+                )),
                 op: arithm_op.clone(),
             },
             _ => {
