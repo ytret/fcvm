@@ -13,6 +13,13 @@ enum OperandCodec {
     Imm32,
 }
 
+/// Descriptor of an operand. Similar to [OperandType], except holds no data.
+///
+/// A single operand may have several descriptors. For example, a [number] `123` is described
+/// using `Imm8` and `Imm32`. If it fitted in 5 bits, it would also be `Imm5`. See
+/// [OperandDescriptor::describe_number()] and [OperandDescriptor::describe_operand()].
+///
+/// [number]: OperandType::Number
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum OperandDescriptor {
     Register,
@@ -29,6 +36,9 @@ enum OperandDescriptor {
 }
 
 impl OperandDescriptor {
+    /// Returns a vector of [descriptors] of an operand.
+    ///
+    /// [descriptors]: OperandDescriptor
     fn describe_operand(
         operand: &Operand,
         orig_lines: &[String],
@@ -66,6 +76,23 @@ impl OperandDescriptor {
         }
     }
 
+    /// Returns a vector of [descriptors] of a number `num`.
+    ///
+    /// The number is assigned a descriptor if it fits into the appropriate range (inclusive on
+    /// both ends):
+    ///
+    /// - `Imm32`: from `0` to [`u32::MAX`] if `num` is positive, otherwise from [`i32::MIN`] to
+    ///   [`i32::MAX`].
+    /// - `Imm8`: from `0` to [`u8::MAX`] if `num` is positive, otherwise from [`i8::MIN`] to
+    ///   [`i8::MAX`].
+    /// - `Imm5`: from `0` to `31` if `num` is positive, otherwise from `-16` to `15`.
+    ///
+    /// These two facts are always true:
+    ///
+    /// - If a number fits into the smaller range, it also fits into the broader ranges.
+    /// - At least one of `Imm5`, `Imm8` or `Imm32` is returned or an error is returned otherwise.
+    ///
+    /// [descriptors]: OperandDescriptor
     fn describe_number(
         num: i64,
         num_span: SourceSpan,
@@ -103,7 +130,7 @@ impl OperandDescriptor {
 }
 
 #[derive(Debug, Clone)]
-struct OpcodeDescriptor {
+struct InstrDescriptor {
     opcode: u8,
     operands: &'static [OperandDescriptor],
     size: usize,
@@ -112,202 +139,8 @@ struct OpcodeDescriptor {
 #[derive(Debug, Clone)]
 struct ResolvedInstr {
     instr: Instr,
-    opcode_desc: OpcodeDescriptor,
+    desc: InstrDescriptor,
 }
-
-static OPCODES: phf::Map<&'static str, &[OpcodeDescriptor]> = phf_map! {
-    "mov" => &[
-        OpcodeDescriptor {
-            opcode: 0x20,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x21,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
-            size: 6,
-        },
-    ],
-    "str" => &[
-        OpcodeDescriptor {
-            opcode: 0x23,
-            operands: &[OperandDescriptor::MemoryImm32, OperandDescriptor::Register],
-            size: 6,
-        },
-        OpcodeDescriptor {
-            opcode: 0x22,
-            operands: &[OperandDescriptor::MemoryRegNoOffset, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x24,
-            operands: &[OperandDescriptor::MemoryRegOffset8, OperandDescriptor::Register],
-            size: 3,
-        },
-        OpcodeDescriptor {
-            opcode: 0x25,
-            operands: &[OperandDescriptor::MemoryRegOffset32, OperandDescriptor::Register],
-            size: 6,
-        },
-        OpcodeDescriptor {
-            opcode: 0x26,
-            operands: &[OperandDescriptor::MemoryRegOffsetReg, OperandDescriptor::Register],
-            size: 3,
-        },
-    ],
-    "ldr" => &[
-        OpcodeDescriptor {
-            opcode: 0x27,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryImm32],
-            size: 6,
-        },
-        OpcodeDescriptor {
-            opcode: 0x28,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegNoOffset],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x29,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset8],
-            size: 3,
-        },
-        OpcodeDescriptor {
-            opcode: 0x2A,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset32],
-            size: 6,
-        },
-        OpcodeDescriptor {
-            opcode: 0x2B,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffsetReg],
-            size: 3,
-        },
-    ],
-
-    "add" => &[
-        OpcodeDescriptor {
-            opcode: 0x42,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x41,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
-            size: 6,
-        },
-    ],
-    "sub" => &[
-        OpcodeDescriptor {
-            opcode: 0x44,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x43,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
-            size: 6,
-        },
-    ],
-    "not" => &[
-        OpcodeDescriptor {
-            opcode: 0x57,
-            operands: &[OperandDescriptor::Register],
-            size: 2,
-        }
-    ],
-    "and" => &[
-        OpcodeDescriptor {
-            opcode: 0x4C,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x4B,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
-            size: 6,
-        },
-    ],
-    "shr" => &[
-        OpcodeDescriptor {
-            opcode: 0x54,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x53,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm5],
-            size: 3,
-        },
-    ],
-    "cmp" => &[
-        OpcodeDescriptor {
-            opcode: 0x5A,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        }
-    ],
-    "tst" => &[
-        OpcodeDescriptor {
-            opcode: 0x5C,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
-        },
-        OpcodeDescriptor {
-            opcode: 0x55,
-            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
-            size: 6,
-        },
-    ],
-
-    "jmpr" => &[
-        OpcodeDescriptor {
-            opcode: 0x60,
-            operands: &[OperandDescriptor::Imm8],
-            size: 2,
-        }
-    ],
-    "jmpa" => &[
-        OpcodeDescriptor {
-            opcode: 0x61,
-            operands: &[OperandDescriptor::Imm32],
-            size: 5,
-        },
-        OpcodeDescriptor {
-            opcode: 0x62,
-            operands: &[OperandDescriptor::Register],
-            size: 2,
-        },
-    ],
-    "jeqr" => &[
-        OpcodeDescriptor {
-            opcode: 0x64,
-            operands: &[OperandDescriptor::Imm8],
-            size: 2,
-        }
-    ],
-    "jner" => &[
-        OpcodeDescriptor {
-            opcode: 0x68,
-            operands: &[OperandDescriptor::Imm8],
-            size: 2,
-        }
-    ],
-    "call" => &[
-        OpcodeDescriptor {
-            opcode: 0x7D,
-            operands: &[OperandDescriptor::Imm32],
-            size: 5,
-        },
-        OpcodeDescriptor {
-            opcode: 0x7E,
-            operands: &[OperandDescriptor::Register],
-            size: 2,
-        },
-    ],
-    "ret" => &[OpcodeDescriptor { opcode: 0x7F, operands: &[], size: 1}],
-
-    "halt" => &[OpcodeDescriptor { opcode: 0xA1, operands: &[], size: 1 }],
-    "iret" => &[OpcodeDescriptor { opcode: 0xA3, operands: &[], size: 1 }],
-};
 
 pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
     for instr in &parsed_prog.instructions[..] {
@@ -319,6 +152,14 @@ pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
     Ok(())
 }
 
+/// Resolves a regular instruction into [`ResolvedInstr`].
+///
+/// Matches an instruction to its [descriptor] by:
+///
+/// - Mnemonic.
+/// - Types of operands.
+///
+/// [descriptor]: InstrDescriptor
 fn resolve_instruction(instr: &Instr, orig_lines: &[String]) -> Result<ResolvedInstr> {
     assert!(instr.item.mnemonic.is_some());
     assert!(!instr.item.mnemonic.as_ref().unwrap().starts_with("."));
@@ -368,7 +209,7 @@ fn resolve_instruction(instr: &Instr, orig_lines: &[String]) -> Result<ResolvedI
     if found_opcode.is_some() {
         Ok(ResolvedInstr {
             instr: instr.clone(),
-            opcode_desc: found_opcode.unwrap().clone(),
+            desc: found_opcode.unwrap().clone(),
         })
     } else {
         Err(AsmError::new(
@@ -378,3 +219,197 @@ fn resolve_instruction(instr: &Instr, orig_lines: &[String]) -> Result<ResolvedI
         ))
     }
 }
+
+static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
+    "mov" => &[
+        InstrDescriptor {
+            opcode: 0x20,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x21,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
+        },
+    ],
+    "str" => &[
+        InstrDescriptor {
+            opcode: 0x23,
+            operands: &[OperandDescriptor::MemoryImm32, OperandDescriptor::Register],
+            size: 6,
+        },
+        InstrDescriptor {
+            opcode: 0x22,
+            operands: &[OperandDescriptor::MemoryRegNoOffset, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x24,
+            operands: &[OperandDescriptor::MemoryRegOffset8, OperandDescriptor::Register],
+            size: 3,
+        },
+        InstrDescriptor {
+            opcode: 0x25,
+            operands: &[OperandDescriptor::MemoryRegOffset32, OperandDescriptor::Register],
+            size: 6,
+        },
+        InstrDescriptor {
+            opcode: 0x26,
+            operands: &[OperandDescriptor::MemoryRegOffsetReg, OperandDescriptor::Register],
+            size: 3,
+        },
+    ],
+    "ldr" => &[
+        InstrDescriptor {
+            opcode: 0x27,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryImm32],
+            size: 6,
+        },
+        InstrDescriptor {
+            opcode: 0x28,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegNoOffset],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x29,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset8],
+            size: 3,
+        },
+        InstrDescriptor {
+            opcode: 0x2A,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset32],
+            size: 6,
+        },
+        InstrDescriptor {
+            opcode: 0x2B,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffsetReg],
+            size: 3,
+        },
+    ],
+
+    "add" => &[
+        InstrDescriptor {
+            opcode: 0x42,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x41,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
+        },
+    ],
+    "sub" => &[
+        InstrDescriptor {
+            opcode: 0x44,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x43,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
+        },
+    ],
+    "not" => &[
+        InstrDescriptor {
+            opcode: 0x57,
+            operands: &[OperandDescriptor::Register],
+            size: 2,
+        }
+    ],
+    "and" => &[
+        InstrDescriptor {
+            opcode: 0x4C,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x4B,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
+        },
+    ],
+    "shr" => &[
+        InstrDescriptor {
+            opcode: 0x54,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x53,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm5],
+            size: 3,
+        },
+    ],
+    "cmp" => &[
+        InstrDescriptor {
+            opcode: 0x5A,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        }
+    ],
+    "tst" => &[
+        InstrDescriptor {
+            opcode: 0x5C,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
+        },
+        InstrDescriptor {
+            opcode: 0x55,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
+        },
+    ],
+
+    "jmpr" => &[
+        InstrDescriptor {
+            opcode: 0x60,
+            operands: &[OperandDescriptor::Imm8],
+            size: 2,
+        }
+    ],
+    "jmpa" => &[
+        InstrDescriptor {
+            opcode: 0x61,
+            operands: &[OperandDescriptor::Imm32],
+            size: 5,
+        },
+        InstrDescriptor {
+            opcode: 0x62,
+            operands: &[OperandDescriptor::Register],
+            size: 2,
+        },
+    ],
+    "jeqr" => &[
+        InstrDescriptor {
+            opcode: 0x64,
+            operands: &[OperandDescriptor::Imm8],
+            size: 2,
+        }
+    ],
+    "jner" => &[
+        InstrDescriptor {
+            opcode: 0x68,
+            operands: &[OperandDescriptor::Imm8],
+            size: 2,
+        }
+    ],
+    "call" => &[
+        InstrDescriptor {
+            opcode: 0x7D,
+            operands: &[OperandDescriptor::Imm32],
+            size: 5,
+        },
+        InstrDescriptor {
+            opcode: 0x7E,
+            operands: &[OperandDescriptor::Register],
+            size: 2,
+        },
+    ],
+    "ret" => &[InstrDescriptor { opcode: 0x7F, operands: &[], size: 1}],
+
+    "halt" => &[InstrDescriptor { opcode: 0xA1, operands: &[], size: 1 }],
+    "iret" => &[InstrDescriptor { opcode: 0xA3, operands: &[], size: 1 }],
+};
