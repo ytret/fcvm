@@ -106,6 +106,7 @@ impl OperandDescriptor {
 struct OpcodeDescriptor {
     opcode: u8,
     operands: &'static [OperandDescriptor],
+    size: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -119,54 +120,66 @@ static OPCODES: phf::Map<&'static str, &[OpcodeDescriptor]> = phf_map! {
         OpcodeDescriptor {
             opcode: 0x20,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x21,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
         },
     ],
     "str" => &[
         OpcodeDescriptor {
             opcode: 0x23,
             operands: &[OperandDescriptor::MemoryImm32, OperandDescriptor::Register],
+            size: 6,
         },
         OpcodeDescriptor {
             opcode: 0x22,
             operands: &[OperandDescriptor::MemoryRegNoOffset, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x24,
             operands: &[OperandDescriptor::MemoryRegOffset8, OperandDescriptor::Register],
+            size: 3,
         },
         OpcodeDescriptor {
             opcode: 0x25,
             operands: &[OperandDescriptor::MemoryRegOffset32, OperandDescriptor::Register],
+            size: 6,
         },
         OpcodeDescriptor {
             opcode: 0x26,
             operands: &[OperandDescriptor::MemoryRegOffsetReg, OperandDescriptor::Register],
+            size: 3,
         },
     ],
     "ldr" => &[
         OpcodeDescriptor {
             opcode: 0x27,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryImm32],
+            size: 6,
         },
         OpcodeDescriptor {
             opcode: 0x28,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegNoOffset],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x29,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset8],
+            size: 3,
         },
         OpcodeDescriptor {
             opcode: 0x2A,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset32],
+            size: 6,
         },
         OpcodeDescriptor {
             opcode: 0x2B,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffsetReg],
+            size: 3,
         },
     ],
 
@@ -174,87 +187,126 @@ static OPCODES: phf::Map<&'static str, &[OpcodeDescriptor]> = phf_map! {
         OpcodeDescriptor {
             opcode: 0x42,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x41,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
         },
     ],
     "sub" => &[
         OpcodeDescriptor {
             opcode: 0x44,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x43,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
         },
     ],
-    "not" => &[OpcodeDescriptor { opcode: 0x57, operands: &[OperandDescriptor::Register] }],
+    "not" => &[
+        OpcodeDescriptor {
+            opcode: 0x57,
+            operands: &[OperandDescriptor::Register],
+            size: 2,
+        }
+    ],
     "and" => &[
         OpcodeDescriptor {
             opcode: 0x4C,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x4B,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
         },
     ],
     "shr" => &[
         OpcodeDescriptor {
             opcode: 0x54,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x53,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm5],
+            size: 3,
         },
     ],
     "cmp" => &[
         OpcodeDescriptor {
             opcode: 0x5A,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         }
     ],
     "tst" => &[
         OpcodeDescriptor {
             opcode: 0x5C,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
+            size: 2,
         },
         OpcodeDescriptor {
             opcode: 0x55,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
         },
     ],
 
-    "jmpr" => &[OpcodeDescriptor { opcode: 0x60, operands: &[OperandDescriptor::Imm8] }],
+    "jmpr" => &[
+        OpcodeDescriptor {
+            opcode: 0x60,
+            operands: &[OperandDescriptor::Imm8],
+            size: 2,
+        }
+    ],
     "jmpa" => &[
         OpcodeDescriptor {
             opcode: 0x61,
             operands: &[OperandDescriptor::Imm32],
+            size: 5,
         },
         OpcodeDescriptor {
             opcode: 0x62,
             operands: &[OperandDescriptor::Register],
+            size: 2,
         },
     ],
-    "jeqr" => &[OpcodeDescriptor { opcode: 0x64, operands: &[OperandDescriptor::Imm8] }],
-    "jner" => &[OpcodeDescriptor { opcode: 0x68, operands: &[OperandDescriptor::Imm8] }],
+    "jeqr" => &[
+        OpcodeDescriptor {
+            opcode: 0x64,
+            operands: &[OperandDescriptor::Imm8],
+            size: 2,
+        }
+    ],
+    "jner" => &[
+        OpcodeDescriptor {
+            opcode: 0x68,
+            operands: &[OperandDescriptor::Imm8],
+            size: 2,
+        }
+    ],
     "call" => &[
         OpcodeDescriptor {
             opcode: 0x7D,
             operands: &[OperandDescriptor::Imm32],
+            size: 5,
         },
         OpcodeDescriptor {
             opcode: 0x7E,
             operands: &[OperandDescriptor::Register],
+            size: 2,
         },
     ],
-    "ret" => &[OpcodeDescriptor { opcode: 0x7F, operands: &[] }],
+    "ret" => &[OpcodeDescriptor { opcode: 0x7F, operands: &[], size: 1}],
 
-    "halt" => &[OpcodeDescriptor { opcode: 0xA1, operands: &[] }],
-    "iret" => &[OpcodeDescriptor { opcode: 0xA3, operands: &[] }],
+    "halt" => &[OpcodeDescriptor { opcode: 0xA1, operands: &[], size: 1 }],
+    "iret" => &[OpcodeDescriptor { opcode: 0xA3, operands: &[], size: 1 }],
 };
 
 pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
