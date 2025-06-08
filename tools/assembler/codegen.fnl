@@ -226,9 +226,7 @@
     (fn reg-codes [reg1-name reg2-name]
       (let [reg1-code (reg-code reg1-name)
             reg2-code (reg-code reg2-name)]
-        (assert (<= reg1-code 15))
-        (assert (<= reg2-code 15))
-        (bor (lshift reg1-code 4) reg2-code)))
+        (values reg1-code reg2-code)))
 
     (fn add-opds [instr desc-opd-cats]
       (let [o1 (?. instr :operands 1)
@@ -253,32 +251,34 @@
                       (do
                         (add-byte (reg-code o2.val))
                         (add-dword o1.val.val.val))
-                      [c-reg c-reg] (add-byte (reg-codes o2.val o1.val))
-                      [c-reg c-ri0] (add-byte (reg-codes o2.val.val.val o1.val))
-                      [c-ri0 c-reg] (add-byte (reg-codes o2.val o1.val.val.val))
+                      [c-reg c-reg] (add-bytes (reg-codes o2.val o1.val))
+                      [c-reg c-ri0]
+                      (add-bytes (reg-codes o2.val.val.val o1.val))
+                      [c-ri0 c-reg]
+                      (add-bytes (reg-codes o2.val o1.val.val.val))
                       [c-reg c-ri8]
                       (do
-                        (add-byte (reg-codes o2.val.lhs.val o1.val))
+                        (add-bytes (reg-codes o2.val.lhs.val o1.val))
                         (add-byte o2.val.rhs.val))
                       [c-ri8 c-reg]
                       (do
-                        (add-byte (reg-codes o2.val o1.val.lhs.val))
+                        (add-bytes (reg-codes o2.val o1.val.lhs.val))
                         (add-byte o1.val.rhs.val))
                       [c-reg c-ri32]
                       (do
-                        (add-byte (reg-codes o2.val.lhs.val o1.val))
+                        (add-bytes (reg-codes o2.val.lhs.val o1.val))
                         (add-dword o2.val.rhs.val))
                       [c-ri32 c-reg]
                       (do
-                        (add-byte (reg-codes o2.val o1.val.lhs.val))
+                        (add-bytes (reg-codes o2.val o1.val.lhs.val))
                         (add-dword o1.val.rhs.val))
                       [c-rir c-reg]
                       (do
-                        (add-byte (reg-codes o1.val.lhs.val o2.val))
+                        (add-bytes (reg-codes o1.val.lhs.val o2.val))
                         (add-byte (reg-code o1.val.rhs.val)))
                       [c-reg c-rir]
                       (do
-                        (add-byte (reg-codes o2.val.lhs.val o1.val))
+                        (add-bytes (reg-codes o2.val.lhs.val o1.val))
                         (add-byte (reg-code o2.val.rhs.val)))
                       [c-reg c-v32]
                       (do
