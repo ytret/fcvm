@@ -2,10 +2,11 @@ use clap::Parser;
 use std::fs;
 use std::path::PathBuf;
 
+mod codegen;
 mod data;
+mod parser;
 mod preproc;
 mod scanner;
-mod parser;
 
 use data::*;
 
@@ -50,6 +51,7 @@ fn assemble(src_text: String) -> Result<()> {
     let preproc_src = preproc::preprocess(&src_text);
     let tok_src = scanner::tokenize(preproc_src)?;
     let parsed_prog = parser::parse(tok_src)?;
-    eprintln!("{:#?}", parsed_prog);
+    let binary = codegen::codegen(&parsed_prog)?;
+    eprintln!("{:#?}", binary);
     Ok(())
 }
