@@ -1,5 +1,6 @@
 use either::Either;
 use phf::phf_map;
+use std::collections::HashMap;
 use std::iter::zip;
 
 use crate::data::*;
@@ -343,10 +344,22 @@ fn resolve_regular_instruction(
     }
 }
 
+/// Constructs a map of label names to their addresses from resolved instructions.
+fn resolve_labels(resolved_instructions: &[ResolvedInstr]) -> HashMap<String, usize> {
+    let mut resolved_labels = HashMap::new();
+    for resolved_instr in resolved_instructions {
+        if let Some(label_name) = &resolved_instr.instr.item.label {
+            resolved_labels.insert(label_name.clone(), resolved_instr.addr);
+        }
+    }
+    resolved_labels
+}
+
 pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
     let resolved_instructions =
         resolve_instructions(&parsed_prog.instructions, &parsed_prog.orig_lines)?;
-    eprintln!("{:#?}", resolved_instructions);
+    let resolved_labels = resolve_labels(&resolved_instructions);
+    eprintln!("{:#?}", resolved_labels);
     Ok(())
 }
 
