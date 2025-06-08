@@ -228,7 +228,7 @@ impl ProgramParser {
         Ok(Located::new(operand_type, operand_span))
     }
 
-    /// Parses `.set` instructions.
+    /// Parses `.set` instructions and removes them from the program.
     ///
     /// Each `.set` instruction must have two operands:
     /// 1. Variable name -- [OperandType::Identifier].
@@ -245,20 +245,66 @@ impl ProgramParser {
     /// Adds the variable name and value to the hashmap
     /// [ParsedProgram::variables].
     fn parse_setvars(mut self: Self) -> Result<Self> {
-        fn parse_setvar(instr: Instr) -> Result<(String, OperandType)> {
-            assert!(instr.item.mnemonic.unwrap() == ".set");
-            todo!();
-        }
+        let mut filtered_instructions = Vec::new();
 
         for instr in &self.prog.instructions[..] {
             if let Some(".set") = instr.item.mnemonic.as_deref() {
-                let variable = parse_setvar(instr.clone());
+                let (var_name, var_value) = self.parse_setvar(instr.clone())?;
+                if self.prog.variables.contains_key(&var_name) {
+                    return Err(AsmError::new(
+                        "variable with this name already exists".to_string(),
+                        instr.span,
+                        self.prog.orig_lines[instr.span.start.line - 1].clone(),
+                    ));
+                }
+                self.prog.variables.insert(var_name, var_value);
+            } else {
+                filtered_instructions.push(instr.clone());
             }
         }
 
+        self.prog.instructions = filtered_instructions;
         Ok(self)
     }
 
+    /// Parses a `.set` instruction `instr`.
+    ///
+    /// See [ProgramParser::parse_setvars()].
+    fn parse_setvar(&self, instr: Instr) -> Result<(String, OperandType)> {
+        assert!(instr.item.mnemonic.unwrap() == ".set");
+
+        if instr.item.operands.len() != 2 {
+            return Err(AsmError::new(
+                format!(
+                    "invalid number of operands, expected 2, got {}",
+                    instr.item.operands.len()
+                ),
+                instr.span,
+                self.prog.orig_lines[instr.span.start.line - 1].clone(),
+            ));
+        }
+
+        let opd1 = instr.item.operands[0].clone();
+        let opd2 = instr.item.operands[1].clone();
+
+        match opd1.item {
+            OperandType::Identifier(var_name) => match opd2.item {
+                OperandType::Identifier(_) | OperandType::Number(_) => Ok((var_name, opd2.item)),
+                _ => Err(AsmError::new(
+                    format!("invalid operand type for variable value: {:?}", opd2.item),
+                    opd2.span,
+                    self.prog.orig_lines[opd2.span.start.line - 1].clone(),
+                )),
+            },
+            _ => Err(AsmError::new(
+                format!("expected operand of type Identifier, got {:?}", opd1.item),
+                opd1.span,
+                self.prog.orig_lines[opd1.span.start.line - 1].clone(),
+            )),
+        }
+    }
+
+    /// Expands variable identifiers in the program.
     fn expand_vars(mut self: Self) -> Result<Self> {
         todo!();
     }
