@@ -22,9 +22,9 @@ pub type Operand = Located<OperandType>;
 
 #[derive(Debug, Clone)]
 pub struct InstrItem {
-    label: Option<String>,
-    mnemonic: Option<String>,
-    operands: Vec<Operand>,
+    pub label: Option<String>,
+    pub mnemonic: Option<String>,
+    pub operands: Vec<Operand>,
 }
 
 pub type Instr = Located<InstrItem>;
