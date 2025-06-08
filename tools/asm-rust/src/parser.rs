@@ -32,7 +32,7 @@ pub type Instr = Located<InstrItem>;
 #[derive(Debug)]
 pub struct ParsedProgram {
     pub instructions: Vec<Instr>,
-    pub variables: HashMap<String, Operand>,
+    pub variables: HashMap<String, OperandType>,
     pub labels: Vec<String>,
     pub orig_lines: Vec<String>,
 }
@@ -251,7 +251,7 @@ impl ProgramParser {
 
         for instr in &self.prog.instructions[..] {
             if let Some(".set") = instr.item.mnemonic.as_deref() {
-                let (var_name, mut var_value) = self.parse_setvar(instr.clone())?;
+                let (var_name, var_value) = self.parse_setvar(instr.clone())?;
 
                 if self.prog.variables.contains_key(&var_name) {
                     return Err(AsmError::new(
@@ -260,23 +260,6 @@ impl ProgramParser {
                         self.prog.orig_lines[instr.span.start.line - 1].clone(),
                     ));
                 }
-
-                var_value = match var_value.item {
-                    OperandType::Identifier(ref id_val) => {
-                        if self.prog.labels.contains(id_val) {
-                            var_value
-                        } else if self.prog.variables.contains_key(id_val) {
-                            self.prog.variables[id_val].clone()
-                        } else {
-                            return Err(AsmError::new(
-                                "unknown identifier".to_string(),
-                                var_value.span,
-                                self.prog.orig_lines[var_value.span.start.line - 1].clone(),
-                            ));
-                        }
-                    }
-                    _ => var_value,
-                };
 
                 self.prog.variables.insert(var_name, var_value);
             } else {
@@ -291,7 +274,7 @@ impl ProgramParser {
     /// Parses a `.set` instruction `instr`.
     ///
     /// See [ProgramParser::parse_setvars()].
-    fn parse_setvar(&self, instr: Instr) -> Result<(String, Operand)> {
+    fn parse_setvar(&self, instr: Instr) -> Result<(String, OperandType)> {
         assert!(instr.item.mnemonic.unwrap() == ".set");
 
         if instr.item.operands.len() != 2 {
@@ -310,7 +293,20 @@ impl ProgramParser {
 
         match opd1.item {
             OperandType::Identifier(var_name) => match opd2.item {
-                OperandType::Identifier(_) | OperandType::Number(_) => Ok((var_name, opd2)),
+                OperandType::Identifier(ref id_val) => {
+                    if self.prog.labels.contains(id_val) {
+                        Ok((var_name, opd2.item))
+                    } else if self.prog.variables.contains_key(id_val) {
+                        Ok((var_name, self.prog.variables[id_val].clone()))
+                    } else {
+                        return Err(AsmError::new(
+                            "unknown identifier".to_string(),
+                            opd2.span,
+                            self.prog.orig_lines[opd2.span.start.line - 1].clone(),
+                        ));
+                    }
+                }
+                OperandType::Number(_) => Ok((var_name, opd2.item)),
                 _ => Err(AsmError::new(
                     format!("invalid operand type for variable value: {:?}", opd2.item),
                     opd2.span,
