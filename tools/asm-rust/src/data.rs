@@ -4,7 +4,7 @@ pub struct SourceLoc {
     pub column: usize,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct SourceSpan {
     pub start: SourceLoc,
     pub end: SourceLoc,
