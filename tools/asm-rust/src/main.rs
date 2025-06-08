@@ -47,11 +47,10 @@ fn main() {
     }
 }
 
-fn assemble(src_text: String) -> Result<()> {
+fn assemble(src_text: String) -> Result<Vec<u8>> {
     let preproc_src = preproc::preprocess(&src_text);
     let tok_src = scanner::tokenize(preproc_src)?;
     let parsed_prog = parser::parse(tok_src)?;
     let binary = codegen::codegen(&parsed_prog)?;
-    eprintln!("{:#?}", binary);
-    Ok(())
+    Ok(binary)
 }
