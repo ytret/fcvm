@@ -1,3 +1,4 @@
+use either::Either;
 use phf::phf_map;
 use std::iter::zip;
 
@@ -136,20 +137,130 @@ struct InstrDescriptor {
     size: usize,
 }
 
-#[derive(Debug, Clone)]
-struct ResolvedInstr {
-    instr: Instr,
-    desc: InstrDescriptor,
+struct PseudoInstrDescriptor {
+    operands: &'static [OperandDescriptor],
+    fn_size: fn(&Instr, usize, String) -> Result<usize>,
 }
 
-pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
-    for instr in &parsed_prog.instructions[..] {
-        if instr.item.mnemonic.is_none() || instr.item.mnemonic.as_ref().unwrap().starts_with(".") {
-            continue;
-        }
-        let resolved_instr = resolve_instruction(&instr, &parsed_prog.orig_lines)?;
+impl std::fmt::Debug for PseudoInstrDescriptor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PseudoInstrDescriptor")
+            .field("operands", &self.operands)
+            .field("fn_size", &"<function omitted>")
+            .finish()
     }
-    Ok(())
+}
+
+/// Resolved pseudo- or regular instruction.
+///
+/// - A pseudo-instruction is resolved when its address and size are determined.
+/// - A regular instruction is resolved when besides its address and size a descriptor is
+///   determined.
+///
+/// See [resolve_instruction()].
+#[derive(Debug, Clone)]
+struct ResolvedInstr {
+    addr: usize,
+    instr: Instr,
+    desc: Option<Either<&'static InstrDescriptor, &'static PseudoInstrDescriptor>>,
+    size: usize,
+}
+
+fn resolve_instructions(
+    instructions: &[Instr],
+    orig_lines: &[String],
+) -> Result<Vec<ResolvedInstr>> {
+    let mut resolved_instructions = Vec::new();
+
+    let mut addr = 0;
+    for instr in instructions {
+        let resolved_instr = resolve_instruction(instr, addr, orig_lines)?;
+        addr = resolved_instr.addr + resolved_instr.size;
+        resolved_instructions.push(resolved_instr);
+    }
+
+    Ok(resolved_instructions)
+}
+
+/// Resolves `instr` into a [`ResolvedInstr`].
+///
+/// Arguments:
+/// - `instr` is the instruction to be resolved.
+/// - `addr` is the address to put the instruction at.
+/// - `orig_lines` is the original source text.
+///
+/// See [resolve_pseudo_instruction()] and [resolve_regular_instruction()].
+fn resolve_instruction(instr: &Instr, addr: usize, orig_lines: &[String]) -> Result<ResolvedInstr> {
+    if instr.item.mnemonic.is_some() {
+        if instr.item.mnemonic.as_ref().unwrap().starts_with(".") {
+            resolve_pseudo_instruction(instr, addr, orig_lines)
+        } else {
+            resolve_regular_instruction(instr, addr, orig_lines)
+        }
+    } else {
+        Ok(ResolvedInstr {
+            addr,
+            instr: instr.clone(),
+            desc: None,
+            size: 0,
+        })
+    }
+}
+
+/// Resolves a pseudo-instruction into [`ResolvedInstr`].
+///
+/// See [`PseudoInstrDescriptor`] and [`PSEUDOS`].
+fn resolve_pseudo_instruction(
+    instr: &Instr,
+    addr: usize,
+    orig_lines: &[String],
+) -> Result<ResolvedInstr> {
+    let instr_mnemonic = instr.item.mnemonic.as_ref().unwrap();
+    let instr_line = orig_lines[instr.span.start.line - 1].clone();
+
+    let operand_descriptors = instr
+        .item
+        .operands
+        .iter()
+        .map(|operand| OperandDescriptor::describe_operand(operand, orig_lines))
+        .collect::<Result<Vec<_>>>()?;
+
+    if PSEUDOS.contains_key(instr_mnemonic) {
+        let pseudo_descriptor: &PseudoInstrDescriptor = &PSEUDOS[instr_mnemonic];
+        let correct_operands = pseudo_descriptor.operands.len() == operand_descriptors.len()
+            && zip(pseudo_descriptor.operands, &operand_descriptors)
+                .map(|(expected_operand, actual_operands)| {
+                    // HACK: at this stage label operands are not yet resolved and have the type
+                    // 'Operand'; here we treat them as [Imm8 Imm32].
+                    if let [OperandDescriptor::Label] = &actual_operands[..] {
+                        *expected_operand == OperandDescriptor::Imm8
+                            || *expected_operand == OperandDescriptor::Imm32
+                    } else {
+                        actual_operands.contains(expected_operand)
+                    }
+                })
+                .fold(true, |acc, operand_matches| acc & operand_matches);
+        if correct_operands {
+            Ok(ResolvedInstr {
+                addr,
+                instr: instr.clone(),
+                desc: Some(Either::Right(pseudo_descriptor)),
+                size: (pseudo_descriptor.fn_size)(instr, addr, instr_line)?,
+            })
+        } else {
+            Err(AsmError::new(
+                format!("bad operands for pseudo-instruction '{}'", instr_mnemonic),
+                instr.span,
+                instr_line,
+            ))
+        }
+    } else {
+        Err(AsmError::new(
+            format!("unrecognized pseudo-instruction '{}'", instr_mnemonic),
+            instr.span,
+            instr_line,
+        ))
+    }
 }
 
 /// Resolves a regular instruction into [`ResolvedInstr`].
@@ -160,7 +271,11 @@ pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
 /// - Types of operands.
 ///
 /// [descriptor]: InstrDescriptor
-fn resolve_instruction(instr: &Instr, orig_lines: &[String]) -> Result<ResolvedInstr> {
+fn resolve_regular_instruction(
+    instr: &Instr,
+    addr: usize,
+    orig_lines: &[String],
+) -> Result<ResolvedInstr> {
     assert!(instr.item.mnemonic.is_some());
     assert!(!instr.item.mnemonic.as_ref().unwrap().starts_with("."));
 
@@ -186,30 +301,33 @@ fn resolve_instruction(instr: &Instr, orig_lines: &[String]) -> Result<ResolvedI
         .map(|operand| OperandDescriptor::describe_operand(operand, orig_lines))
         .collect::<Result<Vec<_>>>()?;
 
-    let mut found_opcode = None;
+    let mut found_descriptor = None;
     for opcode_descriptor in opcodes.unwrap() {
-        let correct_operands = zip(opcode_descriptor.operands, &operand_descriptors)
-            .map(|(expected_operand, actual_operands)| {
-                // HACK: at this stage label operands are not yet resolved and have the type
-                // 'Operand'; here we treat them as [Imm8 Imm32].
-                if let [OperandDescriptor::Label] = &actual_operands[..] {
-                    *expected_operand == OperandDescriptor::Imm8
-                        || *expected_operand == OperandDescriptor::Imm32
-                } else {
-                    actual_operands.contains(expected_operand)
-                }
-            })
-            .fold(true, |acc, operand_matches| acc & operand_matches);
+        let correct_operands = opcode_descriptor.operands.len() == operand_descriptors.len()
+            && zip(opcode_descriptor.operands, &operand_descriptors)
+                .map(|(expected_operand, actual_operands)| {
+                    // HACK: at this stage label operands are not yet resolved and have the type
+                    // 'Operand'; here we treat them as [Imm8 Imm32].
+                    if let [OperandDescriptor::Label] = &actual_operands[..] {
+                        *expected_operand == OperandDescriptor::Imm8
+                            || *expected_operand == OperandDescriptor::Imm32
+                    } else {
+                        actual_operands.contains(expected_operand)
+                    }
+                })
+                .fold(true, |acc, operand_matches| acc & operand_matches);
         if correct_operands {
-            found_opcode = Some(opcode_descriptor);
+            found_descriptor = Some(opcode_descriptor);
             break;
         }
     }
 
-    if found_opcode.is_some() {
+    if found_descriptor.is_some() {
         Ok(ResolvedInstr {
+            addr,
             instr: instr.clone(),
-            desc: found_opcode.unwrap().clone(),
+            desc: Some(Either::Left(found_descriptor.unwrap())),
+            size: found_descriptor.unwrap().size,
         })
     } else {
         Err(AsmError::new(
@@ -413,3 +531,75 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
     "halt" => &[InstrDescriptor { opcode: 0xA1, operands: &[], size: 1 }],
     "iret" => &[InstrDescriptor { opcode: 0xA3, operands: &[], size: 1 }],
 };
+
+static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
+    ".origin" => PseudoInstrDescriptor {
+        operands: &[OperandDescriptor::Imm32],
+        fn_size: |instr: &Instr, addr: usize, instr_line: String| -> Result<usize> {
+            match instr.item.operands[0].item {
+                OperandType::Number(new_addr) => {
+                    if new_addr >= 0 && new_addr as usize >= addr {
+                        Ok(new_addr as usize - addr)
+                    } else {
+                        Err(AsmError::new(
+                            format!("address must be greater than or equal to {}", addr),
+                            instr.item.operands[0].span,
+                            instr_line,
+                        ))
+                    }
+                }
+                _ => unreachable!(),
+            }
+        },
+    },
+    ".skip" => PseudoInstrDescriptor {
+        operands: &[OperandDescriptor::Imm32],
+        fn_size: |instr: &Instr, _: usize, instr_line: String| -> Result<usize> {
+            match instr.item.operands[0].item {
+                OperandType::Number(num_bytes) => {
+                    if num_bytes >= 0 {
+                        Ok(num_bytes as usize)
+                    } else {
+                        Err(AsmError::new(
+                            "expected a positive number".to_string(),
+                            instr.item.operands[0].span,
+                            instr_line,
+                        ))
+                    }
+                }
+                _ => unreachable!(),
+            }
+        },
+    },
+
+    ".strd" => PseudoInstrDescriptor {
+        operands: &[OperandDescriptor::Imm32],
+        fn_size: |_: &Instr, _: usize, _: String| -> Result<usize> {
+            Ok(4)
+        },
+    },
+    ".strb" => PseudoInstrDescriptor {
+        operands: &[OperandDescriptor::Imm8],
+        fn_size: |_: &Instr, _: usize, _: String| -> Result<usize> {
+            Ok(1)
+        },
+    },
+    ".strs" => PseudoInstrDescriptor {
+        operands: &[OperandDescriptor::String],
+        fn_size: |instr: &Instr, _: usize, _: String| -> Result<usize> {
+            match &instr.item.operands[0].item {
+                OperandType::String(str_val) => {
+                    Ok(str_val.len())
+                }
+                _ => unreachable!(),
+            }
+        },
+    },
+};
+
+pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
+    let resolved_instructions =
+        resolve_instructions(&parsed_prog.instructions, &parsed_prog.orig_lines)?;
+    eprintln!("{:#?}", resolved_instructions);
+    Ok(())
+}
