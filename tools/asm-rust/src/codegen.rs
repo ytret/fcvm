@@ -153,9 +153,11 @@ impl std::fmt::Debug for PseudoInstrDescriptor {
 
 /// Resolved pseudo- or regular instruction.
 ///
-/// - A pseudo-instruction is resolved when its address and size are determined.
-/// - A regular instruction is resolved when besides its address and size a descriptor is
-///   determined.
+/// An instruction is resolved when its address, size and descriptor are determined.
+///
+/// - Size is used to calculate the address of the next instruction.
+/// - Address is used to resolve labels.
+/// - Descriptor is then used to generate bytecode for the instruction.
 ///
 /// See [resolve_instruction()].
 #[derive(Debug, Clone)]
@@ -166,6 +168,9 @@ struct ResolvedInstr {
     size: usize,
 }
 
+/// Resolves `instructions` into a vector of [`ResolvedInstr`].
+///
+/// See [resolve_instruction()].
 fn resolve_instructions(
     instructions: &[Instr],
     orig_lines: &[String],
@@ -336,6 +341,13 @@ fn resolve_regular_instruction(
             orig_lines[instr.span.start.line - 1].clone(),
         ))
     }
+}
+
+pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
+    let resolved_instructions =
+        resolve_instructions(&parsed_prog.instructions, &parsed_prog.orig_lines)?;
+    eprintln!("{:#?}", resolved_instructions);
+    Ok(())
 }
 
 static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
@@ -596,10 +608,3 @@ static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
         },
     },
 };
-
-pub fn codegen(parsed_prog: &ParsedProgram) -> Result<()> {
-    let resolved_instructions =
-        resolve_instructions(&parsed_prog.instructions, &parsed_prog.orig_lines)?;
-    eprintln!("{:#?}", resolved_instructions);
-    Ok(())
-}
