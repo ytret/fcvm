@@ -54,8 +54,16 @@ impl ProgramParser {
         }
     }
 
-    /// Creates an instructions vector for token-lines in `tok_src`.
+    /// Resets [ProgramParser::prog] and parses labels and instructions from `tok_src`.
+    ///
+    /// - Clears [ProgramParser::prog].
+    /// - Sets [ParsedProgram::orig_lines].
+    /// - Fills the [ParsedProgram::instructions] vector.
+    /// - If a token-line contains a label, adds it to the [ParsedProgram::labels] vector.
     fn parse_tokens(mut self: Self, tok_src: TokenizedSource) -> Result<Self> {
+        self.prog.instructions.clear();
+        self.prog.variables.clear();
+        self.prog.labels.clear();
         self.prog.orig_lines = tok_src.orig_lines;
 
         for tok_line in &tok_src.lines {
@@ -322,8 +330,22 @@ impl ProgramParser {
     }
 
     /// Expands variable identifiers in the program.
+    ///
+    /// If any of the instruction operands is an identifier and that identifier
+    /// is a known variable, replaces the operand with the variable value from
+    /// [ParsedProgram::variables].
     fn expand_vars(mut self: Self) -> Result<Self> {
-        todo!();
+        for instr in &mut self.prog.instructions[..] {
+            for operand in &mut instr.item.operands[..] {
+                if let OperandType::Identifier(id_val) = &operand.item {
+                    if self.prog.variables.contains_key(id_val) {
+                        operand.item = self.prog.variables[id_val].clone();
+                    }
+                }
+            }
+        }
+
+        Ok(self)
     }
 }
 
