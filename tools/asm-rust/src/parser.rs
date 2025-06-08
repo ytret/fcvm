@@ -32,7 +32,7 @@ pub type Instr = Located<InstrItem>;
 #[derive(Debug)]
 pub struct ParsedProgram {
     pub instructions: Vec<Instr>,
-    pub variables: HashMap<String, OperandType>,
+    pub variables: HashMap<String, Operand>,
     pub labels: Vec<String>,
     pub orig_lines: Vec<String>,
 }
@@ -236,20 +236,23 @@ impl ProgramParser {
     ///
     /// Allowed variable value types:
     /// 1. [OperandType::Identifier] -- a label or another variable. If the
-    ///    value is a previously defined variable name, it gets expanded.
+    ///    value is a previously defined variable name, it gets expanded. If the
+    ///    identifier is neither a variable or label, an error is returned.
     /// 2. [OperandType::Number].
     /// 3. [OperandType::String].
     ///
     /// All other operand types are prohibited and produce an [AsmError].
     ///
     /// Adds the variable name and value to the hashmap
-    /// [ParsedProgram::variables].
+    /// [ParsedProgram::variables]. Thanks to variable value expansion, all
+    /// variables are either labels, numbers or strings.
     fn parse_setvars(mut self: Self) -> Result<Self> {
         let mut filtered_instructions = Vec::new();
 
         for instr in &self.prog.instructions[..] {
             if let Some(".set") = instr.item.mnemonic.as_deref() {
-                let (var_name, var_value) = self.parse_setvar(instr.clone())?;
+                let (var_name, mut var_value) = self.parse_setvar(instr.clone())?;
+
                 if self.prog.variables.contains_key(&var_name) {
                     return Err(AsmError::new(
                         "variable with this name already exists".to_string(),
@@ -257,6 +260,24 @@ impl ProgramParser {
                         self.prog.orig_lines[instr.span.start.line - 1].clone(),
                     ));
                 }
+
+                var_value = match var_value.item {
+                    OperandType::Identifier(ref id_val) => {
+                        if self.prog.labels.contains(id_val) {
+                            var_value
+                        } else if self.prog.variables.contains_key(id_val) {
+                            self.prog.variables[id_val].clone()
+                        } else {
+                            return Err(AsmError::new(
+                                "unknown identifier".to_string(),
+                                var_value.span,
+                                self.prog.orig_lines[var_value.span.start.line - 1].clone(),
+                            ));
+                        }
+                    }
+                    _ => var_value,
+                };
+
                 self.prog.variables.insert(var_name, var_value);
             } else {
                 filtered_instructions.push(instr.clone());
@@ -270,7 +291,7 @@ impl ProgramParser {
     /// Parses a `.set` instruction `instr`.
     ///
     /// See [ProgramParser::parse_setvars()].
-    fn parse_setvar(&self, instr: Instr) -> Result<(String, OperandType)> {
+    fn parse_setvar(&self, instr: Instr) -> Result<(String, Operand)> {
         assert!(instr.item.mnemonic.unwrap() == ".set");
 
         if instr.item.operands.len() != 2 {
@@ -289,7 +310,7 @@ impl ProgramParser {
 
         match opd1.item {
             OperandType::Identifier(var_name) => match opd2.item {
-                OperandType::Identifier(_) | OperandType::Number(_) => Ok((var_name, opd2.item)),
+                OperandType::Identifier(_) | OperandType::Number(_) => Ok((var_name, opd2)),
                 _ => Err(AsmError::new(
                     format!("invalid operand type for variable value: {:?}", opd2.item),
                     opd2.span,
