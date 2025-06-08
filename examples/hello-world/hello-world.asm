@@ -11,7 +11,8 @@ start:
         tst     r2, 2
         jeqr    halt                    ; halt if slot 1 is unused
         ldr     r2, [r1+16]             ; r2 = slot 1 MMIO start
-        ldr     r3, [r1+24]             ; r3 = slot 1 IRQ + device class
+        mov     r7, 24
+        ldr     r3, [r1+r7]             ; r3 = slot 1 IRQ + device class
         shr     r3, 8
         and     r3, 0xFF                ; r3 = slot 1 device class
         mov     r4, PRINT_DEV_CLASS     ; r4 = PRINT_DEV_CLASS
