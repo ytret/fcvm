@@ -20,13 +20,6 @@ impl<T> Located<T> {
     pub fn new(item: T, span: SourceSpan) -> Self {
         Self { item, span }
     }
-
-    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Located<U> {
-        Located {
-            item: f(self.item),
-            span: self.span,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
