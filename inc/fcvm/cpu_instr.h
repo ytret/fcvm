@@ -16,10 +16,6 @@ typedef union {
         uint8_t reg_code;
         uint32_t *p_reg;
     };
-    struct {
-        uint8_t reg_codes;
-        uint32_t *p_regs[2];
-    };
     uint8_t imm5;
     uint8_t u8;
     uint32_t u32;

@@ -19,9 +19,6 @@ std::vector<uint8_t> get_random_instr(std::mt19937 &rng) {
         case CPU_OPD_REG:
             bytes.push_back(get_random_reg_code(rng));
             break;
-        case CPU_OPD_REGS:
-            bytes.push_back(get_random_reg_codes(rng));
-            break;
         case CPU_OPD_IMM5:
             bytes.push_back(get_random_imm32(rng) & 31);
             break;

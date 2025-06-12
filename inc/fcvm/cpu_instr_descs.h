@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#define CPU_MAX_OPERANDS 2
+#define CPU_MAX_OPERANDS 3
 
 #define CPU_OP_KIND_MASK 0xE0
 
@@ -152,7 +152,6 @@ extern "C" {
 
 typedef enum {
     CPU_OPD_REG,   //!< One register (1 byte).
-    CPU_OPD_REGS,  //!< Two registers (1 byte).
     CPU_OPD_IMM5,  //!< Immediate 5-bit value (1 byte).
     CPU_OPD_IMM8,  //!< Immediate 8-bit value (1 byte).
     CPU_OPD_IMM32, //!< Immediate 32-bit value (4 bytes).
