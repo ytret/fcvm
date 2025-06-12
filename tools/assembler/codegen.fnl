@@ -293,10 +293,10 @@
                       [c-reg c-v5]
                       (do
                         (add-byte (reg-code o1.val))
-                        (add-byte o2.val)) [c-v32]
-                      (add-lbl-or-val add-dword o1) [c-v8]
-                      (add-lbl-or-val add-byte o1) [c-reg]
-                      (add-byte (reg-code o1.val)) ;
+                        (add-byte o2.val)) ;
+                      [c-v32] (add-lbl-or-val add-dword o1) ;
+                      [c-v8] (add-lbl-or-val add-byte o1) ;
+                      [c-reg] (add-byte (reg-code o1.val)) ;
                       _ (error (.. "cannot encode operands in:\n"
                                   (fennel.view instr))))))
 
