@@ -474,6 +474,19 @@ fn generate_instruction(
             } else {
                 generate_pseudo_instruction(resolved_instr, orig_lines)?
             };
+
+            if instr_bytecode.len() != resolved_instr.size {
+                return Err(AsmError::new(
+                    format!(
+                        "bad instruction encoding: expected {} bytes, generated {} bytes",
+                        resolved_instr.size,
+                        instr_bytecode.len()
+                    ),
+                    resolved_instr.instr.span,
+                    orig_lines[resolved_instr.instr.span.start.line - 1].clone(),
+                ));
+            }
+
             eprintln!(
                 "{} -> {:02x?}",
                 resolved_instr.instr.item.mnemonic.as_ref().unwrap(),
@@ -537,7 +550,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x20,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x21,
@@ -559,22 +572,22 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x22,
             operands: &[OperandDescriptor::MemoryRegNoOffset, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x24,
             operands: &[OperandDescriptor::MemoryRegOffset8, OperandDescriptor::Register],
-            size: 3,
+            size: 4,
         },
         InstrDescriptor {
             opcode: 0x25,
             operands: &[OperandDescriptor::MemoryRegOffset32, OperandDescriptor::Register],
-            size: 6,
+            size: 7,
         },
         InstrDescriptor {
             opcode: 0x26,
             operands: &[OperandDescriptor::MemoryRegOffsetReg, OperandDescriptor::Register],
-            size: 3,
+            size: 4,
         },
     ],
     "ldr" => &[
@@ -586,22 +599,22 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x28,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegNoOffset],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x29,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset8],
-            size: 3,
+            size: 4,
         },
         InstrDescriptor {
             opcode: 0x2A,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffset32],
-            size: 6,
+            size: 7,
         },
         InstrDescriptor {
             opcode: 0x2B,
             operands: &[OperandDescriptor::Register, OperandDescriptor::MemoryRegOffsetReg],
-            size: 3,
+            size: 4,
         },
     ],
 
@@ -609,7 +622,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x42,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x41,
@@ -621,7 +634,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x44,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x43,
@@ -640,7 +653,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x4C,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x4B,
@@ -652,7 +665,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x54,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x53,
@@ -664,14 +677,14 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x5A,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         }
     ],
     "tst" => &[
         InstrDescriptor {
             opcode: 0x5C,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Register],
-            size: 2,
+            size: 3,
         },
         InstrDescriptor {
             opcode: 0x55,
