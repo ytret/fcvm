@@ -461,7 +461,7 @@ fn resolve_labels(
     Ok(())
 }
 
-fn generate_bytecode(
+fn generate_instruction(
     resolved_instructions: &[ResolvedInstr],
     orig_lines: &[String],
 ) -> Result<Vec<u8>> {
@@ -529,7 +529,7 @@ pub fn codegen(parsed_prog: &ParsedProgram) -> Result<Vec<u8>> {
     let mut resolved_instructions =
         resolve_instructions(&parsed_prog.instructions, &parsed_prog.orig_lines)?;
     resolve_labels(&mut resolved_instructions, &parsed_prog.orig_lines)?;
-    generate_bytecode(&resolved_instructions, &parsed_prog.orig_lines)
+    generate_instruction(&resolved_instructions, &parsed_prog.orig_lines)
 }
 
 static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
