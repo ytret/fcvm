@@ -40,7 +40,7 @@ fn main() {
     if let Ok(src_text) = fs::read_to_string(in_path) {
         match assemble(src_text) {
             Ok(binary) => match fs::write(out_path.as_path(), &binary) {
-                Ok(_) => {}
+                Ok(_) => eprintln!("Success! Binary size: {} bytes", binary.len()),
                 Err(e) => eprintln!("{}", e),
             },
             Err(e) => eprintln!("{}", e),
