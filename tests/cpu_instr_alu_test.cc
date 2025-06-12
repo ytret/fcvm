@@ -102,8 +102,8 @@ struct ALUInstrParam {
         if (src_type == SrcInReg) {
             uint8_t code_dst = dst_reg_code;
             uint8_t code_src = *src_reg_code;
-            v.push_back(code_src);
             v.push_back(code_dst);
+            v.push_back(code_src);
         } else {
             v.push_back(dst_reg_code);
         }
