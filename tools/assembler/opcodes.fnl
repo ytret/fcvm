@@ -22,7 +22,7 @@
         :ldr_rir {:opcode 43 :opd-cats [prs.cat.reg prs.cat.rir] :size 4}})
 
 (local add
-       {:add_rr {:opcode 66 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+       {:add_rr {:opcode 66 :opd-cats [prs.cat.reg prs.cat.reg] :size 3}
         :add_rv {:opcode 65 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
 
 (local sub
@@ -42,7 +42,7 @@
 (local cmp {:cmp_rr {:opcode 90 :opd-cats [prs.cat.reg prs.cat.reg] :size 3}})
 
 (local tst
-       {:tst_rr {:opcode 92 :opd-cats [prs.cat.reg prs.cat.reg] :size 2}
+       {:tst_rr {:opcode 92 :opd-cats [prs.cat.reg prs.cat.reg] :size 3}
         :tst_rv {:opcode 85 :opd-cats [prs.cat.reg prs.cat.v32] :size 6}})
 
 (local jmpr {:jmpr_v8 {:opcode 96 :opd-cats [prs.cat.v8] :size 2}})
