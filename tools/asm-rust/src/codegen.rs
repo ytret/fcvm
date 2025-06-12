@@ -820,14 +820,16 @@ static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
         fn_size: |instr: &Instr, _: usize, _: String| -> Result<usize> {
             match &instr.item.operands[0].item {
                 OperandType::String(str_val) => {
-                    Ok(str_val.len())
+                    Ok(str_val.len() + 1)
                 }
                 _ => unreachable!(),
             }
         },
         fn_generate_bytecode: |resolved_instr, _instr_line| -> Result<Vec<u8>> {
             if let OperandType::String(str_val) = &resolved_instr.instr.item.operands[0].item {
-                Ok(str_val.clone().into_bytes())
+                let mut str_bytes = str_val.clone().into_bytes();
+                str_bytes.push(0);
+                Ok(str_bytes)
             } else {
                 unreachable!()
             }
