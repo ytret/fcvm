@@ -119,9 +119,9 @@ fn tokenize_line(line: &preproc::PreprocLine, orig_lines: &[String]) -> Result<V
                     is_hex = ch == '0' && next_ch == 'x';
                     if is_hex {
                         number_str.clear();
+                        end_pos = pos;
+                        chars.next();
                     }
-                    end_pos = pos;
-                    chars.next();
                 } else {
                     is_hex = false;
                 };
