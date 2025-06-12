@@ -7,6 +7,8 @@
 #include <string.h>
 
 #include "debugm.h"
+#include "portability.h"
+
 #include <fcvm/memctl.h>
 
 static bool prv_memctl_find_free_reg(memctl_ctx_t *memctl, size_t *out_idx);

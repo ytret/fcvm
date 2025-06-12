@@ -11,6 +11,7 @@
 #include "cpu_exec.h"
 #include "cpu_stack.h"
 #include "debugm.h"
+#include "portability.h"
 
 static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
                                              cpu_operand_type_t opd_type,

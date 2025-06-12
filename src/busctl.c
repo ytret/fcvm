@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "debugm.h"
+#include "portability.h"
 #include <fcvm/busctl.h>
 
 static bool prv_busctl_find_free_slot(busctl_ctx_t *busctl, size_t *out_idx);
