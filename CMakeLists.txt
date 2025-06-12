@@ -51,8 +51,8 @@ target_compile_options(fcvm PRIVATE
 target_include_directories(fcvm PUBLIC inc src)
 
 
-set(FCVM_DIR ${PROJECT_SOURCE_DIR}/tools/assembler)
-set(FCVM_ASM ${FCVM_DIR}/main.fnl)
+set(FCVM_ASM_DIR ${PROJECT_SOURCE_DIR}/tools/asm-fennel)
+set(FCVM_ASM ${FCVM_ASM_DIR}/main.fnl)
 
 
 add_subdirectory(tests)
