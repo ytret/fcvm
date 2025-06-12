@@ -9,8 +9,4 @@ BreakBeforeBraces: Custom
 BraceWrapping:
   SplitEmptyFunction: true
 IncludeIsMainRegex: "^$"
-
-# AlwaysBreakAfterDefinitionReturnType: All
-# SpaceBeforeParens: Custom
-# SpaceBeforeParensOptions:
-#   AfterFunctionDefinitionName: true
+IndentPPDirectives: AfterHash
