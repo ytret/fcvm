@@ -487,11 +487,6 @@ fn generate_instruction(
                 ));
             }
 
-            eprintln!(
-                "{} -> {:02x?}",
-                resolved_instr.instr.item.mnemonic.as_ref().unwrap(),
-                instr_bytecode
-            );
             bytecode.extend_from_slice(&instr_bytecode);
         }
     }
