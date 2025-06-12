@@ -16,7 +16,8 @@ use crate::parser::*;
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum OperandDescriptor {
     Register,
-    Label,
+    LabelRelative,
+    LabelAbsolute,
     Imm5,
     Imm8,
     Imm32,
@@ -38,7 +39,7 @@ impl OperandDescriptor {
     ) -> Result<Vec<OperandDescriptor>> {
         match &operand.item {
             OperandType::Register(_) => Ok(vec![Self::Register]),
-            OperandType::Identifier(_) => Ok(vec![Self::Label]),
+            OperandType::Identifier(_) => Ok(vec![Self::LabelRelative, Self::LabelAbsolute]),
             OperandType::Number(num) => {
                 OperandDescriptor::describe_number(*num, operand.span, orig_lines)
             }
@@ -121,7 +122,12 @@ impl OperandDescriptor {
         }
     }
 
-    fn generate_bytecode(self, operand: &Operand, orig_lines: &[String]) -> Result<Vec<u8>> {
+    fn generate_bytecode(
+        self,
+        operand: &Operand,
+        instr_addr: usize,
+        orig_lines: &[String],
+    ) -> Result<Vec<u8>> {
         let parse_reg_str = |reg_str: &String| match reg_str.to_lowercase().as_str() {
             "r0" => Ok(vec![0x00]),
             "r1" => Ok(vec![0x01]),
@@ -146,7 +152,25 @@ impl OperandDescriptor {
                     _ => unreachable!(),
                 }
             }
-            Self::Label => todo!(),
+            Self::LabelRelative => match &operand.item {
+                OperandType::Number(label_addr) => {
+                    let rel_addr = label_addr - instr_addr as i64;
+                    if -128 <= rel_addr && rel_addr <= 127 {
+                        Ok(vec![rel_addr as u8])
+                    } else {
+                        Err(AsmError::new(
+                            format!("label is too far away: {} bytes", rel_addr),
+                            operand.span,
+                            orig_lines[operand.span.start.line - 1].clone(),
+                        ))
+                    }
+                }
+                _ => unreachable!(),
+            },
+            Self::LabelAbsolute => match &operand.item {
+                OperandType::Number(label_addr) => Ok(dword_to_bytes(*label_addr as u32)),
+                _ => unreachable!(),
+            },
             Self::Imm5 | Self::Imm8 => match &operand.item {
                 OperandType::Number(num_val) => Ok(vec![*num_val as u8]),
                 _ => unreachable!(),
@@ -165,15 +189,15 @@ impl OperandDescriptor {
             },
             Self::MemoryRegOffset8 => match &operand.item {
                 OperandType::MemoryWithMath { lhs, rhs, op } => {
-                    let mut bytecode =
-                        OperandDescriptor::Register.generate_bytecode(lhs, orig_lines)?;
+                    let mut bytecode = OperandDescriptor::Register
+                        .generate_bytecode(lhs, instr_addr, orig_lines)?;
                     let rhs_multiplier = match *op {
                         '+' => 1,
                         '-' => -1,
                         _ => unreachable!(),
                     };
-                    if let OperandType::Number(rhs_val) = rhs.item {
-                        bytecode.extend(vec![(rhs_multiplier * rhs_val) as u8]);
+                    if let OperandType::Number(offset_val) = rhs.item {
+                        bytecode.extend(vec![(rhs_multiplier * offset_val) as u8]);
                         Ok(bytecode)
                     } else {
                         unreachable!()
@@ -185,10 +209,10 @@ impl OperandDescriptor {
             Self::MemoryRegOffsetReg => match &operand.item {
                 OperandType::MemoryWithMath { lhs, rhs, op } => {
                     assert!(*op == '+');
-                    let mut bytecode =
-                        OperandDescriptor::Register.generate_bytecode(lhs, orig_lines)?;
-                    let rhs_bytecode =
-                        OperandDescriptor::Register.generate_bytecode(rhs, orig_lines)?;
+                    let mut bytecode = OperandDescriptor::Register
+                        .generate_bytecode(lhs, instr_addr, orig_lines)?;
+                    let rhs_bytecode = OperandDescriptor::Register
+                        .generate_bytecode(rhs, instr_addr, orig_lines)?;
                     bytecode.extend_from_slice(&rhs_bytecode);
                     Ok(bytecode)
                 }
@@ -207,7 +231,7 @@ struct InstrDescriptor {
 }
 
 struct PseudoInstrDescriptor {
-    operands: &'static [OperandDescriptor],
+    operands: &'static [&'static [OperandDescriptor]],
     fn_size: fn(&Instr, usize, String) -> Result<usize>,
     fn_generate_bytecode: fn(&ResolvedInstr, String) -> Result<Vec<u8>>,
 }
@@ -303,18 +327,9 @@ fn resolve_pseudo_instruction(
     if PSEUDOS.contains_key(instr_mnemonic) {
         let pseudo_descriptor: &PseudoInstrDescriptor = &PSEUDOS[instr_mnemonic];
         let correct_operands = pseudo_descriptor.operands.len() == operand_descriptors.len()
-            && zip(pseudo_descriptor.operands, &operand_descriptors)
-                .map(|(expected_operand, actual_operands)| {
-                    // HACK: at this stage label operands are not yet resolved and have the type
-                    // 'Operand'; here we treat them as [Imm8 Imm32].
-                    if let [OperandDescriptor::Label] = &actual_operands[..] {
-                        *expected_operand == OperandDescriptor::Imm8
-                            || *expected_operand == OperandDescriptor::Imm32
-                    } else {
-                        actual_operands.contains(expected_operand)
-                    }
-                })
-                .fold(true, |acc, operand_matches| acc & operand_matches);
+            && zip(pseudo_descriptor.operands, &operand_descriptors).all(
+                |(allowed_ops, actual_ops)| actual_ops.iter().any(|&op| allowed_ops.contains(&op)),
+            );
         if correct_operands {
             Ok(ResolvedInstr {
                 addr,
@@ -381,16 +396,9 @@ fn resolve_regular_instruction(
         let correct_operands = opcode_descriptor.operands.len() == operand_descriptors.len()
             && zip(opcode_descriptor.operands, &operand_descriptors)
                 .map(|(expected_operand, actual_operands)| {
-                    // HACK: at this stage label operands are not yet resolved and have the type
-                    // 'Operand'; here we treat them as [Imm8 Imm32].
-                    if let [OperandDescriptor::Label] = &actual_operands[..] {
-                        *expected_operand == OperandDescriptor::Imm8
-                            || *expected_operand == OperandDescriptor::Imm32
-                    } else {
-                        actual_operands.contains(expected_operand)
-                    }
+                    actual_operands.contains(expected_operand)
                 })
-                .fold(true, |acc, operand_matches| acc & operand_matches);
+                .fold(true, |acc, correct_operand| acc & correct_operand);
         if correct_operands {
             found_descriptor = Some(opcode_descriptor);
             break;
@@ -417,10 +425,8 @@ fn resolve_regular_instruction(
 ///
 /// - Maps label names to their addresses among the resolved instructions.
 /// - Replaces each [identifier operand] with a [number operand]. The number value is the label's
-///   address. If the label is not found, produces an error. After the function succeeds, there are
-///   no identifier operands left.
-/// - Label operands of relative control flow instructions are resolved relative to the instruction
-///   address. In other cases, the label is resolved to an absolute address.
+///   absolute address. If the label is not found, produces an error. After the function succeeds,
+///   there are no identifier operands left.
 ///
 /// [identifier operand]: OperandType::Identifier
 /// [number operand]: OperandType::Number
@@ -462,11 +468,17 @@ fn generate_bytecode(
     let mut bytecode = Vec::new();
     for resolved_instr in resolved_instructions {
         if let Some(instr_desc) = resolved_instr.desc {
+            let instr_addr = bytecode.len();
             let instr_bytecode = if instr_desc.is_left() {
-                generate_regular_instruction(resolved_instr, orig_lines)?
+                generate_regular_instruction(resolved_instr, instr_addr, orig_lines)?
             } else {
                 generate_pseudo_instruction(resolved_instr, orig_lines)?
             };
+            eprintln!(
+                "{} -> {:02x?}",
+                resolved_instr.instr.item.mnemonic.as_ref().unwrap(),
+                instr_bytecode
+            );
             bytecode.extend_from_slice(&instr_bytecode);
         }
     }
@@ -475,6 +487,7 @@ fn generate_bytecode(
 
 fn generate_regular_instruction(
     resolved_instr: &ResolvedInstr,
+    instr_addr: usize,
     orig_lines: &[String],
 ) -> Result<Vec<u8>> {
     assert!(resolved_instr.desc.is_some_and(|desc| desc.is_left()));
@@ -484,7 +497,8 @@ fn generate_regular_instruction(
     let mut bytecode = vec![instr_descriptor.opcode];
     for (idx, operand_descriptor) in operand_descriptors.iter().enumerate() {
         let operand = resolved_instr.instr.item.operands.get(idx).unwrap();
-        let operand_bytecode = operand_descriptor.generate_bytecode(operand, orig_lines)?;
+        let operand_bytecode =
+            operand_descriptor.generate_bytecode(operand, instr_addr, orig_lines)?;
         bytecode.extend_from_slice(&operand_bytecode);
     }
     Ok(bytecode)
@@ -528,6 +542,11 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
         InstrDescriptor {
             opcode: 0x21,
             operands: &[OperandDescriptor::Register, OperandDescriptor::Imm32],
+            size: 6,
+        },
+        InstrDescriptor {
+            opcode: 0x21,
+            operands: &[OperandDescriptor::Register, OperandDescriptor::LabelAbsolute],
             size: 6,
         },
     ],
@@ -664,7 +683,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
     "jmpr" => &[
         InstrDescriptor {
             opcode: 0x60,
-            operands: &[OperandDescriptor::Imm8],
+            operands: &[OperandDescriptor::LabelRelative],
             size: 2,
         }
     ],
@@ -683,14 +702,14 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
     "jeqr" => &[
         InstrDescriptor {
             opcode: 0x64,
-            operands: &[OperandDescriptor::Imm8],
+            operands: &[OperandDescriptor::LabelRelative],
             size: 2,
         }
     ],
     "jner" => &[
         InstrDescriptor {
             opcode: 0x68,
-            operands: &[OperandDescriptor::Imm8],
+            operands: &[OperandDescriptor::LabelRelative],
             size: 2,
         }
     ],
@@ -714,7 +733,7 @@ static OPCODES: phf::Map<&'static str, &[InstrDescriptor]> = phf_map! {
 
 static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
     ".origin" => PseudoInstrDescriptor {
-        operands: &[OperandDescriptor::Imm32],
+        operands: &[&[OperandDescriptor::Imm32]],
         fn_size: |instr: &Instr, addr: usize, instr_line: String| -> Result<usize> {
             if let OperandType::Number(new_addr) = instr.item.operands[0].item {
                 if new_addr >= 0 && new_addr as usize >= addr {
@@ -735,7 +754,7 @@ static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
         },
     },
     ".skip" => PseudoInstrDescriptor {
-        operands: &[OperandDescriptor::Imm32],
+        operands: &[&[OperandDescriptor::Imm32]],
         fn_size: |instr: &Instr, _: usize, instr_line: String| -> Result<usize> {
             if let OperandType::Number(num_bytes) = instr.item.operands[0].item {
                 if num_bytes >= 0 {
@@ -757,7 +776,7 @@ static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
     },
 
     ".strd" => PseudoInstrDescriptor {
-        operands: &[OperandDescriptor::Imm32],
+        operands: &[&[OperandDescriptor::Imm32, OperandDescriptor::LabelAbsolute]],
         fn_size: |_: &Instr, _: usize, _: String| -> Result<usize> {
             Ok(4)
         },
@@ -771,7 +790,7 @@ static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
         },
     },
     ".strb" => PseudoInstrDescriptor {
-        operands: &[OperandDescriptor::Imm8],
+        operands: &[&[OperandDescriptor::Imm8]],
         fn_size: |_: &Instr, _: usize, _: String| -> Result<usize> {
             Ok(1)
         },
@@ -784,7 +803,7 @@ static PSEUDOS: phf::Map<&'static str, PseudoInstrDescriptor> = phf_map! {
         },
     },
     ".strs" => PseudoInstrDescriptor {
-        operands: &[OperandDescriptor::String],
+        operands: &[&[OperandDescriptor::String]],
         fn_size: |instr: &Instr, _: usize, _: String| -> Result<usize> {
             match &instr.item.operands[0].item {
                 OperandType::String(str_val) => {
