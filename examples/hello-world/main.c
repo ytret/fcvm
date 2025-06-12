@@ -9,7 +9,7 @@
 #include <fcvm/vm.h>
 
 #ifndef EX_HELLO_WORLD_GUEST
-#error "path to the guest program binary (EX_HELLO_WORLD_GUEST) is not provided"
+#    error "path to the guest program (EX_HELLO_WORLD_GUEST) is not provided"
 #endif
 
 static atomic_bool g_running = true;
@@ -51,6 +51,7 @@ int main(void) {
 static int install_sigint_handler(void) {
     struct sigaction sa;
     sa.sa_handler = sigint_handler;
+    sa.sa_flags = SA_SIGINFO;
     sigemptyset(&sa.sa_mask);
     if (sigaction(SIGINT, &sa, NULL) == -1) {
         fprintf(stderr, "%s: failed to install a SIGINT handler: %s\n",
