@@ -1,9 +1,9 @@
 #include <absl/strings/str_format.h>
 #include <gtest/gtest.h>
 
-#include <fcvm/cpu.h>
 #include "testcommon/fake_mem.h"
 #include "testcommon/get_random.h"
+#include <fcvm/cpu.h>
 
 #define TEST_MEM_BASE 0x1000
 #define TEST_MEM_SIZE 100
@@ -55,10 +55,8 @@ struct ALUInstrParam {
     static ALUInstrParam get_random_param(std::mt19937 &rng, std::string name,
                                           uint8_t opcode, ResType res_type,
                                           SrcType src_type) {
-        size_t num_cpu_steps = 3;
-        if (src_type == SrcInIMM5 || src_type == SrcInIMM32) {
-            num_cpu_steps++;
-        }
+        size_t num_cpu_steps = 4;
+        if (src_type == NoSrc) { num_cpu_steps--; }
         ALUInstrParam param = {};
         param.name = name;
         param.opcode = opcode;
@@ -104,7 +102,8 @@ struct ALUInstrParam {
         if (src_type == SrcInReg) {
             uint8_t code_dst = dst_reg_code;
             uint8_t code_src = *src_reg_code;
-            v.push_back((code_src << 4) | code_dst);
+            v.push_back(code_dst);
+            v.push_back(code_src);
         } else {
             v.push_back(dst_reg_code);
         }

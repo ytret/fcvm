@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <fcvm/cpu.h>
 #include "testcommon/fake_mem.h"
 #include "testcommon/prog_builder.h"
+#include <fcvm/cpu.h>
 
 #define TEST_BAD_MEM      0x1000'0000
 #define TEST_BAD_OPCODE   0x00
@@ -169,8 +169,8 @@ INSTANTIATE_TEST_SUITE_P(
             .name = "BAD_MEM",
             .exceptions = {{CPU_EXC_BAD_MEM, CPU_EXECUTE}},
             .prog_bytes = build_instr(CPU_OP_STR_RV0)
-                              .reg_code(CPU_CODE_R0)
                               .imm32(TEST_BAD_MEM)
+                              .reg_code(CPU_CODE_R0)
                               .bytes,
         });
 

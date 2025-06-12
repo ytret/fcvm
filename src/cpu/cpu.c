@@ -109,15 +109,6 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
                 cpu_decode_reg(cpu, cpu->instr.operands[opd].reg_code,
                                &cpu->instr.operands[opd].p_reg);
                 D_ASSERT(cpu->instr.operands[opd].p_reg);
-            } else if (cpu->instr.desc->operands[opd] == CPU_OPD_REGS) {
-                cpu_decode_reg(cpu,
-                               (cpu->instr.operands[opd].reg_codes >> 4) & 0x0F,
-                               &cpu->instr.operands[opd].p_regs[0]);
-                cpu_decode_reg(cpu,
-                               (cpu->instr.operands[opd].reg_codes >> 0) & 0x0F,
-                               &cpu->instr.operands[opd].p_regs[1]);
-                D_ASSERT(cpu->instr.operands[opd].p_regs[0]);
-                D_ASSERT(cpu->instr.operands[opd].p_regs[1]);
             }
         }
     }
@@ -335,24 +326,6 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
         opd_size = 1;
         break;
     }
-    case CPU_OPD_REGS: {
-        uint8_t reg_codes;
-        err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &reg_codes);
-        if (err) { return err; }
-
-        uint32_t *p_reg1;
-        uint32_t *p_reg2;
-        err = cpu_decode_reg(cpu, (reg_codes >> 4) & 0x0F, &p_reg1);
-        if (err) { return err; }
-        err = cpu_decode_reg(cpu, (reg_codes >> 0) & 0x0F, &p_reg2);
-        if (err) { return err; }
-
-        out_val->reg_codes = reg_codes;
-        out_val->p_regs[0] = p_reg1;
-        out_val->p_regs[1] = p_reg2;
-        opd_size = 1;
-        break;
-    }
     case CPU_OPD_IMM5: {
         uint8_t imm5;
         err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &imm5);
@@ -402,9 +375,6 @@ static void prv_cpu_print_instr(const cpu_instr_t *instr) {
         switch (instr->desc->operands[opd]) {
         case CPU_OPD_REG:
             fprintf(stderr, "reg %02X", instr->operands[opd].reg_code);
-            break;
-        case CPU_OPD_REGS:
-            fprintf(stderr, "regs %02X", instr->operands[opd].reg_codes);
             break;
         case CPU_OPD_IMM5:
             fprintf(stderr, "imm5 %02X", instr->operands[opd].imm5);

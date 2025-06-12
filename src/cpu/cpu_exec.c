@@ -43,80 +43,87 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
     vm_err_t err = VM_ERR_NONE;
 
+    // Source and destination registers.
+    uint32_t *p_reg_src;
+    uint32_t *p_reg_dst;
+
+    // Memory address.
+    uint32_t *p_reg_mem;
+    uint32_t mem_addr;
+
+    // Memory offset.
+    int32_t *p_reg_off;
+    int8_t mem_off8;
+    int32_t mem_off32;
+
     switch (cpu->instr.opcode) {
-    case CPU_OP_MOV_VR: {
-        uint32_t *p_reg = cpu->instr.operands[0].p_reg;
-        *p_reg = cpu->instr.operands[1].u32;
+    case CPU_OP_MOV_VR:
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        *p_reg_dst = cpu->instr.operands[1].u32;
         break;
-    }
-    case CPU_OP_MOV_RR: {
-        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
-        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
+    case CPU_OP_MOV_RR:
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_src = cpu->instr.operands[1].p_reg;
         *p_reg_dst = *p_reg_src;
         break;
-    }
+
     case CPU_OP_STR_RV0:
-    case CPU_OP_LDR_RV0: {
-        uint32_t *p_reg = cpu->instr.operands[0].p_reg;
-        uint32_t mem_addr = cpu->instr.operands[1].u32;
-        if (cpu->instr.opcode == CPU_OP_STR_RV0) {
-            err = cpu->mem->write_u32(cpu->mem, mem_addr, *p_reg);
-        } else {
-            err = cpu->mem->read_u32(cpu->mem, mem_addr, p_reg);
-        }
+        mem_addr = cpu->instr.operands[0].u32;
+        p_reg_src = cpu->instr.operands[1].p_reg;
+        err = cpu->mem->write_u32(cpu->mem, mem_addr, *p_reg_src);
         break;
-    }
     case CPU_OP_STR_RI0:
-    case CPU_OP_LDR_RI0: {
-        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
-        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
-        if (cpu->instr.opcode == CPU_OP_STR_RI0) {
-            err = cpu->mem->write_u32(cpu->mem, *p_reg_dst, *p_reg_src);
-        } else {
-            err = cpu->mem->read_u32(cpu->mem, *p_reg_src, p_reg_dst);
-        }
+        p_reg_mem = cpu->instr.operands[0].p_reg;
+        p_reg_src = cpu->instr.operands[1].p_reg;
+        err = cpu->mem->write_u32(cpu->mem, *p_reg_mem, *p_reg_src);
         break;
-    }
     case CPU_OP_STR_RI8:
-    case CPU_OP_LDR_RI8: {
-        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
-        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
-        int8_t mem_offset = (int8_t)cpu->instr.operands[1].u8;
-        if (cpu->instr.opcode == CPU_OP_STR_RI8) {
-            err = cpu->mem->write_u32(cpu->mem, *p_reg_dst + mem_offset,
-                                      *p_reg_src);
-        } else {
-            err = cpu->mem->read_u32(cpu->mem, *p_reg_src + mem_offset,
-                                     p_reg_dst);
-        }
+        p_reg_mem = cpu->instr.operands[0].p_reg;
+        mem_off8 = (int8_t)cpu->instr.operands[1].u8;
+        p_reg_src = cpu->instr.operands[2].p_reg;
+        err = cpu->mem->write_u32(cpu->mem, *p_reg_mem + mem_off8, *p_reg_src);
         break;
-    }
     case CPU_OP_STR_RI32:
-    case CPU_OP_LDR_RI32: {
-        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
-        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
-        int32_t mem_offset = (int32_t)cpu->instr.operands[1].u32;
-        if (cpu->instr.opcode == CPU_OP_STR_RI32) {
-            err = cpu->mem->write_u32(cpu->mem, *p_reg_dst + mem_offset,
-                                      *p_reg_src);
-        } else {
-            err = cpu->mem->read_u32(cpu->mem, *p_reg_src + mem_offset,
-                                     p_reg_dst);
-        }
+        p_reg_mem = cpu->instr.operands[0].p_reg;
+        mem_off32 = (int32_t)cpu->instr.operands[1].u32;
+        p_reg_src = cpu->instr.operands[2].p_reg;
+        err = cpu->mem->write_u32(cpu->mem, *p_reg_mem + mem_off32, *p_reg_src);
         break;
-    }
     case CPU_OP_STR_RIR:
+        p_reg_mem = cpu->instr.operands[0].p_reg;
+        p_reg_off = (int32_t *)cpu->instr.operands[1].p_reg;
+        p_reg_src = cpu->instr.operands[2].p_reg;
+        err =
+            cpu->mem->write_u32(cpu->mem, *p_reg_mem + *p_reg_off, *p_reg_src);
+        break;
+
+    case CPU_OP_LDR_RV0:
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        mem_addr = cpu->instr.operands[1].u32;
+        err = cpu->mem->read_u32(cpu->mem, mem_addr, p_reg_dst);
+        break;
+    case CPU_OP_LDR_RI0:
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_mem = cpu->instr.operands[1].p_reg;
+        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem, p_reg_dst);
+        break;
+    case CPU_OP_LDR_RI8:
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_mem = cpu->instr.operands[1].p_reg;
+        mem_off8 = (int8_t)cpu->instr.operands[2].u8;
+        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + mem_off8, p_reg_dst);
+        break;
+    case CPU_OP_LDR_RI32:
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_mem = cpu->instr.operands[1].p_reg;
+        mem_off32 = (int32_t)cpu->instr.operands[2].u32;
+        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + mem_off32, p_reg_dst);
+        break;
     case CPU_OP_LDR_RIR: {
-        uint32_t *p_reg_src = cpu->instr.operands[0].p_regs[0];
-        uint32_t *p_reg_dst = cpu->instr.operands[0].p_regs[1];
-        int32_t *p_reg_off = (int32_t *)cpu->instr.operands[1].p_reg;
-        if (cpu->instr.opcode == CPU_OP_STR_RIR) {
-            err = cpu->mem->write_u32(cpu->mem, *p_reg_dst + *p_reg_off,
-                                      *p_reg_src);
-        } else {
-            err = cpu->mem->read_u32(cpu->mem, *p_reg_src + *p_reg_off,
-                                     p_reg_dst);
-        }
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_mem = cpu->instr.operands[1].p_reg;
+        p_reg_off = (int32_t *)cpu->instr.operands[2].p_reg;
+        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + *p_reg_off, p_reg_dst);
         break;
     }
 
@@ -135,8 +142,8 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     uint32_t src_val;
     if ((cpu->instr.opcode & 1) == 0) {
         // Even opcodes require two register operands.
-        src_val = *cpu->instr.operands[0].p_regs[0];
-        p_reg_dst = cpu->instr.operands[0].p_regs[1];
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        src_val = *cpu->instr.operands[1].p_reg;
     } else if (cpu->instr.opcode == CPU_OP_NOT_R) {
         // Only one register operand.
         p_reg_dst = cpu->instr.operands[0].p_reg;

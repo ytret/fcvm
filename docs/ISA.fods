@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <office:document xmlns:presentation="urn:oasis:names:tc:opendocument:xmlns:presentation:1.0" xmlns:css3t="http://www.w3.org/TR/css3-text/" xmlns:grddl="http://www.w3.org/2003/g/data-view#" xmlns:xhtml="http://www.w3.org/1999/xhtml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xforms="http://www.w3.org/2002/xforms" xmlns:dom="http://www.w3.org/2001/xml-events" xmlns:script="urn:oasis:names:tc:opendocument:xmlns:script:1.0" xmlns:form="urn:oasis:names:tc:opendocument:xmlns:form:1.0" xmlns:math="http://www.w3.org/1998/Math/MathML" xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:ooo="http://openoffice.org/2004/office" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0" xmlns:config="urn:oasis:names:tc:opendocument:xmlns:config:1.0" xmlns:ooow="http://openoffice.org/2004/writer" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:drawooo="http://openoffice.org/2010/draw" xmlns:oooc="http://openoffice.org/2004/calc" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:calcext="urn:org:documentfoundation:names:experimental:calc:xmlns:calcext:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:of="urn:oasis:names:tc:opendocument:xmlns:of:1.2" xmlns:tableooo="http://openoffice.org/2009/table" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:dr3d="urn:oasis:names:tc:opendocument:xmlns:dr3d:1.0" xmlns:rpt="http://openoffice.org/2005/report" xmlns:formx="urn:openoffice:names:experimental:ooxml-odf-interop:xmlns:form:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:chart="urn:oasis:names:tc:opendocument:xmlns:chart:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:field="urn:openoffice:names:experimental:ooo-ms-interop:xmlns:field:1.0" xmlns:number="urn:oasis:names:tc:opendocument:xmlns:datastyle:1.0" xmlns:meta="urn:oasis:names:tc:opendocument:xmlns:meta:1.0" xmlns:loext="urn:org:documentfoundation:names:experimental:office:xmlns:loext:1.0" office:version="1.4" office:mimetype="application/vnd.oasis.opendocument.spreadsheet">
- <office:meta><meta:creation-date>2025-04-27T12:53:32.390253609</meta:creation-date><meta:generator>LibreOffice/25.2.3.2$Linux_X86_64 LibreOffice_project/520$Build-2</meta:generator><dc:date>2025-05-18T18:32:37.050396722</dc:date><meta:editing-duration>PT23H31M13S</meta:editing-duration><meta:editing-cycles>56</meta:editing-cycles><meta:document-statistic meta:table-count="6" meta:cell-count="453" meta:object-count="0"/></office:meta>
+ <office:meta><meta:creation-date>2025-04-27T12:53:32.390253609</meta:creation-date><meta:generator>LibreOffice/25.2.4.3$Linux_X86_64 LibreOffice_project/520$Build-3</meta:generator><dc:date>2025-06-12T12:36:03.421890536</dc:date><meta:editing-duration>P1DT8M18S</meta:editing-duration><meta:editing-cycles>67</meta:editing-cycles><meta:document-statistic meta:table-count="6" meta:cell-count="476" meta:object-count="0"/></office:meta>
  <office:settings>
   <config:config-item-set config:name="ooo:view-settings">
    <config:config-item config:name="VisibleAreaTop" config:type="int">0</config:config-item>
    <config:config-item config:name="VisibleAreaLeft" config:type="int">0</config:config-item>
-   <config:config-item config:name="VisibleAreaWidth" config:type="int">2859</config:config-item>
-   <config:config-item config:name="VisibleAreaHeight" config:type="int">20772</config:config-item>
+   <config:config-item config:name="VisibleAreaWidth" config:type="int">32480</config:config-item>
+   <config:config-item config:name="VisibleAreaHeight" config:type="int">7698</config:config-item>
    <config:config-item-map-indexed config:name="Views">
     <config:config-item-map-entry>
      <config:config-item config:name="ViewId" config:type="string">view1</config:config-item>
      <config:config-item-map-named config:name="Tables">
       <config:config-item-map-entry config:name="ALU">
-       <config:config-item config:name="CursorPositionX" config:type="int">10</config:config-item>
-       <config:config-item config:name="CursorPositionY" config:type="int">29</config:config-item>
+       <config:config-item config:name="CursorPositionX" config:type="int">0</config:config-item>
+       <config:config-item config:name="CursorPositionY" config:type="int">30</config:config-item>
        <config:config-item config:name="ActiveSplitRange" config:type="short">2</config:config-item>
        <config:config-item config:name="PositionLeft" config:type="int">0</config:config-item>
        <config:config-item config:name="PositionRight" config:type="int">0</config:config-item>
@@ -47,8 +47,8 @@
        <config:config-item config:name="IgnoreBreakAfterMultilineField" config:type="boolean">false</config:config-item>
       </config:config-item-map-entry>
       <config:config-item-map-entry config:name="Data">
-       <config:config-item config:name="CursorPositionX" config:type="int">3</config:config-item>
-       <config:config-item config:name="CursorPositionY" config:type="int">7</config:config-item>
+       <config:config-item config:name="CursorPositionX" config:type="int">4</config:config-item>
+       <config:config-item config:name="CursorPositionY" config:type="int">5</config:config-item>
        <config:config-item config:name="ActiveSplitRange" config:type="short">2</config:config-item>
        <config:config-item config:name="PositionLeft" config:type="int">0</config:config-item>
        <config:config-item config:name="PositionRight" config:type="int">0</config:config-item>
@@ -115,8 +115,8 @@
        <config:config-item config:name="IgnoreBreakAfterMultilineField" config:type="boolean">false</config:config-item>
       </config:config-item-map-entry>
      </config:config-item-map-named>
-     <config:config-item config:name="ActiveTable" config:type="string">ALU</config:config-item>
-     <config:config-item config:name="HorizontalScrollbarWidth" config:type="int">1847</config:config-item>
+     <config:config-item config:name="ActiveTable" config:type="string">Data</config:config-item>
+     <config:config-item config:name="HorizontalScrollbarWidth" config:type="int">1430</config:config-item>
      <config:config-item config:name="ZoomType" config:type="short">0</config:config-item>
      <config:config-item config:name="ZoomValue" config:type="int">110</config:config-item>
      <config:config-item config:name="PageViewZoomValue" config:type="int">60</config:config-item>
@@ -229,19 +229,19 @@
  </office:font-face-decls>
  <office:styles>
   <style:default-style style:family="table-cell">
-   <style:paragraph-properties style:tab-stop-distance="0.5in"/>
+   <style:paragraph-properties style:tab-stop-distance="1.27cm"/>
    <style:text-properties style:font-name="Liberation Sans" fo:font-size="10pt" fo:language="en" fo:country="US" style:font-name-asian="Noto Sans" style:font-size-asian="10pt" style:language-asian="zh" style:country-asian="CN" style:font-name-complex="Noto Sans Devanagari" style:font-size-complex="10pt" style:language-complex="hi" style:country-complex="IN"/>
   </style:default-style>
   <style:default-style style:family="graphic">
-   <style:graphic-properties svg:stroke-color="#3465a4" draw:fill-color="#729fcf" fo:wrap-option="no-wrap" draw:shadow-offset-x="0.1181in" draw:shadow-offset-y="0.1181in" style:writing-mode="page"/>
-   <style:paragraph-properties style:text-autospace="ideograph-alpha" style:punctuation-wrap="simple" style:line-break="strict" loext:tab-stop-distance="0in" style:writing-mode="page" style:font-independent-line-spacing="false">
+   <style:graphic-properties svg:stroke-color="#3465a4" draw:fill-color="#729fcf" fo:wrap-option="no-wrap" draw:shadow-offset-x="0.3cm" draw:shadow-offset-y="0.3cm" style:writing-mode="page"/>
+   <style:paragraph-properties style:text-autospace="ideograph-alpha" style:punctuation-wrap="simple" style:line-break="strict" loext:tab-stop-distance="0cm" style:writing-mode="page" style:font-independent-line-spacing="false">
     <style:tab-stops/>
    </style:paragraph-properties>
    <style:text-properties style:use-window-font-color="true" loext:opacity="0%" fo:font-family="&apos;Liberation Serif&apos;" style:font-family-generic="roman" style:font-pitch="variable" fo:font-size="12pt" fo:language="en" fo:country="US" style:letter-kerning="true" style:font-family-asian="&apos;Adwaita Sans&apos;" style:font-family-generic-asian="system" style:font-pitch-asian="variable" style:font-size-asian="12pt" style:language-asian="zh" style:country-asian="CN" style:font-name-complex="Noto Sans" style:font-size-complex="12pt" style:language-complex="hi" style:country-complex="IN"/>
   </style:default-style>
   <style:style style:name="Default" style:family="graphic"/>
   <style:style style:name="Note" style:family="graphic" style:parent-style-name="Default">
-   <style:graphic-properties draw:stroke="solid" draw:marker-start="Arrowheads_20_1" draw:marker-start-width="0.0787in" draw:marker-start-center="false" draw:fill="solid" draw:fill-color="#e8a202" draw:auto-grow-height="true" draw:auto-grow-width="false" fo:padding-top="0.0394in" fo:padding-bottom="0.0394in" fo:padding-left="0.0394in" fo:padding-right="0.0394in" draw:shadow="visible" draw:shadow-offset-x="0.0394in" draw:shadow-offset-y="0.0394in"/>
+   <style:graphic-properties draw:stroke="solid" draw:marker-start="Arrowheads_20_1" draw:marker-start-width="0.2cm" draw:marker-start-center="false" draw:fill="solid" draw:fill-color="#e8a202" draw:auto-grow-height="true" draw:auto-grow-width="false" fo:padding-top="0.1cm" fo:padding-bottom="0.1cm" fo:padding-left="0.1cm" fo:padding-right="0.1cm" draw:shadow="visible" draw:shadow-offset-x="0.1cm" draw:shadow-offset-y="0.1cm"/>
    <style:text-properties style:font-name="Liberation Sans" fo:font-family="&apos;Liberation Sans&apos;" style:font-family-generic="swiss" style:font-pitch="variable" fo:font-size="10pt" style:font-name-asian="Noto Sans" style:font-family-asian="&apos;Noto Sans&apos;" style:font-family-generic-asian="system" style:font-pitch-asian="variable" style:font-size-asian="10pt" style:font-name-complex="Noto Sans Devanagari" style:font-family-complex="&apos;Noto Sans Devanagari&apos;" style:font-family-generic-complex="system" style:font-pitch-complex="variable" style:font-size-complex="10pt"/>
   </style:style>
   <number:number-style style:name="N0">
@@ -337,55 +337,58 @@
  </office:styles>
  <office:automatic-styles>
   <style:style style:name="co1" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.1256in"/>
-  </style:style>
-  <style:style style:name="co2" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="0.889in"/>
-  </style:style>
-  <style:style style:name="co3" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.7252in"/>
-  </style:style>
-  <style:style style:name="co4" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="2.1736in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="2.859cm"/>
   </style:style>
   <style:style style:name="co5" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.2181in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="3.094cm"/>
   </style:style>
   <style:style style:name="co6" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.8035in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="4.581cm"/>
+  </style:style>
+  <style:style style:name="co2" style:family="table-column">
+   <style:table-column-properties fo:break-before="auto" style:column-width="2.258cm"/>
   </style:style>
   <style:style style:name="co7" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.1693in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="2.97cm"/>
   </style:style>
   <style:style style:name="co8" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.7646in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="4.482cm"/>
   </style:style>
   <style:style style:name="co9" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.6181in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="4.11cm"/>
   </style:style>
   <style:style style:name="co10" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="2.7882in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="7.082cm"/>
   </style:style>
   <style:style style:name="co11" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.111in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="2.822cm"/>
   </style:style>
   <style:style style:name="co12" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="2.5736in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="6.537cm"/>
   </style:style>
   <style:style style:name="co13" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="1.1209in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="2.847cm"/>
   </style:style>
   <style:style style:name="co14" style:family="table-column">
-   <style:table-column-properties fo:break-before="auto" style:column-width="2.1543in"/>
+   <style:table-column-properties fo:break-before="auto" style:column-width="5.472cm"/>
+  </style:style>
+  <style:style style:name="co15" style:family="table-column">
+   <style:table-column-properties fo:break-before="auto" style:column-width="4.382cm"/>
+  </style:style>
+  <style:style style:name="co16" style:family="table-column">
+   <style:table-column-properties fo:break-before="auto" style:column-width="5.521cm"/>
   </style:style>
   <style:style style:name="ro1" style:family="table-row">
-   <style:table-row-properties style:row-height="0.178in" fo:break-before="auto" style:use-optimal-row-height="true"/>
+   <style:table-row-properties style:row-height="0.452cm" fo:break-before="auto" style:use-optimal-row-height="true"/>
   </style:style>
   <style:style style:name="ro2" style:family="table-row">
-   <style:table-row-properties style:row-height="0.1783in" fo:break-before="auto" style:use-optimal-row-height="true"/>
+   <style:table-row-properties style:row-height="0.453cm" fo:break-before="auto" style:use-optimal-row-height="true"/>
   </style:style>
   <style:style style:name="ro3" style:family="table-row">
-   <style:table-row-properties style:row-height="0.3311in" fo:break-before="auto" style:use-optimal-row-height="true"/>
+   <style:table-row-properties style:row-height="0.841cm" fo:break-before="auto" style:use-optimal-row-height="true"/>
+  </style:style>
+  <style:style style:name="ro4" style:family="table-row">
+   <style:table-row-properties style:row-height="0.446cm" fo:break-before="auto" style:use-optimal-row-height="true"/>
   </style:style>
   <style:style style:name="ta1" style:family="table" style:master-page-name="Default">
    <style:table-properties table:display="true" style:writing-mode="lr-tb"/>
@@ -399,51 +402,38 @@
   <style:style style:name="ce26" style:family="table-cell" style:parent-style-name="Default">
    <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
   </style:style>
+  <style:style style:name="ce11" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:wrap-option="wrap" fo:border="0.74pt solid #000000"/>
+  </style:style>
   <style:style style:name="ce27" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:border="0.74pt solid #000000"/>
-   <style:paragraph-properties fo:text-align="center" fo:margin-left="0in"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
    <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" style:font-weight-complex="bold"/>
   </style:style>
   <style:style style:name="ce28" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="start" fo:margin-left="0in"/>
-  </style:style>
-  <style:style style:name="ce29" style:family="table-cell" style:parent-style-name="Default">
-   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="start" fo:margin-left="0in"/>
-  </style:style>
-  <style:style style:name="ce30" style:family="table-cell" style:parent-style-name="Default">
-   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="start" fo:margin-left="0in"/>
-   <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
-  </style:style>
-  <style:style style:name="ce31" style:family="table-cell" style:parent-style-name="Default">
-   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false"/>
-   <style:paragraph-properties fo:text-align="start" fo:margin-left="0in"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
   </style:style>
   <style:style style:name="ce32" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="center" fo:margin-left="0in"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
    <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" style:font-weight-complex="bold"/>
   </style:style>
   <style:style style:name="ce33" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="center" fo:margin-left="0in"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
   </style:style>
   <style:style style:name="ce34" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="center" fo:margin-left="0in"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
    <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
-  </style:style>
-  <style:style style:name="ce11" style:family="table-cell" style:parent-style-name="Default">
-   <style:table-cell-properties fo:wrap-option="wrap" fo:border="0.74pt solid #000000"/>
   </style:style>
   <style:style style:name="ce36" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties fo:wrap-option="wrap" style:vertical-align="middle"/>
   </style:style>
   <style:style style:name="ce37" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
-   <style:paragraph-properties fo:text-align="start" fo:margin-left="0in"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
    <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
   </style:style>
   <style:style style:name="ce15" style:family="table-cell" style:parent-style-name="Default">
@@ -452,24 +442,92 @@
   <style:style style:name="ce16" style:family="table-cell" style:parent-style-name="Default">
    <style:table-cell-properties fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
   </style:style>
+  <style:style style:name="ce18" style:family="table-cell" style:parent-style-name="Default">
+   <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" style:font-weight-complex="bold"/>
+  </style:style>
+  <style:style style:name="ce19" style:family="table-cell" style:parent-style-name="Default">
+   <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
+  </style:style>
+  <style:style style:name="ce20" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:border="0.74pt solid #000000"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
+   <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" style:font-weight-complex="bold"/>
+  </style:style>
+  <style:style style:name="ce21" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
+  </style:style>
+  <style:style style:name="ce29" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
+  </style:style>
+  <style:style style:name="ce30" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
+   <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
+  </style:style>
+  <style:style style:name="ce31" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
+  </style:style>
+  <style:style style:name="ce25" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
+   <style:text-properties fo:font-weight="bold" style:font-weight-asian="bold" style:font-weight-complex="bold"/>
+  </style:style>
+  <style:style style:name="ce35" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
+  </style:style>
+  <style:style style:name="ce10" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:background-color="#eeeeee" style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
+  </style:style>
+  <style:style style:name="ce12" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:background-color="#eeeeee" style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
+   <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
+  </style:style>
+  <style:style style:name="ce40" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="center" fo:margin-left="0cm"/>
+   <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
+  </style:style>
+  <style:style style:name="ce41" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:wrap-option="wrap" fo:border="0.74pt solid #000000"/>
+  </style:style>
+  <style:style style:name="ce42" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:wrap-option="wrap" style:vertical-align="middle"/>
+  </style:style>
+  <style:style style:name="ce43" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties style:text-align-source="fix" style:repeat-content="false" fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+   <style:paragraph-properties fo:text-align="start" fo:margin-left="0cm"/>
+   <style:text-properties fo:font-weight="normal" style:font-weight-asian="normal" style:font-weight-complex="normal"/>
+  </style:style>
+  <style:style style:name="ce44" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+  </style:style>
+  <style:style style:name="ce45" style:family="table-cell" style:parent-style-name="Default">
+   <style:table-cell-properties fo:wrap-option="wrap" fo:border="0.74pt solid #000000" style:vertical-align="middle"/>
+  </style:style>
   <style:page-layout style:name="pm1">
    <style:page-layout-properties style:writing-mode="lr-tb"/>
    <style:header-style>
-    <style:header-footer-properties fo:min-height="0.2953in" fo:margin-left="0in" fo:margin-right="0in" fo:margin-bottom="0.0984in"/>
+    <style:header-footer-properties fo:min-height="0.75cm" fo:margin-left="0cm" fo:margin-right="0cm" fo:margin-bottom="0.25cm"/>
    </style:header-style>
    <style:footer-style>
-    <style:header-footer-properties fo:min-height="0.2953in" fo:margin-left="0in" fo:margin-right="0in" fo:margin-top="0.0984in"/>
+    <style:header-footer-properties fo:min-height="0.75cm" fo:margin-left="0cm" fo:margin-right="0cm" fo:margin-top="0.25cm"/>
    </style:footer-style>
   </style:page-layout>
   <style:page-layout style:name="pm2">
    <style:page-layout-properties style:writing-mode="lr-tb"/>
    <style:header-style>
-    <style:header-footer-properties fo:min-height="0.2953in" fo:margin-left="0in" fo:margin-right="0in" fo:margin-bottom="0.0984in" fo:border="1.5pt solid #000000" fo:padding="0.0071in" fo:background-color="#c0c0c0">
+    <style:header-footer-properties fo:min-height="0.75cm" fo:margin-left="0cm" fo:margin-right="0cm" fo:margin-bottom="0.25cm" fo:border="1.5pt solid #000000" fo:padding="0.018cm" fo:background-color="#c0c0c0">
      <style:background-image/>
     </style:header-footer-properties>
    </style:header-style>
    <style:footer-style>
-    <style:header-footer-properties fo:min-height="0.2953in" fo:margin-left="0in" fo:margin-right="0in" fo:margin-top="0.0984in" fo:border="1.5pt solid #000000" fo:padding="0.0071in" fo:background-color="#c0c0c0">
+    <style:header-footer-properties fo:min-height="0.75cm" fo:margin-left="0cm" fo:margin-right="0cm" fo:margin-top="0.25cm" fo:border="1.5pt solid #000000" fo:padding="0.018cm" fo:background-color="#c0c0c0">
      <style:background-image/>
     </style:header-footer-properties>
    </style:footer-style>
@@ -494,7 +552,7 @@
      <text:p><text:sheet-name>???</text:sheet-name><text:s/>(<text:title>???</text:title>)</text:p>
     </style:region-left>
     <style:region-right>
-     <text:p><text:date style:data-style-name="N2" text:date-value="2025-05-18">00/00/0000</text:date>, <text:time style:data-style-name="N2" text:time-value="18:21:30.410869631">00:00:00</text:time></text:p>
+     <text:p><text:date style:data-style-name="N2" text:date-value="2025-06-12">00.00.0000</text:date>, <text:time style:data-style-name="N2" text:time-value="12:27:37.611009493">00:00:00</text:time></text:p>
     </style:region-right>
    </style:header>
    <style:header-left style:display="false"/>
@@ -512,7 +570,7 @@
    <table:table table:name="Overview" table:style-name="ta1">
     <table:table-column table:style-name="co1" table:default-cell-style-name="Default"/>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Data movement</text:p>
      </table:table-cell>
     </table:table-row>
@@ -535,7 +593,7 @@
      <table:table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Arithmetic and logic</text:p>
      </table:table-cell>
     </table:table-row>
@@ -618,7 +676,7 @@
      <table:table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Control flow</text:p>
      </table:table-cell>
     </table:table-row>
@@ -671,12 +729,12 @@
      <table:table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Stack operations</text:p>
      </table:table-cell>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce26" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce19" office:value-type="string" calcext:value-type="string">
       <text:p>PUSH</text:p>
      </table:table-cell>
     </table:table-row>
@@ -689,7 +747,7 @@
      <table:table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Other</text:p>
      </table:table-cell>
     </table:table-row>
@@ -704,7 +762,7 @@
      </table:table-cell>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce26" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce19" office:value-type="string" calcext:value-type="string">
       <text:p>INT</text:p>
      </table:table-cell>
     </table:table-row>
@@ -715,54 +773,60 @@
     </table:table-row>
    </table:table>
    <table:table table:name="Data" table:style-name="ta1">
-    <table:table-column table:style-name="co3" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co4" table:default-cell-style-name="ce28"/>
+    <table:table-column table:style-name="co15" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co16" table:default-cell-style-name="ce21"/>
     <table:table-column table:style-name="co2" table:default-cell-style-name="ce29"/>
-    <table:table-column table:style-name="co2" table:number-columns-repeated="9" table:default-cell-style-name="ce33"/>
+    <table:table-column table:style-name="co2" table:number-columns-repeated="2" table:default-cell-style-name="ce35"/>
+    <table:table-column table:style-name="co2" table:default-cell-style-name="Default"/>
+    <table:table-column table:style-name="co2" table:number-columns-repeated="6" table:default-cell-style-name="ce10"/>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Data movement instructions</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="Default" table:number-columns-repeated="11"/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="4"/>
+     <table:table-cell/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="Default" table:number-columns-repeated="12"/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="5"/>
+     <table:table-cell/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce27" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce20" office:value-type="string" calcext:value-type="string">
       <text:p>Instruction</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce27" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce20" office:value-type="string" calcext:value-type="string">
       <text:p>Action</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce27" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce20" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 0</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 1</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 2</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 3</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 4</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 5</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 6</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 7</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 8</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 9</text:p>
      </table:table-cell>
     </table:table-row>
@@ -777,12 +841,12 @@
       <text:p>MOV_VR</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RD: reg</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
       <text:p>imm32</text:p>
      </table:table-cell>
-     <table:covered-table-cell table:number-columns-repeated="3"/>
+     <table:covered-table-cell table:number-columns-repeated="3" table:style-name="ce35"/>
      <table:table-cell table:number-columns-repeated="4"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -796,14 +860,20 @@
       <text:p>MOV_RR</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="8"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:style-name="ce10"/>
+     <table:table-cell table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
      <table:table-cell table:style-name="Default" table:number-columns-repeated="2"/>
      <table:table-cell table:style-name="ce31"/>
-     <table:table-cell table:style-name="Default" table:number-columns-repeated="9"/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="2"/>
+     <table:table-cell/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -812,16 +882,17 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Copy value of RS to [imm32]</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>STR_RV0</text:p>
-     </table:table-cell>
-     <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
       <text:p>imm32</text:p>
      </table:table-cell>
-     <table:covered-table-cell table:number-columns-repeated="3"/>
+     <table:covered-table-cell/>
+     <table:covered-table-cell table:number-columns-repeated="2" table:style-name="ce35"/>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
      <table:table-cell table:number-columns-repeated="4"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -831,15 +902,19 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Copy value of RS to [RD]</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>STR_RI0</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:style-name="ce10"/>
+     <table:table-cell/>
+     <table:table-cell table:style-name="ce12"/>
      <table:table-cell table:number-columns-repeated="4"/>
-     <table:table-cell table:style-name="ce34"/>
-     <table:table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -852,12 +927,15 @@
       <text:p>STR_RI8</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>OFF: imm8</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="7"/>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -870,13 +948,16 @@
       <text:p>STR_RI32</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
       <text:p>OFF: imm32</text:p>
      </table:table-cell>
-     <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:covered-table-cell table:number-columns-repeated="3" table:style-name="ce35"/>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -889,17 +970,22 @@
       <text:p>STR_RIR</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>RO</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="7"/>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
      <table:table-cell table:style-name="Default" table:number-columns-repeated="2"/>
      <table:table-cell table:style-name="ce31"/>
-     <table:table-cell table:style-name="Default" table:number-columns-repeated="9"/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="2"/>
+     <table:table-cell/>
+     <table:table-cell table:style-name="Default" table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -912,12 +998,12 @@
       <text:p>LDR_RV0</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RD: reg</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
       <text:p>MS: imm32</text:p>
      </table:table-cell>
-     <table:covered-table-cell table:number-columns-repeated="3"/>
+     <table:covered-table-cell table:number-columns-repeated="3" table:style-name="ce35"/>
      <table:table-cell table:number-columns-repeated="4"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -927,13 +1013,17 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Copy value of [RS] to RD</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>LDR_RI0</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="8"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:style-name="ce10"/>
+     <table:table-cell table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -946,12 +1036,15 @@
       <text:p>LDR_RI8</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
       <text:p>OFF: imm8</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="7"/>
+     <table:table-cell table:number-columns-repeated="6"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -964,13 +1057,16 @@
       <text:p>LDR_RI32</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
       <text:p>OFF: imm32</text:p>
      </table:table-cell>
-     <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:covered-table-cell table:number-columns-repeated="3" table:style-name="ce35"/>
+     <table:table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -983,23 +1079,26 @@
       <text:p>LDR_RIR</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+      <text:p>RD</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
       <text:p>RO</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="7"/>
+     <table:table-cell table:number-columns-repeated="6"/>
     </table:table-row>
    </table:table>
    <table:table table:name="ALU" table:style-name="ta1">
-    <table:table-column table:style-name="co5" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co6" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co2" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co2" table:number-columns-repeated="7" table:default-cell-style-name="ce33"/>
-    <table:table-column table:style-name="co7" table:default-cell-style-name="ce33"/>
-    <table:table-column table:style-name="co8" table:default-cell-style-name="ce33"/>
+    <table:table-column table:style-name="co5" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co6" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co2" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co2" table:number-columns-repeated="7" table:default-cell-style-name="ce35"/>
+    <table:table-column table:style-name="co7" table:default-cell-style-name="ce35"/>
+    <table:table-column table:style-name="co8" table:default-cell-style-name="ce35"/>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Arithmetic &amp; logic instructions and their effect on flags</text:p>
      </table:table-cell>
      <table:table-cell table:style-name="Default" table:number-columns-repeated="11"/>
@@ -1008,40 +1107,40 @@
      <table:table-cell table:style-name="Default" table:number-columns-repeated="12"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce27" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce20" office:value-type="string" calcext:value-type="string">
       <text:p>Instruction</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce27" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce20" office:value-type="string" calcext:value-type="string">
       <text:p>Action</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce27" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce20" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 0</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 1</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 2</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 3</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 4</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 5</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Zero</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Sign</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Carry</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Overflow</text:p>
      </table:table-cell>
     </table:table-row>
@@ -1055,10 +1154,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>ADD_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell table:style-name="ce40" office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1100,10 +1202,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>SUB_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell table:style-name="ce40" office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1134,7 +1239,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1147,10 +1252,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>MUL_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1181,7 +1289,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1194,10 +1302,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>DIV_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1228,7 +1339,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1241,10 +1352,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>IDIV_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1275,7 +1389,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1288,10 +1402,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>AND_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1322,7 +1439,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1335,10 +1452,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>OR_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1369,7 +1489,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1382,10 +1502,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>XOR_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res ==0</text:p>
      </table:table-cell>
@@ -1416,7 +1539,7 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce34"/>
+     <table:covered-table-cell table:style-name="ce40"/>
      <table:covered-table-cell table:number-columns-repeated="3"/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -1453,10 +1576,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>SHL_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1499,10 +1625,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>SHR_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1545,10 +1674,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>ROR_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell table:style-name="ce40" office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1591,10 +1723,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>ROL_RR</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce34" office:value-type="string" calcext:value-type="string">
-      <text:p>RS | RD</text:p>
+     <table:table-cell table:style-name="ce40" office:value-type="string" calcext:value-type="string">
+      <text:p>RD</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RS</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1629,7 +1764,7 @@
     </table:table-row>
     <table:table-row table:style-name="ro3">
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>CMP RA, RB</text:p>
+      <text:p>CMP RB, RA</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>RB – RA, set flags</text:p>
@@ -1638,9 +1773,12 @@
       <text:p>CMP_RR</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RA | RB</text:p>
+      <text:p>RB</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RA</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1656,7 +1794,7 @@
     </table:table-row>
     <table:table-row table:style-name="ro1">
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>TST RA, RB</text:p>
+      <text:p>TST RB, RA</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>RB &amp; RA, set flags</text:p>
@@ -1665,9 +1803,12 @@
       <text:p>TST_RR</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
-      <text:p>RA | RB</text:p>
+      <text:p>RB</text:p>
      </table:table-cell>
-     <table:table-cell table:number-columns-repeated="4"/>
+     <table:table-cell office:value-type="string" calcext:value-type="string">
+      <text:p>RA</text:p>
+     </table:table-cell>
+     <table:table-cell table:number-columns-repeated="3"/>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="1" table:number-rows-spanned="2">
       <text:p>res == 0</text:p>
      </table:table-cell>
@@ -1681,7 +1822,7 @@
       <text:p>always 0</text:p>
      </table:table-cell>
     </table:table-row>
-    <table:table-row table:style-name="ro1">
+    <table:table-row table:style-name="ro4">
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>TST RA, imm32</text:p>
      </table:table-cell>
@@ -1698,53 +1839,53 @@
       <text:p>imm32</text:p>
      </table:table-cell>
      <table:covered-table-cell table:number-columns-repeated="3"/>
-     <table:covered-table-cell table:style-name="ce11"/>
+     <table:covered-table-cell table:style-name="ce41"/>
      <table:covered-table-cell/>
-     <table:covered-table-cell table:style-name="ce11"/>
+     <table:covered-table-cell table:style-name="ce41"/>
      <table:covered-table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce26"/>
+     <table:table-cell table:style-name="ce19"/>
      <table:table-cell table:style-name="Default" table:number-columns-repeated="11"/>
     </table:table-row>
    </table:table>
    <table:table table:name="Control flow" table:style-name="ta1">
-    <table:table-column table:style-name="co9" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co10" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co11" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co2" table:number-columns-repeated="5" table:default-cell-style-name="ce33"/>
+    <table:table-column table:style-name="co9" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co10" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co11" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co2" table:number-columns-repeated="5" table:default-cell-style-name="ce35"/>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Control flow instructions</text:p>
      </table:table-cell>
      <table:table-cell table:style-name="Default" table:number-columns-repeated="7"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce36" table:number-columns-repeated="8"/>
+     <table:table-cell table:style-name="ce42" table:number-columns-repeated="8"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Instruction</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Action</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 0</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 1</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 2</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 3</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 4</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 5</text:p>
      </table:table-cell>
     </table:table-row>
@@ -1770,7 +1911,7 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Unconditional jump to imm32</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce37" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce43" office:value-type="string" calcext:value-type="string">
       <text:p>JMPA_V32</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
@@ -2115,12 +2256,12 @@
     </table:table-row>
    </table:table>
    <table:table table:name="Stack" table:style-name="ta1">
-    <table:table-column table:style-name="co11" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co12" table:default-cell-style-name="ce28"/>
+    <table:table-column table:style-name="co11" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co12" table:default-cell-style-name="ce21"/>
     <table:table-column table:style-name="co2" table:number-columns-repeated="5" table:default-cell-style-name="Default"/>
-    <table:table-column table:style-name="co2" table:default-cell-style-name="ce33"/>
+    <table:table-column table:style-name="co2" table:default-cell-style-name="ce35"/>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Stack instructions</text:p>
      </table:table-cell>
      <table:table-cell table:style-name="Default"/>
@@ -2133,28 +2274,28 @@
      <table:table-cell table:style-name="Default"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Instruction</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Action</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 0</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 1</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 2</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 3</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 4</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 5</text:p>
      </table:table-cell>
     </table:table-row>
@@ -2165,13 +2306,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Push imm32 to stack</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>PUSH_V32</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce33" office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string" table:number-columns-spanned="4" table:number-rows-spanned="1">
       <text:p>imm32</text:p>
      </table:table-cell>
-     <table:covered-table-cell table:number-columns-repeated="3" table:style-name="ce33"/>
+     <table:covered-table-cell table:number-columns-repeated="3" table:style-name="ce35"/>
      <table:table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -2181,13 +2322,13 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Push RA to stack</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce37" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce43" office:value-type="string" calcext:value-type="string">
       <text:p>PUSH_R</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce33" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
       <text:p>RA</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce33" table:number-columns-repeated="3"/>
+     <table:table-cell table:style-name="ce35" table:number-columns-repeated="3"/>
      <table:table-cell/>
     </table:table-row>
     <table:table-row table:style-name="ro2">
@@ -2197,23 +2338,23 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Pop u32 from stack into RA</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>POP_R</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce33" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce35" office:value-type="string" calcext:value-type="string">
       <text:p>RA</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce33" table:number-columns-repeated="3"/>
+     <table:table-cell table:style-name="ce35" table:number-columns-repeated="3"/>
      <table:table-cell/>
     </table:table-row>
    </table:table>
    <table:table table:name="Other" table:style-name="ta1">
-    <table:table-column table:style-name="co13" table:default-cell-style-name="ce28"/>
-    <table:table-column table:style-name="co14" table:default-cell-style-name="ce28"/>
+    <table:table-column table:style-name="co13" table:default-cell-style-name="ce21"/>
+    <table:table-column table:style-name="co14" table:default-cell-style-name="ce21"/>
     <table:table-column table:style-name="co2" table:default-cell-style-name="Default"/>
-    <table:table-column table:style-name="co2" table:number-columns-repeated="5" table:default-cell-style-name="ce33"/>
+    <table:table-column table:style-name="co2" table:number-columns-repeated="5" table:default-cell-style-name="ce35"/>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce1" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce18" office:value-type="string" calcext:value-type="string">
       <text:p>Other instructions</text:p>
      </table:table-cell>
      <table:table-cell table:style-name="Default"/>
@@ -2226,28 +2367,28 @@
      <table:table-cell table:style-name="Default" table:number-columns-repeated="5"/>
     </table:table-row>
     <table:table-row table:style-name="ro1">
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Instruction</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Action</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 0</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 1</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 2</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 3</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 4</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce32" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce25" office:value-type="string" calcext:value-type="string">
       <text:p>Byte 5</text:p>
      </table:table-cell>
     </table:table-row>
@@ -2258,7 +2399,7 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>No-op</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>NOP</text:p>
      </table:table-cell>
      <table:table-cell table:number-columns-repeated="5"/>
@@ -2270,7 +2411,7 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Halt until an interrupt happens</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce37" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce43" office:value-type="string" calcext:value-type="string">
       <text:p>HALT</text:p>
      </table:table-cell>
      <table:table-cell table:number-columns-repeated="5"/>
@@ -2282,7 +2423,7 @@
      <table:table-cell office:value-type="string" calcext:value-type="string">
       <text:p>Raise interrupt line imm8</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce28" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce21" office:value-type="string" calcext:value-type="string">
       <text:p>INT_V8</text:p>
      </table:table-cell>
      <table:table-cell office:value-type="string" calcext:value-type="string">
@@ -2291,16 +2432,16 @@
      <table:table-cell table:number-columns-repeated="4"/>
     </table:table-row>
     <table:table-row table:style-name="ro3">
-     <table:table-cell table:style-name="ce15" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce44" office:value-type="string" calcext:value-type="string">
       <text:p>IRET</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce16" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce45" office:value-type="string" calcext:value-type="string">
       <text:p>Return from an interrupt service routine</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce15" office:value-type="string" calcext:value-type="string">
+     <table:table-cell table:style-name="ce44" office:value-type="string" calcext:value-type="string">
       <text:p>IRET</text:p>
      </table:table-cell>
-     <table:table-cell table:style-name="ce15" table:number-columns-repeated="5"/>
+     <table:table-cell table:style-name="ce44" table:number-columns-repeated="5"/>
     </table:table-row>
    </table:table>
    <table:named-expressions/>

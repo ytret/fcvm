@@ -4,8 +4,8 @@ add_custom_command(
             ${CMAKE_CURRENT_LIST_DIR}/hello-world.asm
             ${CMAKE_CURRENT_BINARY_DIR}/hello-world.bin
     DEPENDS ${CMAKE_CURRENT_LIST_DIR}/hello-world.asm
-    WORKING_DIRECTORY ${FCVM_DIR}
-    COMMENT "Assembling hello-world.asm"
+    WORKING_DIRECTORY ${FCVM_ASM_DIR}
+    COMMENT "Assembling hello-world.asm using asm-fennel"
     VERBATIM
 )
 add_custom_target(hello_world_bin

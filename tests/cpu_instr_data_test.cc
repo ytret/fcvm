@@ -3,9 +3,9 @@
 #include <iomanip>
 #include <random>
 
-#include <fcvm/cpu.h>
 #include "testcommon/fake_mem.h"
 #include "testcommon/get_random.h"
+#include <fcvm/cpu.h>
 
 #define TEST_MEM_SIZE       100
 #define TEST_MEM_START_DATA 50
@@ -155,14 +155,6 @@ static DataInstrParam get_random_param(
             instr_bytes.push_back(reg_code);
             break;
         }
-        case CPU_OPD_REGS: {
-            uint8_t reg_codes =
-                get_random_reg_codes(rng, unique_regs, used_reg_codes);
-            used_reg_codes.push_back((reg_codes >> 4) & 0x0F);
-            used_reg_codes.push_back((reg_codes >> 0) & 0x0F);
-            instr_bytes.push_back(reg_codes);
-            break;
-        }
         case CPU_OPD_IMM5:
             // not used for data instructions
             break;
@@ -238,12 +230,11 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_MOV_RR, false, false, false, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    *get_reg_ptr(cpu, (param.instr_bytes.at(1) >> 4) & 0x0F) =
+                    *get_reg_ptr(cpu, param.instr_bytes.at(2)) =
                         param.expected_value;
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    return *get_reg_ptr(cpu,
-                                        (param.instr_bytes.at(1) >> 0) & 0x0F);
+                    return *get_reg_ptr(cpu, param.instr_bytes.at(1));
                 }));
         }
         return v;
@@ -258,7 +249,7 @@ INSTANTIATE_TEST_SUITE_P(
                 rng, CPU_OP_STR_RV0, false, true, false,
                 ImmOperandRole::MemAddr,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    *get_reg_ptr(cpu, param.instr_bytes.at(1)) =
+                    *get_reg_ptr(cpu, param.instr_bytes.at(5)) =
                         param.expected_value;
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
@@ -278,8 +269,8 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_STR_RI0, true, true, false, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_src = (param.instr_bytes.at(1) >> 4) & 0x0F;
-                    uint8_t reg_dst_mem = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
+                    uint8_t reg_src = param.instr_bytes.at(2);
                     *get_reg_ptr(cpu, reg_src) = param.expected_value;
                     *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
                 },
@@ -300,8 +291,8 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_STR_RI8, true, true, true, ImmOperandRole::Offset,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_src = (param.instr_bytes.at(1) >> 4) & 0x0F;
-                    uint8_t reg_dst_mem = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
+                    uint8_t reg_src = param.instr_bytes.at(3);
                     *get_reg_ptr(cpu, reg_src) = param.expected_value;
                     *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
                 },
@@ -323,8 +314,8 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_STR_RI32, true, true, true, ImmOperandRole::Offset,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_src = (param.instr_bytes.at(1) >> 4) & 0x0F;
-                    uint8_t reg_dst_mem = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
+                    uint8_t reg_src = param.instr_bytes.at(6);
                     *get_reg_ptr(cpu, reg_src) = param.expected_value;
                     *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
                 },
@@ -346,9 +337,9 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_STR_RIR, true, true, true, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_src = (param.instr_bytes.at(1) >> 4) & 0x0F;
-                    uint8_t reg_dst_mem = (param.instr_bytes.at(1) >> 0) & 0x0F;
-                    uint8_t reg_dst_off = param.instr_bytes.at(2) & 0x0F;
+                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
+                    uint8_t reg_dst_off = param.instr_bytes.at(2);
+                    uint8_t reg_src = param.instr_bytes.at(3);
                     *get_reg_ptr(cpu, reg_src) = param.expected_value;
                     *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
                     *get_reg_ptr(cpu, reg_dst_off) = *param.mem_offset;
@@ -391,13 +382,13 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_LDR_RI0, true, true, false, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = (param.instr_bytes.at(1) >> 4) & 0x0F;
+                    uint8_t reg_mem = param.instr_bytes.at(2);
                     *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
                     cpu->mem->write_u32(cpu->mem, *param.mem_addr,
                                         param.expected_value);
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst = param.instr_bytes.at(1);
                     return *get_reg_ptr(cpu, reg_dst);
                 }));
         }
@@ -412,14 +403,14 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_LDR_RI8, true, true, true, ImmOperandRole::Offset,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = (param.instr_bytes.at(1) >> 4) & 0x0F;
+                    uint8_t reg_mem = param.instr_bytes.at(2);
                     *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
                     cpu->mem->write_u32(cpu->mem,
                                         *param.mem_addr + *param.mem_offset,
                                         param.expected_value);
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst = param.instr_bytes.at(1);
                     return *get_reg_ptr(cpu, reg_dst);
                 }));
         }
@@ -434,14 +425,14 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_LDR_RI32, true, true, true, ImmOperandRole::Offset,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = (param.instr_bytes.at(1) >> 4) & 0x0F;
+                    uint8_t reg_mem = param.instr_bytes.at(2);
                     *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
                     cpu->mem->write_u32(cpu->mem,
                                         *param.mem_addr + *param.mem_offset,
                                         param.expected_value);
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst = param.instr_bytes.at(1);
                     return *get_reg_ptr(cpu, reg_dst);
                 }));
         }
@@ -456,8 +447,8 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_LDR_RIR, true, true, true, ImmOperandRole::Offset,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = (param.instr_bytes.at(1) >> 4) & 0x0F;
-                    uint8_t reg_off = param.instr_bytes.at(2);
+                    uint8_t reg_mem = param.instr_bytes.at(2);
+                    uint8_t reg_off = param.instr_bytes.at(3);
                     *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
                     *get_reg_ptr(cpu, reg_off) = *param.mem_offset;
                     cpu->mem->write_u32(cpu->mem,
@@ -465,7 +456,7 @@ INSTANTIATE_TEST_SUITE_P(
                                         param.expected_value);
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = (param.instr_bytes.at(1) >> 0) & 0x0F;
+                    uint8_t reg_dst = param.instr_bytes.at(1);
                     return *get_reg_ptr(cpu, reg_dst);
                 }));
         }
