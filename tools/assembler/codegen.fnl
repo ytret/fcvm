@@ -42,9 +42,11 @@
       (error (.. "unrecognized instruction name '" instr.name "' in:\n"
                  (fennel.view instr))))
     (var resolved? false)
-    (each [_ desc (pairs (. opcodes.descs instr.name)) &until resolved?]
+    (each [_ desc (pairs (. opcodes.descs instr.name))]
       (when (opcode-matches? desc instr)
-        (tset instr :gen-desc desc)
+        (when (or (= nil (?. instr :gen-desc :size))
+                  (< desc.size (. instr :gen-desc :size)))
+          (tset instr :gen-desc desc))
         (set resolved? true)))
     (when (not resolved?)
       (error (.. "unrecognized instruction:\n" (fennel.view instr))))
