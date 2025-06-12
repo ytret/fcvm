@@ -62,8 +62,8 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
         *p_reg_dst = cpu->instr.operands[1].u32;
         break;
     case CPU_OP_MOV_RR:
-        p_reg_src = cpu->instr.operands[0].p_reg;
-        p_reg_dst = cpu->instr.operands[1].p_reg;
+        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_src = cpu->instr.operands[1].p_reg;
         *p_reg_dst = *p_reg_src;
         break;
 

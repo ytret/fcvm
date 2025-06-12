@@ -230,11 +230,11 @@ INSTANTIATE_TEST_SUITE_P(
             v.push_back(get_random_param(
                 rng, CPU_OP_MOV_RR, false, false, false, ImmOperandRole::None,
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    *get_reg_ptr(cpu, param.instr_bytes.at(1)) =
+                    *get_reg_ptr(cpu, param.instr_bytes.at(2)) =
                         param.expected_value;
                 },
                 [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    return *get_reg_ptr(cpu, param.instr_bytes.at(2));
+                    return *get_reg_ptr(cpu, param.instr_bytes.at(1));
                 }));
         }
         return v;
