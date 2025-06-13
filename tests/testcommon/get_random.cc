@@ -80,6 +80,14 @@ uint8_t get_random_reg_codes(std::mt19937 &rng, bool unique_regs,
     return (reg_code1 << 4) | reg_code2;
 }
 
+RegRef get_random_reg_ref(std::mt19937 &rng, bool unique_regs,
+                          std::vector<uint8_t> used_reg_codes) {
+    return RegRef{
+        .size = RegRef::Size32Bits,
+        .code = get_random_reg_code(rng, unique_regs, used_reg_codes),
+    };
+}
+
 uint32_t get_random_imm32(std::mt19937 &rng, uint32_t min_val,
                           uint32_t max_val) {
     std::uniform_int_distribution<uint32_t> val_dist(min_val, max_val);

@@ -1,7 +1,5 @@
 #include <absl/strings/str_format.h>
 #include <gtest/gtest.h>
-#include <iomanip>
-#include <random>
 
 #include "testcommon/fake_mem.h"
 #include "testcommon/get_random.h"
@@ -11,40 +9,234 @@
 #define TEST_MEM_START_DATA 50
 
 struct DataInstrParam {
+    enum DataDir {
+        Imm32ToReg,
+        RegToReg,
+        RegToMem,
+        MemToReg,
+    };
+    enum AddrType {
+        NoAddr,
+        AddrImm32,
+        AddrRegNoOffset,
+        AddrRegOffset8,
+        AddrRegOffset32,
+        AddrRegOffsetReg,
+    };
+
+    std::string name;
+    uint8_t opcode;
+    size_t num_cpu_steps;
+    DataDir data_dir;
+    AddrType addr_type;
+
+    /// Operand values.
+    struct {
+        std::optional<RegRef> src_reg;
+        std::optional<RegRef> dst_reg;
+        std::optional<RegRef> off_reg;
+        std::optional<vm_addr_t> addr_base;
+        std::optional<int32_t> addr_offset;
+    } operands;
+
+    /// RAM map address.
     vm_addr_t mem_base;
-    size_t cpu_exec_steps;
-    std::vector<uint8_t> instr_bytes;
 
-    uint32_t expected_value;
-    std::optional<uint32_t> mem_addr;
-    std::optional<int32_t> mem_offset;
+    /// Value put into the register before the execution.
+    uint32_t orig_val;
+    /// Value being copied during the execution of the instruction.
+    uint32_t exp_val;
 
-    std::optional<std::function<void(const DataInstrParam &, cpu_ctx_t *)>>
-        f_prepare;
-    std::function<uint32_t(const DataInstrParam &, cpu_ctx_t *)>
-        f_get_actual_value;
+    static DataInstrParam get_random_param(std::mt19937 &rng, std::string name,
+                                           uint8_t opcode, DataDir data_dir,
+                                           AddrType addr_type) {
+        size_t num_cpu_steps = 4;
+        switch (addr_type) {
+        case AddrRegOffset8:
+        case AddrRegOffset32:
+        case AddrRegOffsetReg:
+            num_cpu_steps += 1;
+        case NoAddr:
+        case AddrImm32:
+        case AddrRegNoOffset:
+            break;
+        }
+
+        DataInstrParam param = {};
+        param.name = name;
+        param.opcode = opcode;
+        param.num_cpu_steps = num_cpu_steps;
+        param.data_dir = data_dir;
+        param.addr_type = addr_type;
+        param.mem_base = get_random_base_addr(rng);
+        param.set_random_operands(rng);
+        param.exp_val = get_random_imm32(rng);
+        return param;
+    }
+
+    void set_random_operands(std::mt19937 &rng) {
+        bool has_src_reg = false;
+        bool has_dst_reg = false;
+        bool has_off_reg = false;
+        bool has_addr = false;
+        bool has_addr_offset = false;
+        switch (data_dir) {
+        case Imm32ToReg:
+            has_dst_reg = true;
+            break;
+        case RegToReg:
+            has_src_reg = true;
+            has_dst_reg = true;
+            break;
+        case RegToMem:
+            has_src_reg = true;
+            has_dst_reg = addr_type != NoAddr && addr_type != AddrImm32;
+            has_off_reg = addr_type == AddrRegOffsetReg;
+            has_addr = true;
+            has_addr_offset = addr_type == AddrRegOffset8 ||
+                              addr_type == AddrRegOffset32 ||
+                              addr_type == AddrRegOffsetReg;
+            break;
+        case MemToReg:
+            has_src_reg = addr_type != NoAddr && addr_type != AddrImm32;
+            has_dst_reg = true;
+            has_off_reg = addr_type == AddrRegOffsetReg;
+            has_addr = true;
+            has_addr_offset = addr_type == AddrRegOffset8 ||
+                              addr_type == AddrRegOffset32 ||
+                              addr_type == AddrRegOffsetReg;
+            break;
+        }
+
+        const bool unique_regs = data_dir == RegToMem || data_dir == MemToReg;
+        std::vector<uint8_t> used_reg_codes;
+        if (has_src_reg) {
+            operands.src_reg = RegRef{
+                .size = RegRef::Size32Bits,
+                .code = get_random_reg_code(rng, unique_regs, used_reg_codes),
+            };
+            used_reg_codes.push_back(operands.src_reg->code);
+        }
+        if (has_dst_reg) {
+            operands.dst_reg = RegRef{
+                .size = RegRef::Size32Bits,
+                .code = get_random_reg_code(rng, unique_regs, used_reg_codes),
+            };
+            used_reg_codes.push_back(operands.dst_reg->code);
+        }
+        if (has_off_reg) {
+            operands.off_reg = RegRef{
+                .size = RegRef::Size32Bits,
+                .code = get_random_reg_code(rng, unique_regs, used_reg_codes),
+            };
+            used_reg_codes.push_back(operands.off_reg->code);
+        }
+
+        if (has_addr) {
+            operands.addr_base =
+                get_random_data_addr(rng, mem_base + TEST_MEM_START_DATA,
+                                     mem_base + TEST_MEM_SIZE, 4);
+            if (has_addr_offset) {
+                const vm_addr_t target_addr =
+                    get_random_data_addr(rng, mem_base + TEST_MEM_START_DATA,
+                                         mem_base + TEST_MEM_SIZE, 4);
+                operands.addr_offset = target_addr - *operands.addr_base;
+            }
+        }
+    }
+
+    std::vector<uint8_t> encode_instr() const {
+        std::vector<uint8_t> v;
+        v.push_back(opcode);
+
+        switch (data_dir) {
+        case Imm32ToReg:
+            v.push_back(operands.dst_reg->encode());
+            v.resize(v.size() + 4);
+            memcpy(v.data() + v.size() - 4, &exp_val, 4);
+            break;
+        case RegToReg:
+            v.push_back(operands.dst_reg->encode());
+            v.push_back(operands.src_reg->encode());
+            break;
+        case RegToMem:
+            encode_addr_operand(v);
+            v.push_back(operands.src_reg->encode());
+            break;
+        case MemToReg:
+            v.push_back(operands.dst_reg->encode());
+            encode_addr_operand(v);
+            break;
+        }
+
+        return v;
+    }
+
+    void encode_addr_operand(std::vector<uint8_t> &v) const {
+        const vm_addr_t addr =
+            operands.addr_base.value() + operands.addr_offset.value_or(0);
+        const std::optional<RegRef> &reg =
+            data_dir == RegToMem ? operands.dst_reg : operands.src_reg;
+        switch (addr_type) {
+        case NoAddr:
+            break;
+        case AddrImm32:
+            v.resize(v.size() + 4);
+            memcpy(v.data() + v.size() - 4, &addr, 4);
+            break;
+        case AddrRegNoOffset:
+            v.push_back(reg->encode());
+            break;
+        case AddrRegOffset8:
+            v.push_back(reg->encode());
+            v.push_back(operands.addr_offset.value() & 0xFF);
+            break;
+        case AddrRegOffset32:
+            v.push_back(reg->encode());
+            v.resize(v.size() + 4);
+            memcpy(v.data() + v.size() - 4, &operands.addr_offset.value(), 4);
+            break;
+        case AddrRegOffsetReg:
+            v.push_back(reg->encode());
+            v.push_back(operands.off_reg->encode());
+            break;
+        }
+    }
+
+    void prepare_cpu(cpu_ctx_t *cpu) const {
+        cpu->state = CPU_FETCH_DECODE_OPCODE;
+
+        std::optional<RegRef> val_reg;
+        std::optional<RegRef> base_reg;
+
+        if (data_dir == RegToReg || data_dir == RegToMem) {
+            val_reg = operands.src_reg;
+            if (data_dir == RegToMem && addr_type != AddrImm32) {
+                base_reg = operands.dst_reg;
+            }
+        } else if (data_dir == MemToReg && addr_type != AddrImm32) {
+            base_reg = operands.src_reg;
+        }
+
+        if (val_reg.has_value()) { *val_reg->get_ptr_u32(cpu) = exp_val; }
+        if (base_reg.has_value()) {
+            *base_reg->get_ptr_u32(cpu) = *operands.addr_base;
+        }
+        if (addr_type == AddrRegOffsetReg) {
+            *operands.off_reg->get_ptr_u32(cpu) = *operands.addr_offset;
+        }
+
+        if (addr_type != NoAddr) {
+            cpu->mem->write_u32(cpu->mem,
+                                operands.addr_base.value() +
+                                    operands.addr_offset.value_or(0),
+                                exp_val);
+        }
+    }
 
     friend std::ostream &operator<<(std::ostream &os,
                                     const DataInstrParam &param) {
-        std::string instr_hex = std::accumulate(
-            param.instr_bytes.cbegin(), param.instr_bytes.cend(), std::string{},
-            [](std::string acc, uint8_t b) {
-                std::ostringstream oss;
-                oss << std::uppercase << std::hex << std::setw(2)
-                    << std::setfill('0') << static_cast<int>(b);
-                return acc.empty() ? oss.str()
-                                   : std::move(acc) + ' ' + oss.str();
-            });
-        std::string mem_addr = param.mem_addr.has_value()
-                                   ? absl::StrFormat("0x%08X", *param.mem_addr)
-                                   : std::string("N/A");
-        std::string mem_offset = param.mem_offset.has_value()
-                                     ? absl::StrFormat("%+d", *param.mem_offset)
-                                     : std::string("");
-        os << absl::StrFormat(
-            "{ mem_base = 0x%08X, [%s], expect 0x%08X at [%s%s] }",
-            param.mem_base, instr_hex, param.expected_value, mem_addr,
-            mem_offset);
+        os << absl::StrFormat("{ %s }", param.name);
         return os;
     }
 };
@@ -53,13 +245,12 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
   protected:
     DataInstrTest() {
         auto param = GetParam();
+        auto instr_bytes = param.encode_instr();
 
         mem = new FakeMem(param.mem_base, param.mem_base + TEST_MEM_SIZE);
-        mem->write(param.mem_base, param.instr_bytes.data(),
-                   param.instr_bytes.size());
+        mem->write(param.mem_base, instr_bytes.data(), instr_bytes.size());
 
         cpu = cpu_new(&mem->mem_if);
-        cpu->state = CPU_FETCH_DECODE_OPCODE;
         cpu->reg_pc = param.mem_base;
     }
     ~DataInstrTest() {
@@ -73,392 +264,176 @@ class DataInstrTest : public testing::TestWithParam<DataInstrParam> {
 
 TEST_P(DataInstrTest, WritesValue) {
     auto param = GetParam();
-    if (param.f_prepare) { param.f_prepare.value()(param, cpu); }
+    param.prepare_cpu(cpu);
 
-    for (size_t step_idx = 0; step_idx < param.cpu_exec_steps; step_idx++) {
+    for (size_t step_idx = 0; step_idx < param.num_cpu_steps; step_idx++) {
         cpu_step(cpu);
-        ASSERT_EQ(cpu->num_nested_exc, 0);
+        ASSERT_EQ(cpu->num_nested_exc, 0) << "unexpected CPU exception";
     }
-    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE);
+    ASSERT_EQ(cpu->state, CPU_FETCH_DECODE_OPCODE)
+        << "invalid amount of CPU steps";
 
-    EXPECT_EQ(param.f_get_actual_value(param, cpu), param.expected_value);
+    switch (param.data_dir) {
+    case DataInstrParam::Imm32ToReg:
+    case DataInstrParam::RegToReg:
+    case DataInstrParam::MemToReg:
+        EXPECT_EQ(*param.operands.dst_reg->get_ptr_u32(cpu), param.exp_val);
+        break;
+
+    case DataInstrParam::RegToMem: {
+        uint32_t act_val = 0;
+        vm_addr_t dst_addr =
+            *param.operands.addr_base + param.operands.addr_offset.value_or(0);
+        cpu->mem->read_u32(cpu->mem, dst_addr, &act_val);
+        EXPECT_EQ(act_val, param.exp_val);
+        break;
+    }
+    }
 }
 
-enum class ImmOperandRole {
-    None,
-    ExpVal,
-    MemAddr,
-    Offset,
-};
+INSTANTIATE_TEST_SUITE_P(Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "MOV_VR", CPU_OP_MOV_VR,
+                                     DataInstrParam::Imm32ToReg,
+                                     DataInstrParam::NoAddr);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_MOV_RR, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "MOV_RR", CPU_OP_MOV_RR,
+                                     DataInstrParam::RegToReg,
+                                     DataInstrParam::NoAddr);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
 
-/**
- * Creates a #DataInstrParam with randomly generated values.
- * @param rng -- Random number generator.
- * @param opcode -- Opcode of the instruction under test.
- * @param unique_regs -- Whether or not registers must be unique.
- * @param gen_mem_addr -- Generate #DataInstrParam.mem_addr.
- * @param gen_mem_offset -- Generate #DataInstrParam.mem_offset.
- * @param imm_opd_role -- Role of the immediate operand in the instruction.
- * @param f_prepare -- An optional function which will be used to prepare
- *   the execution context (e.g. put the expected value into memory).
- * @param f_get_act_val -- A required function to get the actual value in the
- *   test environment after executing the instruction.
- */
-static DataInstrParam get_random_param(
-    std::mt19937 &rng, uint8_t opcode, bool unique_regs, bool gen_mem_addr,
-    bool gen_mem_offset, ImmOperandRole imm_opd_role,
-    std::optional<std::function<void(const DataInstrParam &, cpu_ctx_t *)>>
-        f_prepare,
-    std::function<uint32_t(const DataInstrParam &, cpu_ctx_t *)>
-        f_get_act_val) {
-    const cpu_instr_desc_t *desc = cpu_lookup_instr_desc(opcode);
-    if (desc == nullptr) {
-        fprintf(stderr, "failed to lookup a descritptor for opcode 0x%02X\n",
-                opcode);
-        abort();
-    }
+INSTANTIATE_TEST_SUITE_P(Random_STR_RV0, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "STR_RV0", CPU_OP_STR_RV0,
+                                     DataInstrParam::RegToMem,
+                                     DataInstrParam::AddrImm32);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_STR_RI0, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "STR_RI0", CPU_OP_STR_RI0,
+                                     DataInstrParam::RegToMem,
+                                     DataInstrParam::AddrRegNoOffset);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_STR_RI8, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "STR_RI8", CPU_OP_STR_RI8,
+                                     DataInstrParam::RegToMem,
+                                     DataInstrParam::AddrRegOffset8);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_STR_RI32, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "STR_RI32", CPU_OP_STR_RI32,
+                                     DataInstrParam::RegToMem,
+                                     DataInstrParam::AddrRegOffset32);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_STR_RIR, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "STR_RIR", CPU_OP_STR_RIR,
+                                     DataInstrParam::RegToMem,
+                                     DataInstrParam::AddrRegOffsetReg);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
 
-    uint32_t exp_val = get_random_imm32(rng);
-    uint32_t mem_base = get_random_base_addr(rng);
-
-    std::optional<uint32_t> mem_addr;
-    if (gen_mem_addr) {
-        mem_addr = get_random_data_addr(rng, mem_base + TEST_MEM_START_DATA,
-                                        mem_base + TEST_MEM_SIZE, 4);
-    }
-
-    std::optional<int32_t> mem_offset;
-    if (gen_mem_addr && gen_mem_offset) {
-        // offseted_addr is just used to get an offset within the RAM. Since the
-        // offset may be truncated depending on the opcode, it may not
-        // adequately represent the actual memory address the instruction is
-        // supposed to work with.
-        //
-        // Truncated version is saved in mem_offset and can be used, since it's
-        // what is encoded and together with mem_addr points to a valid RAM
-        // dword.
-        uint32_t offseted_addr = get_random_data_addr(
-            rng, mem_base + TEST_MEM_START_DATA, mem_base + TEST_MEM_SIZE, 4);
-        int32_t offset = offseted_addr - *mem_addr;
-        mem_offset = static_cast<int32_t>(offset);
-    }
-
-    std::vector<uint8_t> instr_bytes = {opcode};
-    std::vector<uint8_t> used_reg_codes;
-    for (size_t idx = 0; idx < desc->num_operands; idx++) {
-        cpu_operand_type_t opd = desc->operands[idx];
-        switch (opd) {
-        case CPU_OPD_REG: {
-            uint8_t reg_code =
-                get_random_reg_code(rng, unique_regs, used_reg_codes);
-            used_reg_codes.push_back(reg_code);
-            instr_bytes.push_back(reg_code);
-            break;
-        }
-        case CPU_OPD_IMM5:
-            // not used for data instructions
-            break;
-        case CPU_OPD_IMM8: {
-            uint8_t imm8 = 0xAA;
-            switch (imm_opd_role) {
-            case ImmOperandRole::Offset:
-                *mem_offset = static_cast<int8_t>(*mem_offset);
-                imm8 = *mem_offset;
-                break;
-            default:
-                fprintf(stderr, "bad test configuration: imm8 may be used only "
-                                "as an offset\n");
-            }
-            instr_bytes.push_back(imm8);
-            break;
-        }
-        case CPU_OPD_IMM32:
-            uint32_t imm32 = 0xCAFEBABE;
-            switch (imm_opd_role) {
-            case ImmOperandRole::ExpVal:
-                imm32 = exp_val;
-                break;
-            case ImmOperandRole::MemAddr:
-                imm32 = *mem_addr;
-                break;
-            case ImmOperandRole::Offset:
-                imm32 = *mem_offset;
-                break;
-            default:
-                fprintf(stderr, "bad test configuration: imm_opd_role = "
-                                "Missing, but opcode requires an imm value");
-                abort();
-            }
-            instr_bytes.resize(instr_bytes.size() + 4);
-            memcpy(instr_bytes.data() + instr_bytes.size() - 4, &imm32, 4);
-            break;
-        }
-    }
-
-    return DataInstrParam{
-        .mem_base = mem_base,
-        .cpu_exec_steps = 2 + desc->num_operands,
-        .instr_bytes = instr_bytes,
-        .expected_value = exp_val,
-        .mem_addr = mem_addr,
-        .mem_offset = mem_offset,
-        .f_prepare = f_prepare,
-        .f_get_actual_value = f_get_act_val,
-    };
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_MOV_VR, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_MOV_VR, false, false, false, ImmOperandRole::ExpVal,
-                {}, [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_code = param.instr_bytes.at(1);
-                    return *get_reg_ptr(cpu, reg_code);
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_MOV_RR, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_MOV_RR, false, false, false, ImmOperandRole::None,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    *get_reg_ptr(cpu, param.instr_bytes.at(2)) =
-                        param.expected_value;
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    return *get_reg_ptr(cpu, param.instr_bytes.at(1));
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_STR_RV0, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_STR_RV0, false, true, false,
-                ImmOperandRole::MemAddr,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    *get_reg_ptr(cpu, param.instr_bytes.at(5)) =
-                        param.expected_value;
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint32_t act_val = 0xDEADBEEF;
-                    cpu->mem->read_u32(cpu->mem, *param.mem_addr, &act_val);
-                    return act_val;
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_STR_RI0, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_STR_RI0, true, true, false, ImmOperandRole::None,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
-                    uint8_t reg_src = param.instr_bytes.at(2);
-                    *get_reg_ptr(cpu, reg_src) = param.expected_value;
-                    *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint32_t act_val = 0xDEADBEEF;
-                    cpu->mem->read_u32(cpu->mem, *param.mem_addr, &act_val);
-                    return act_val;
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_STR_RI8, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_STR_RI8, true, true, true, ImmOperandRole::Offset,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
-                    uint8_t reg_src = param.instr_bytes.at(3);
-                    *get_reg_ptr(cpu, reg_src) = param.expected_value;
-                    *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint32_t act_val = 0xDEADBEEF;
-                    vm_addr_t mem_addr = *param.mem_addr + *param.mem_offset;
-                    cpu->mem->read_u32(cpu->mem, mem_addr, &act_val);
-                    return act_val;
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_STR_RI32, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_STR_RI32, true, true, true, ImmOperandRole::Offset,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
-                    uint8_t reg_src = param.instr_bytes.at(6);
-                    *get_reg_ptr(cpu, reg_src) = param.expected_value;
-                    *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint32_t act_val = 0xDEADBEEF;
-                    vm_addr_t mem_addr = *param.mem_addr + *param.mem_offset;
-                    cpu->mem->read_u32(cpu->mem, mem_addr, &act_val);
-                    return act_val;
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_STR_RIR, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_STR_RIR, true, true, true, ImmOperandRole::None,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst_mem = param.instr_bytes.at(1);
-                    uint8_t reg_dst_off = param.instr_bytes.at(2);
-                    uint8_t reg_src = param.instr_bytes.at(3);
-                    *get_reg_ptr(cpu, reg_src) = param.expected_value;
-                    *get_reg_ptr(cpu, reg_dst_mem) = *param.mem_addr;
-                    *get_reg_ptr(cpu, reg_dst_off) = *param.mem_offset;
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint32_t act_val = 0xDEADBEEF;
-                    vm_addr_t mem_addr = *param.mem_addr + *param.mem_offset;
-                    cpu->mem->read_u32(cpu->mem, mem_addr, &act_val);
-                    return act_val;
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_LDR_RV0, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_LDR_RV0, false, true, false,
-                ImmOperandRole::MemAddr,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    cpu->mem->write_u32(cpu->mem, *param.mem_addr,
-                                        param.expected_value);
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = param.instr_bytes.at(1);
-                    return *get_reg_ptr(cpu, reg_dst);
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_LDR_RI0, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_LDR_RI0, true, true, false, ImmOperandRole::None,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = param.instr_bytes.at(2);
-                    *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
-                    cpu->mem->write_u32(cpu->mem, *param.mem_addr,
-                                        param.expected_value);
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = param.instr_bytes.at(1);
-                    return *get_reg_ptr(cpu, reg_dst);
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_LDR_RI8, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_LDR_RI8, true, true, true, ImmOperandRole::Offset,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = param.instr_bytes.at(2);
-                    *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
-                    cpu->mem->write_u32(cpu->mem,
-                                        *param.mem_addr + *param.mem_offset,
-                                        param.expected_value);
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = param.instr_bytes.at(1);
-                    return *get_reg_ptr(cpu, reg_dst);
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_LDR_RI32, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_LDR_RI32, true, true, true, ImmOperandRole::Offset,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = param.instr_bytes.at(2);
-                    *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
-                    cpu->mem->write_u32(cpu->mem,
-                                        *param.mem_addr + *param.mem_offset,
-                                        param.expected_value);
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = param.instr_bytes.at(1);
-                    return *get_reg_ptr(cpu, reg_dst);
-                }));
-        }
-        return v;
-    }()));
-
-INSTANTIATE_TEST_SUITE_P(
-    Random_LDR_RIR, DataInstrTest, testing::ValuesIn([&] {
-        std::vector<DataInstrParam> v;
-        std::mt19937 rng(TEST_RNG_SEED);
-        for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
-            v.push_back(get_random_param(
-                rng, CPU_OP_LDR_RIR, true, true, true, ImmOperandRole::Offset,
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_mem = param.instr_bytes.at(2);
-                    uint8_t reg_off = param.instr_bytes.at(3);
-                    *get_reg_ptr(cpu, reg_mem) = *param.mem_addr;
-                    *get_reg_ptr(cpu, reg_off) = *param.mem_offset;
-                    cpu->mem->write_u32(cpu->mem,
-                                        *param.mem_addr + *param.mem_offset,
-                                        param.expected_value);
-                },
-                [](const DataInstrParam &param, cpu_ctx_t *cpu) {
-                    uint8_t reg_dst = param.instr_bytes.at(1);
-                    return *get_reg_ptr(cpu, reg_dst);
-                }));
-        }
-        return v;
-    }()));
+INSTANTIATE_TEST_SUITE_P(Random_LDR_RV0, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "LDR_RV0", CPU_OP_LDR_RV0,
+                                     DataInstrParam::MemToReg,
+                                     DataInstrParam::AddrImm32);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_LDR_RI0, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "LDR_RI0", CPU_OP_LDR_RI0,
+                                     DataInstrParam::MemToReg,
+                                     DataInstrParam::AddrRegNoOffset);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_LDR_RI8, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "LDR_RI8", CPU_OP_LDR_RI8,
+                                     DataInstrParam::MemToReg,
+                                     DataInstrParam::AddrRegOffset8);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_LDR_RI32, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "LDR_RI32", CPU_OP_LDR_RI32,
+                                     DataInstrParam::MemToReg,
+                                     DataInstrParam::AddrRegOffset32);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
+INSTANTIATE_TEST_SUITE_P(Random_LDR_RIR, DataInstrTest, testing::ValuesIn([&] {
+                             std::vector<DataInstrParam> v;
+                             std::mt19937 rng(TEST_RNG_SEED);
+                             for (int i = 0; i < TEST_NUM_RANDOM_CASES; i++) {
+                                 auto param = DataInstrParam::get_random_param(
+                                     rng, "LDR_RIR", CPU_OP_LDR_RIR,
+                                     DataInstrParam::MemToReg,
+                                     DataInstrParam::AddrRegOffsetReg);
+                                 v.push_back(param);
+                             }
+                             return v;
+                         }()));
