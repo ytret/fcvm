@@ -11,11 +11,26 @@
 #include <fcvm/cpu_instr_descs.h>
 #include <fcvm/vm_types.h>
 
+/// Register access size.
+typedef enum {
+    CPU_REG_SIZE_8,  //!< Access the lower 8 bits of the register.
+    CPU_REG_SIZE_32, //!< Access the whole 32 bits of the register.
+} cpu_reg_size_t;
+
+/// Decoded register reference.
+typedef struct {
+    /// Original reference byte, as it appeared in the bytecode.
+    uint8_t encoded_ref;
+    /// Register access size.
+    cpu_reg_size_t access_size;
+    /// Register code.
+    uint8_t reg_code;
+    /// Pointer to the register value in the CPU context. See #cpu_ctx_t.
+    uint32_t *p_reg;
+} cpu_reg_ref_t;
+
 typedef union {
-    struct {
-        uint8_t reg_code;
-        uint32_t *p_reg;
-    };
+    cpu_reg_ref_t reg_ref;
     uint8_t imm5;
     uint8_t u8;
     uint32_t u32;

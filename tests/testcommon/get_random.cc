@@ -44,13 +44,15 @@ uint8_t get_random_opcode(std::mt19937 &rng) {
 }
 
 uint32_t *get_reg_ptr(cpu_ctx_t *cpu, uint8_t reg_code) {
-    uint32_t *p_reg;
-    cpu_decode_reg(cpu, reg_code, &p_reg);
-    if (!p_reg) {
+    const uint8_t reg_ref_byte = CPU_REG_REF_SIZE_32 | reg_code;
+
+    cpu_reg_ref_t decoded_ref;
+    cpu_decode_reg(cpu, reg_ref_byte, &decoded_ref);
+    if (!decoded_ref.p_reg) {
         fprintf(stderr, "failed to decode register code 0x%02X\n", reg_code);
         abort();
     }
-    return p_reg;
+    return decoded_ref.p_reg;
 }
 
 uint8_t get_random_reg_code(std::mt19937 &rng, bool unique_regs,

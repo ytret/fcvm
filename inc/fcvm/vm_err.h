@@ -19,7 +19,7 @@ typedef enum {
     /// Unrecognized instruction opcode.
     VM_ERR_BAD_OPCODE,
     /// Unrecognized register code in an instruction.
-    VM_ERR_BAD_REG_CODE,
+    VM_ERR_BAD_REG_REF,
     /// Bad `imm5` byte in an instruction (the value does not fit into 5 bits).
     VM_ERR_BAD_IMM5,
 

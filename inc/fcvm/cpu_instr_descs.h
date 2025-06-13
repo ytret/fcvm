@@ -150,6 +150,13 @@ extern "C" {
 #define CPU_CODE_R7          0x07
 #define CPU_CODE_SP          0x08
 
+#define CPU_REG_REF_CODE_MASK 0x3F
+#define CPU_REG_REF_SIZE_MASK 0xC0
+#define CPU_REG_REF_SIZE_32   0x00
+#define CPU_REG_REF_SIZE_8    0x40
+static_assert((CPU_REG_REF_SIZE_MASK & CPU_REG_REF_CODE_MASK) == 0x00);
+static_assert((CPU_REG_REF_SIZE_MASK | CPU_REG_REF_CODE_MASK) == 0xFF);
+
 typedef enum {
     CPU_OPD_REG,   //!< One register (1 byte).
     CPU_OPD_IMM5,  //!< Immediate 5-bit value (1 byte).

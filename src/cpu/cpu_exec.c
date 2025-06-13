@@ -58,71 +58,71 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
 
     switch (cpu->instr.opcode) {
     case CPU_OP_MOV_VR:
-        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
         *p_reg_dst = cpu->instr.operands[1].u32;
         break;
     case CPU_OP_MOV_RR:
-        p_reg_dst = cpu->instr.operands[0].p_reg;
-        p_reg_src = cpu->instr.operands[1].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_src = cpu->instr.operands[1].reg_ref.p_reg;
         *p_reg_dst = *p_reg_src;
         break;
 
     case CPU_OP_STR_RV0:
         mem_addr = cpu->instr.operands[0].u32;
-        p_reg_src = cpu->instr.operands[1].p_reg;
+        p_reg_src = cpu->instr.operands[1].reg_ref.p_reg;
         err = cpu->mem->write_u32(cpu->mem, mem_addr, *p_reg_src);
         break;
     case CPU_OP_STR_RI0:
-        p_reg_mem = cpu->instr.operands[0].p_reg;
-        p_reg_src = cpu->instr.operands[1].p_reg;
+        p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_src = cpu->instr.operands[1].reg_ref.p_reg;
         err = cpu->mem->write_u32(cpu->mem, *p_reg_mem, *p_reg_src);
         break;
     case CPU_OP_STR_RI8:
-        p_reg_mem = cpu->instr.operands[0].p_reg;
+        p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
         mem_off8 = (int8_t)cpu->instr.operands[1].u8;
-        p_reg_src = cpu->instr.operands[2].p_reg;
+        p_reg_src = cpu->instr.operands[2].reg_ref.p_reg;
         err = cpu->mem->write_u32(cpu->mem, *p_reg_mem + mem_off8, *p_reg_src);
         break;
     case CPU_OP_STR_RI32:
-        p_reg_mem = cpu->instr.operands[0].p_reg;
+        p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
         mem_off32 = (int32_t)cpu->instr.operands[1].u32;
-        p_reg_src = cpu->instr.operands[2].p_reg;
+        p_reg_src = cpu->instr.operands[2].reg_ref.p_reg;
         err = cpu->mem->write_u32(cpu->mem, *p_reg_mem + mem_off32, *p_reg_src);
         break;
     case CPU_OP_STR_RIR:
-        p_reg_mem = cpu->instr.operands[0].p_reg;
-        p_reg_off = (int32_t *)cpu->instr.operands[1].p_reg;
-        p_reg_src = cpu->instr.operands[2].p_reg;
+        p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_off = (int32_t *)cpu->instr.operands[1].reg_ref.p_reg;
+        p_reg_src = cpu->instr.operands[2].reg_ref.p_reg;
         err =
             cpu->mem->write_u32(cpu->mem, *p_reg_mem + *p_reg_off, *p_reg_src);
         break;
 
     case CPU_OP_LDR_RV0:
-        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
         mem_addr = cpu->instr.operands[1].u32;
         err = cpu->mem->read_u32(cpu->mem, mem_addr, p_reg_dst);
         break;
     case CPU_OP_LDR_RI0:
-        p_reg_dst = cpu->instr.operands[0].p_reg;
-        p_reg_mem = cpu->instr.operands[1].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
         err = cpu->mem->read_u32(cpu->mem, *p_reg_mem, p_reg_dst);
         break;
     case CPU_OP_LDR_RI8:
-        p_reg_dst = cpu->instr.operands[0].p_reg;
-        p_reg_mem = cpu->instr.operands[1].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
         mem_off8 = (int8_t)cpu->instr.operands[2].u8;
         err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + mem_off8, p_reg_dst);
         break;
     case CPU_OP_LDR_RI32:
-        p_reg_dst = cpu->instr.operands[0].p_reg;
-        p_reg_mem = cpu->instr.operands[1].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
         mem_off32 = (int32_t)cpu->instr.operands[2].u32;
         err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + mem_off32, p_reg_dst);
         break;
     case CPU_OP_LDR_RIR: {
-        p_reg_dst = cpu->instr.operands[0].p_reg;
-        p_reg_mem = cpu->instr.operands[1].p_reg;
-        p_reg_off = (int32_t *)cpu->instr.operands[2].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
+        p_reg_off = (int32_t *)cpu->instr.operands[2].reg_ref.p_reg;
         err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + *p_reg_off, p_reg_dst);
         break;
     }
@@ -142,15 +142,15 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     uint32_t src_val;
     if ((cpu->instr.opcode & 1) == 0) {
         // Even opcodes require two register operands.
-        p_reg_dst = cpu->instr.operands[0].p_reg;
-        src_val = *cpu->instr.operands[1].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        src_val = *cpu->instr.operands[1].reg_ref.p_reg;
     } else if (cpu->instr.opcode == CPU_OP_NOT_R) {
         // Only one register operand.
-        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
     } else {
         // Odd opcodes require a register operand and an imm32 value, except for
         // some opcodes.
-        p_reg_dst = cpu->instr.operands[0].p_reg;
+        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
 
         if (cpu->instr.opcode == CPU_OP_SHL_RV ||
             cpu->instr.opcode == CPU_OP_SHR_RV ||
@@ -403,7 +403,7 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
     case CPU_OP_JGEA_R:
     case CPU_OP_JLTA_R:
     case CPU_OP_JLEA_R:
-        jump_pc = *cpu->instr.operands[0].p_reg;
+        jump_pc = *cpu->instr.operands[0].reg_ref.p_reg;
         break;
 
     case CPU_OP_CALLA_V32:
@@ -411,7 +411,7 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
         if (cpu->instr.opcode == CPU_OP_CALLA_V32) {
             jump_pc = cpu->instr.operands[0].u32;
         } else {
-            jump_pc = *cpu->instr.operands[0].p_reg;
+            jump_pc = *cpu->instr.operands[0].reg_ref.p_reg;
         }
         uint32_t next_instr_at = cpu->reg_pc;
         cpu_stack_push_u32(cpu, next_instr_at);
@@ -441,11 +441,11 @@ static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu) {
         break;
 
     case CPU_OP_PUSH_R:
-        err = cpu_stack_push_u32(cpu, *cpu->instr.operands[0].p_reg);
+        err = cpu_stack_push_u32(cpu, *cpu->instr.operands[0].reg_ref.p_reg);
         break;
 
     case CPU_OP_POP_R:
-        err = cpu_stack_pop_u32(cpu, cpu->instr.operands[0].p_reg);
+        err = cpu_stack_pop_u32(cpu, cpu->instr.operands[0].reg_ref.p_reg);
         break;
 
     default:

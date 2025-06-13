@@ -109,9 +109,10 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
         D_ASSERT(cpu->instr.desc);
         for (size_t opd = 0; opd < cpu->instr.next_operand; opd++) {
             if (cpu->instr.desc->operands[opd] == CPU_OPD_REG) {
-                cpu_decode_reg(cpu, cpu->instr.operands[opd].reg_code,
-                               &cpu->instr.operands[opd].p_reg);
-                D_ASSERT(cpu->instr.operands[opd].p_reg);
+                cpu_decode_reg(cpu,
+                               cpu->instr.operands[opd].reg_ref.encoded_ref,
+                               &cpu->instr.operands[opd].reg_ref);
+                D_ASSERT(cpu->instr.operands[opd].reg_ref.p_reg);
             }
         }
     }
@@ -246,13 +247,28 @@ void cpu_step(cpu_ctx_t *cpu) {
 CPU_STEP_END:
 }
 
-vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
-                        uint32_t **out_reg_ptr) {
+vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_ref,
+                        cpu_reg_ref_t *out_reg_ref) {
     D_ASSERT(cpu);
-    D_ASSERT(out_reg_ptr);
-    vm_err_t err = VM_ERR_NONE;
+    D_ASSERT(out_reg_ref);
 
-    uint32_t *code_addr_map[0xFF] = {
+    const uint8_t access_size_u8 = reg_ref & CPU_REG_REF_SIZE_MASK;
+    const uint8_t reg_code = reg_ref & CPU_REG_REF_CODE_MASK;
+
+    cpu_reg_size_t access_size;
+    switch (access_size_u8) {
+    case CPU_REG_REF_SIZE_8:
+        access_size = CPU_REG_SIZE_8;
+        break;
+    case CPU_REG_REF_SIZE_32:
+        access_size = CPU_REG_SIZE_32;
+        break;
+    default:
+        D_PRINTF("bad register access size: 0x%02X", access_size_u8);
+        return VM_ERR_BAD_REG_REF;
+    }
+
+    uint32_t *const code_ptr_map[0xFF] = {
         [CPU_CODE_R0] = &cpu->gp_regs[0], [CPU_CODE_R1] = &cpu->gp_regs[1],
         [CPU_CODE_R2] = &cpu->gp_regs[2], [CPU_CODE_R3] = &cpu->gp_regs[3],
         [CPU_CODE_R4] = &cpu->gp_regs[4], [CPU_CODE_R5] = &cpu->gp_regs[5],
@@ -261,15 +277,18 @@ vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
     };
     static_assert(CPU_NUM_GP_REG_CODES == 8, "update register decoding");
 
-    uint32_t *p_reg = code_addr_map[reg_code];
-    if (p_reg) {
-        *out_reg_ptr = p_reg;
-    } else {
+    uint32_t *const p_reg = code_ptr_map[reg_code];
+    if (!p_reg) {
         D_PRINTF("bad register code: 0x%02X", reg_code);
-        err = VM_ERR_BAD_REG_CODE;
-        *out_reg_ptr = NULL;
+        return VM_ERR_BAD_REG_REF;
     }
-    return err;
+
+    out_reg_ref->encoded_ref = reg_ref;
+    out_reg_ref->access_size = access_size;
+    out_reg_ref->reg_code = reg_code;
+    out_reg_ref->p_reg = p_reg;
+
+    return VM_ERR_NONE;
 }
 
 cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_t err) {
@@ -280,7 +299,7 @@ cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_t err) {
         return CPU_EXC_BAD_MEM;
 
     case VM_ERR_BAD_OPCODE:
-    case VM_ERR_BAD_REG_CODE:
+    case VM_ERR_BAD_REG_REF:
     case VM_ERR_BAD_IMM5:
     case VM_ERR_INVALID_IRQ_NUM:
         return CPU_EXC_BAD_INSTR;
@@ -315,16 +334,12 @@ static vm_err_t prv_cpu_fetch_decode_operand(cpu_ctx_t *cpu,
 
     switch (opd_type) {
     case CPU_OPD_REG: {
-        uint8_t reg_code;
-        err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &reg_code);
+        uint8_t reg_ref;
+        err = cpu->mem->read_u8(cpu->mem, cpu->reg_pc, &reg_ref);
         if (err) { return err; }
 
-        uint32_t *p_reg;
-        err = cpu_decode_reg(cpu, reg_code, &p_reg);
+        err = cpu_decode_reg(cpu, reg_ref, &out_val->reg_ref);
         if (err) { return err; }
-
-        out_val->reg_code = reg_code;
-        out_val->p_reg = p_reg;
 
         opd_size = 1;
         break;
@@ -377,7 +392,8 @@ static void prv_cpu_print_instr(const cpu_instr_t *instr) {
         if (opd == 0) { fprintf(stderr, " ["); }
         switch (instr->desc->operands[opd]) {
         case CPU_OPD_REG:
-            fprintf(stderr, "reg %02X", instr->operands[opd].reg_code);
+            fprintf(stderr, "regref %02X",
+                    instr->operands[opd].reg_ref.encoded_ref);
             break;
         case CPU_OPD_IMM5:
             fprintf(stderr, "imm5 %02X", instr->operands[opd].imm5);

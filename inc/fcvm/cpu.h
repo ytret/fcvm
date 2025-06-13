@@ -125,8 +125,8 @@ cpu_ctx_t *cpu_restore(mem_if_t *mem, const void *v_buf, size_t max_size,
 
 void cpu_step(cpu_ctx_t *cpu);
 
-vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_code,
-                        uint32_t **out_reg_ptr);
+vm_err_t cpu_decode_reg(cpu_ctx_t *cpu, uint8_t reg_ref,
+                        cpu_reg_ref_t *out_reg_ref);
 cpu_exc_type_t cpu_exc_type_of_err(cpu_ctx_t *cpu, vm_err_t err);
 
 vm_err_t cpu_raise_irq(cpu_ctx_t *cpu, uint8_t irq_line);
