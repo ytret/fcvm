@@ -25,8 +25,12 @@ typedef struct {
     cpu_reg_size_t access_size;
     /// Register code.
     uint8_t reg_code;
-    /// Pointer to the register value in the CPU context. See #cpu_ctx_t.
-    uint32_t *p_reg;
+    union {
+        /// Pointer to the register value in the CPU context. See #cpu_ctx_t.
+        uint32_t *p_reg;
+        /// Pointer to the lower 8 bits of the register in the CPU context.
+        uint8_t *p_reg_u8;
+    };
 } cpu_reg_ref_t;
 
 typedef union {

@@ -6,10 +6,11 @@
 #include <fcvm/cpu.h>
 
 struct RegRef {
-    enum {
+    enum Size {
         Size32Bits,
         Size8Bits,
-    } size;
+    };
+    Size size;
     uint8_t code;
 
     uint8_t encode() const {
@@ -32,6 +33,17 @@ struct RegRef {
             abort();
         }
         return decoded_ref.p_reg;
+    }
+
+    uint8_t *get_ptr_u8(cpu_ctx_t *cpu) const {
+        uint8_t encoded_ref = encode();
+        cpu_reg_ref_t decoded_ref;
+        cpu_decode_reg(cpu, encoded_ref, &decoded_ref);
+        if (!decoded_ref.p_reg) {
+            fprintf(stderr, "failed to decode register code 0x%02X\n", code);
+            abort();
+        }
+        return decoded_ref.p_reg_u8;
     }
 };
 

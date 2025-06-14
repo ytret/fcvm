@@ -13,6 +13,10 @@ static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_stack_instr(cpu_ctx_t *cpu);
 static vm_err_t prv_cpu_execute_other_instr(cpu_ctx_t *cpu);
 
+static vm_err_t prv_cpu_execute_str(cpu_ctx_t *cpu, vm_addr_t dst_addr,
+                                    cpu_reg_ref_t src_reg);
+static vm_err_t prv_cpu_execute_ldr(cpu_ctx_t *cpu, vm_addr_t src_addr,
+                                    cpu_reg_ref_t dst_reg);
 static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,
                               bool overflow);
 
@@ -43,9 +47,9 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
     D_ASSERT(cpu);
     vm_err_t err = VM_ERR_NONE;
 
-    // Source and destination registers.
-    uint32_t *p_reg_src;
-    uint32_t *p_reg_dst;
+    // Source and destination register references.
+    cpu_reg_ref_t reg_src;
+    cpu_reg_ref_t reg_dst;
 
     // Memory address.
     uint32_t *p_reg_mem;
@@ -58,72 +62,71 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
 
     switch (cpu->instr.opcode) {
     case CPU_OP_MOV_VR:
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
-        *p_reg_dst = cpu->instr.operands[1].u32;
+        reg_dst = cpu->instr.operands[0].reg_ref;
+        *reg_dst.p_reg = cpu->instr.operands[1].u32;
         break;
     case CPU_OP_MOV_RR:
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
-        p_reg_src = cpu->instr.operands[1].reg_ref.p_reg;
-        *p_reg_dst = *p_reg_src;
+        reg_dst = cpu->instr.operands[0].reg_ref;
+        reg_src = cpu->instr.operands[1].reg_ref;
+        *reg_dst.p_reg = *reg_src.p_reg;
         break;
 
     case CPU_OP_STR_RV0:
         mem_addr = cpu->instr.operands[0].u32;
-        p_reg_src = cpu->instr.operands[1].reg_ref.p_reg;
-        err = cpu->mem->write_u32(cpu->mem, mem_addr, *p_reg_src);
+        reg_src = cpu->instr.operands[1].reg_ref;
+        err = prv_cpu_execute_str(cpu, mem_addr, reg_src);
         break;
     case CPU_OP_STR_RI0:
         p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
-        p_reg_src = cpu->instr.operands[1].reg_ref.p_reg;
-        err = cpu->mem->write_u32(cpu->mem, *p_reg_mem, *p_reg_src);
+        reg_src = cpu->instr.operands[1].reg_ref;
+        err = prv_cpu_execute_str(cpu, *p_reg_mem, reg_src);
         break;
     case CPU_OP_STR_RI8:
         p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
         mem_off8 = (int8_t)cpu->instr.operands[1].u8;
-        p_reg_src = cpu->instr.operands[2].reg_ref.p_reg;
-        err = cpu->mem->write_u32(cpu->mem, *p_reg_mem + mem_off8, *p_reg_src);
+        reg_src = cpu->instr.operands[2].reg_ref;
+        err = prv_cpu_execute_str(cpu, *p_reg_mem + mem_off8, reg_src);
         break;
     case CPU_OP_STR_RI32:
         p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
         mem_off32 = (int32_t)cpu->instr.operands[1].u32;
-        p_reg_src = cpu->instr.operands[2].reg_ref.p_reg;
-        err = cpu->mem->write_u32(cpu->mem, *p_reg_mem + mem_off32, *p_reg_src);
+        reg_src = cpu->instr.operands[2].reg_ref;
+        err = prv_cpu_execute_str(cpu, *p_reg_mem + mem_off32, reg_src);
         break;
     case CPU_OP_STR_RIR:
         p_reg_mem = cpu->instr.operands[0].reg_ref.p_reg;
         p_reg_off = (int32_t *)cpu->instr.operands[1].reg_ref.p_reg;
-        p_reg_src = cpu->instr.operands[2].reg_ref.p_reg;
-        err =
-            cpu->mem->write_u32(cpu->mem, *p_reg_mem + *p_reg_off, *p_reg_src);
+        reg_src = cpu->instr.operands[2].reg_ref;
+        err = prv_cpu_execute_str(cpu, *p_reg_mem + *p_reg_off, reg_src);
         break;
 
     case CPU_OP_LDR_RV0:
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        reg_dst = cpu->instr.operands[0].reg_ref;
         mem_addr = cpu->instr.operands[1].u32;
-        err = cpu->mem->read_u32(cpu->mem, mem_addr, p_reg_dst);
+        err = prv_cpu_execute_ldr(cpu, mem_addr, reg_dst);
         break;
     case CPU_OP_LDR_RI0:
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        reg_dst = cpu->instr.operands[0].reg_ref;
         p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
-        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem, p_reg_dst);
+        err = prv_cpu_execute_ldr(cpu, *p_reg_mem, reg_dst);
         break;
     case CPU_OP_LDR_RI8:
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        reg_dst = cpu->instr.operands[0].reg_ref;
         p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
         mem_off8 = (int8_t)cpu->instr.operands[2].u8;
-        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + mem_off8, p_reg_dst);
+        err = prv_cpu_execute_ldr(cpu, *p_reg_mem + mem_off8, reg_dst);
         break;
     case CPU_OP_LDR_RI32:
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        reg_dst = cpu->instr.operands[0].reg_ref;
         p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
         mem_off32 = (int32_t)cpu->instr.operands[2].u32;
-        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + mem_off32, p_reg_dst);
+        err = prv_cpu_execute_ldr(cpu, *p_reg_mem + mem_off32, reg_dst);
         break;
     case CPU_OP_LDR_RIR: {
-        p_reg_dst = cpu->instr.operands[0].reg_ref.p_reg;
+        reg_dst = cpu->instr.operands[0].reg_ref;
         p_reg_mem = cpu->instr.operands[1].reg_ref.p_reg;
         p_reg_off = (int32_t *)cpu->instr.operands[2].reg_ref.p_reg;
-        err = cpu->mem->read_u32(cpu->mem, *p_reg_mem + *p_reg_off, p_reg_dst);
+        err = prv_cpu_execute_ldr(cpu, *p_reg_mem + *p_reg_off, reg_dst);
         break;
     }
 
@@ -476,6 +479,30 @@ static vm_err_t prv_cpu_execute_other_instr(cpu_ctx_t *cpu) {
                    cpu->instr.opcode);
     }
     return err;
+}
+
+static vm_err_t prv_cpu_execute_str(cpu_ctx_t *cpu, vm_addr_t dst_addr,
+                                    cpu_reg_ref_t src_reg) {
+    switch (src_reg.access_size) {
+    case CPU_REG_SIZE_8:
+        return cpu->mem->write_u8(cpu->mem, dst_addr, *src_reg.p_reg_u8);
+    case CPU_REG_SIZE_32:
+        return cpu->mem->write_u32(cpu->mem, dst_addr, *src_reg.p_reg);
+    default:
+        D_TODO();
+    }
+}
+
+static vm_err_t prv_cpu_execute_ldr(cpu_ctx_t *cpu, vm_addr_t src_addr,
+                                    cpu_reg_ref_t dst_reg) {
+    switch (dst_reg.access_size) {
+    case CPU_REG_SIZE_8:
+        return cpu->mem->read_u8(cpu->mem, src_addr, dst_reg.p_reg_u8);
+    case CPU_REG_SIZE_32:
+        return cpu->mem->read_u32(cpu->mem, src_addr, dst_reg.p_reg);
+    default:
+        D_TODO();
+    }
 }
 
 static void prv_cpu_set_flags(cpu_ctx_t *cpu, bool zero, bool sign, bool carry,
