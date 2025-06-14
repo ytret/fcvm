@@ -139,8 +139,6 @@ static vm_err_t prv_cpu_execute_data_instr(cpu_ctx_t *cpu) {
 }
 
 static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
-    vm_err_t err = VM_ERR_NONE;
-
     uint32_t *p_reg_dst;
     uint32_t src_val;
     if ((cpu->instr.opcode & 1) == 0) {
@@ -215,10 +213,7 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
     case CPU_OP_DIV_RV:
     case CPU_OP_IDIV_RR:
     case CPU_OP_IDIV_RV: {
-        if (src_val == 0) {
-            err = VM_ERR_DIV_BY_ZERO;
-            return err;
-        }
+        if (src_val == 0) { return VM_ERR_DIV_BY_ZERO; }
         uint32_t res;
         if (cpu->instr.opcode == CPU_OP_DIV_RR ||
             cpu->instr.opcode == CPU_OP_DIV_RV) {
@@ -324,10 +319,8 @@ static vm_err_t prv_cpu_execute_alu_instr(cpu_ctx_t *cpu) {
                    cpu->instr.opcode);
     }
 
-    if (err == VM_ERR_NONE) {
-        prv_cpu_set_flags(cpu, flag_zero, flag_sign, flag_carry, flag_ovf);
-    }
-    return err;
+    prv_cpu_set_flags(cpu, flag_zero, flag_sign, flag_carry, flag_ovf);
+    return VM_ERR_NONE;
 }
 
 static vm_err_t prv_cpu_execute_flow_instr(cpu_ctx_t *cpu) {
