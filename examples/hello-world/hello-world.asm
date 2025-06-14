@@ -29,16 +29,16 @@ print_str:
 
 copy_str:
         ;; Loop until r5 is zero, r5 is assumed to be a multiple of 4.
-        ;; - Copy dword [r4] to [r7].
-        ;; - Add 4 to r4 and r7.
-        ;; - Subtract 4 from r5.
-        ldr     r6, [r4]
-        str     [r7], r6
+        ;; - Copy byte [r4] to [r7].
+        ;; - Add 1 to r4 and r7.
+        ;; - Subtract 1 from r5.
+        ldr     rb6, [r4]
+        str     [r7], rb6
 
-        add     r4, 4
-        add     r7, 4
+        add     r4, 1
+        add     r7, 1
 
-        sub     r5, 4
+        sub     r5, 1
         jner    copy_str
 
 flush:
@@ -50,6 +50,4 @@ halt:
         jmpr    halt
 
 d_str: .strs "Hello, World!"
-       .strb 0
-       .strb 0
 d_str_end:
