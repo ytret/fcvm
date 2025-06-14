@@ -51,8 +51,8 @@ target_compile_options(fcvm PRIVATE
 target_include_directories(fcvm PUBLIC inc src)
 
 
-set(FCVM_ASM_DIR ${PROJECT_SOURCE_DIR}/tools/asm-fennel)
-set(FCVM_ASM ${FCVM_ASM_DIR}/main.fnl)
+set(FCVM_ASM_DIR ${PROJECT_SOURCE_DIR}/tools/installed/bin)
+set(FCVM_ASM ${FCVM_ASM_DIR}/asm-rust)
 
 
 add_subdirectory(tests)
