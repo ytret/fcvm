@@ -166,6 +166,7 @@ typedef enum {
 
 /// Instruction decoding descriptor.
 typedef struct {
+    const char *mnemonic;
     uint8_t opcode;
     size_t num_operands;
     cpu_operand_type_t operands[CPU_MAX_OPERANDS];

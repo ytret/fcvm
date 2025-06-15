@@ -387,7 +387,8 @@ static void prv_cpu_print_instr(const cpu_instr_t *instr) {
     D_ASSERT(instr);
     D_ASSERT(instr->desc);
 
-    fprintf(stderr, "%08X | %02X", instr->start_addr, instr->opcode);
+    fprintf(stderr, "%08X | %02X %4s", instr->start_addr, instr->opcode,
+            instr->desc->mnemonic);
     for (size_t opd = 0; opd < instr->desc->num_operands; opd++) {
         if (opd == 0) { fprintf(stderr, " ["); }
         switch (instr->desc->operands[opd]) {
