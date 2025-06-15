@@ -1,0 +1,131 @@
+= FCVM deripherals
+Yuri Tretyakov
+:sectnums:
+:toc:
+
+<<<
+== Overview
+
+This document describes the peripherals of FCVM:
+
+- Bus controller.
+
+== Bus controller
+
+The bus controller is responsible for enumeration, memory-mapping and interrupt line allocation for
+devices, which are connected to the VM.
+
+=== Registers
+
+The bus controller exposes a memory-mapped read-only region, consisting of registers, for
+communication with the guest program.
+
+The MMIO registers convey the following information:
+
+- Status of each device slot (a device is connected to it or not).
+- Connected device descriptors.
+
+.Register map
+[%header,cols="1,5,1"]
+|===
+^|Offset ^|Register name ^|Size (bytes)
+
+|0   |<<reg-slot-status,Slot status register>> |4
+|4   |<<reg-dev-desc,Slot 0 device descriptor>> |12
+|16  |Slot 1 device descriptor  |12
+|28  |Slot 2 device descriptor  |12
+|40  |Slot 3 device descriptor  |12
+|52  |Slot 4 device descriptor  |12
+|64  |Slot 5 device descriptor  |12
+|76  |Slot 6 device descriptor  |12
+|88  |Slot 7 device descriptor  |12
+|100 |Slot 8 device descriptor  |12
+|112 |Slot 9 device descriptor  |12
+|124 |Slot 10 device descriptor |12
+|136 |Slot 11 device descriptor |12
+|148 |Slot 12 device descriptor |12
+|160 |Slot 13 device descriptor |12
+|172 |Slot 14 device descriptor |12
+|184 |Slot 15 device descriptor |12
+|196 |Slot 16 device descriptor |12
+|208 |Slot 17 device descriptor |12
+|220 |Slot 18 device descriptor |12
+|232 |Slot 19 device descriptor |12
+|244 |Slot 20 device descriptor |12
+|256 |Slot 21 device descriptor |12
+|268 |Slot 22 device descriptor |12
+|280 |Slot 23 device descriptor |12
+|292 |Slot 24 device descriptor |12
+|304 |Slot 25 device descriptor |12
+|316 |Slot 26 device descriptor |12
+|328 |Slot 27 device descriptor |12
+|340 |Slot 28 device descriptor |12
+|352 |Slot 29 device descriptor |12
+|364 |Slot 30 device descriptor |12
+|376 |Slot 31 device descriptor |12
+|===
+
+==== Slot status register
+
+[#reg-slot-status]
+[%noheader,cols="16*",stripes=even]
+|===
+^h|31 ^h|30 ^h|29 ^h|28 ^h|27 ^h|26 ^h|25 ^h|24 ^h|23 ^h|22 ^h|21 ^h|20 ^h|19 ^h|18 ^h|17 ^h|16
+^|S31 ^|S30 ^|S29 ^|S28 ^|S27 ^|S26 ^|S25 ^|S24 ^|S23 ^|S22 ^|S21 ^|S20 ^|S19 ^|S18 ^|S17 ^|S16
+^h|15 ^h|14 ^h|13 ^h|12 ^h|11 ^h|10 ^h|9  ^h|8  ^h|7  ^h|6  ^h|5  ^h|4  ^h|3  ^h|2  ^h|1  ^h|0
+^|S15 ^|S14 ^|S13 ^|S12 ^|S11 ^|S10 ^|S9  ^|S8  ^|S7  ^|S6  ^|S5  ^|S4  ^|S3  ^|S2  ^|S1  ^|S0
+|===
+
+[cols="2,10",frame=none,grid=none]
+|===
+|S__x__
+|Set if a device is registered at the slot _x_.
+|===
+
+==== Slot device descriptor
+
+[#reg-dev-desc]
+[%header,cols="2,3,2,16*1",stripes=even]
+|===
+^|Offset ^|Name ^|Size 16+^|Encoding
+
+.4+^|0
+.4+|Mapped region start
+.4+|4 bytes
+^|31 ^|30 ^|29 ^|28 ^|27 ^|26 ^|25 ^|24 ^|23 ^|22 ^|21 ^|20 ^|19 ^|18 ^|17 ^|16
+16+^|START[31..16]
+^|15 ^|14 ^|13 ^|12 ^|11 ^|10 ^|9  ^|8  ^|7  ^|6  ^|5  ^|4  ^|3  ^|2  ^|1  ^|0
+16+^|START[15..0]
+
+.4+^|4
+.4+|Mapped region start
+.4+|4 bytes
+^|31 ^|30 ^|29 ^|28 ^|27 ^|26 ^|25 ^|24 ^|23 ^|22 ^|21 ^|20 ^|19 ^|18 ^|17 ^|16
+16+^|END[31..16]
+^|15 ^|14 ^|13 ^|12 ^|11 ^|10 ^|9  ^|8  ^|7  ^|6  ^|5  ^|4  ^|3  ^|2  ^|1  ^|0
+16+^|END[15..0]
+
+.4+^|8
+.4+|IRQ line and device class
+.4+|4 bytes
+^|31 ^|30 ^|29 ^|28 ^|27 ^|26 ^|25 ^|24 ^|23 ^|22 ^|21 ^|20 ^|19 ^|18 ^|17 ^|16
+16+^|Reserved
+^|15 ^|14 ^|13 ^|12 ^|11 ^|10 ^|9  ^|8  ^|7  ^|6  ^|5  ^|4  ^|3  ^|2  ^|1  ^|0
+8+^|CLASS
+8+^|IRQ
+|===
+
+[cols="2,10",frame=none,grid=none]
+|===
+|START
+|Address of the first byte of the memory-mapped region assigned to the connected device.
+
+|END
+|Address of the last byte plus one of the memory-mapped region.
+
+|CLASS
+|Connected device class.
+
+|IRQ
+|Interrupt request line assigned to the device.
+|===
