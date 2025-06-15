@@ -1,0 +1,20 @@
+extends: default
+
+base-font-family: Helvetica
+
+base-font-size: 10
+caption-font-size: 10
+heading-h1-font-size: 20
+heading-h2-font-size: 16
+heading-h3-font-size: 13
+
+running-content-start-at: 2
+footer:
+  verso:
+    left-content:
+    center-content: '{page-number} of {page-count}'
+    right-content:
+  recto:
+    left-content:
+    center-content: '{page-number} of {page-count}'
+    right-content:

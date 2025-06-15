@@ -1,0 +1,749 @@
+= FCVM Instruction Set
+Yuri Tretyakov
+:sectnums:
+:toc:
+
+<<<
+== Overview
+
+This document describes the instruction set architecture (ISA) of FCVM:
+
+- Instruction list with description of each instruction variant.
+- Instruction encoding.
+
+Data movement:
+
+- *MOV* -- move values between registers.
+- *STR* -- write from a register to memory.
+- *LDR* -- read from memory to a register.
+
+Arithmetic and logic:
+
+- *ADD* -- add values.
+- *SUB* -- subtract values.
+- *MUL* -- multiply values.
+- *DIV* -- unsigned division.
+- *IDIV* -- signed division.
+- *AND* -- logic AND on values.
+- *OR* -- logic OR on values.
+- *XOR* -- logic XOR on values.
+- *NOT* -- logic NOT on a register.
+- *SHL* -- left bit shift on a register.
+- *SHR* -- right bit shift on a register.
+- *ROL* -- left bit rotate on a register.
+- *ROR* -- right bit rotate on a register.
+- *CMP* -- compare values and set flags.
+- *TST* -- bit test on a register.
+
+Flow control:
+
+- *JMP* -- unconditional jump.
+- *JEQ, JZ* -- jump if equal or zero.
+- *JNE, JNZ* -- jump if not equal or not zero.
+- *JGT* -- jump if greater.
+- *JGE* -- jump if greater or equal.
+- *JLT* -- jump if less.
+- *JLE* -- jump if less or equal.
+- *CALL* -- call a subroutine.
+- *RET* -- return from a subroutine.
+
+Stack manipulation:
+
+- *PUSH* -- push a value onto stack.
+- *POP* -- pop a value from stack.
+
+Other:
+
+- *NOP* -- no-operation.
+- *HALT* -- halt CPU until an interrupt.
+- *INT* -- raise an interrupt.
+- *IRET* -- return from an interrupt service routine.
+
+
+<<<
+== Instruction encoding
+
+All instructions are encoded as following:
+
+.Instruction encoding
+[%header,cols="3*3,1"]
+|===
+^|Item 0            ^|Item 1               ^|Item 2                 |...
+ |Instruction opcode |First encoded operand |Second encoded operand |...
+ |Always one byte    |One or more bytes     |One or more bytes      |...
+|===
+
+- *Instruction opcode* uniquely identifies the operation to be performed by the VM CPU and involved
+  operands.
+- Instruction opcode is always 1 byte in size.
+- Operand size depends on the type of the operand.
+
+There are two types of *encoded operands*:
+
+- Immediate value (a raw integer).
+- Register reference (a register or a part of it).
+
+*Immediate values* take up 1 byte or 4 bytes:
+
+.Immediate operand types
+[#imm]
+[%header,cols="1,1,2"]
+|===
+|Name  |Description  |Size
+|imm5  |5-bit value  |1 byte, lower 5 bits are used
+|imm8  |8-bit value  |1 byte
+|imm32 |32-bit value |4 bytes, little endian
+|===
+
+*Register references* are always 1 byte in size:
+
+.Register reference encoding
+[#reg-ref]
+[%header]
+|===
+^|Bit 7 ^|Bit 6 ^|Bit 5 ^|Bit 4 ^|Bit 3 ^|Bit 2 ^|Bit 1 ^|Bit 0
+2+a|Access size:
+
+- `0` = 32 bits
+- `1` = lower byte
+
+6+a|Register code, <<reg-code,see below>>.
+|===
+
+.Register code encoding
+[#reg-code]
+[cols=">2h,9*^.^"]
+|===
+|Code     |`0x00` |`0x01` |`0x02` |`0x03` |`0x04` |`0x05` |`0x06` |`0x07` |`0x08`
+|Register |R0     |R1     |R2     |R3     |R4     |R5     |R6     |R7     |SP
+|===
+
+Example 1: `0x04` (access size `0`, register code `0x04`) -- 32 bits of register R4.
+
+Example 2: `0x48` (access size `1`, register code `0x08`) -- lower byte of register
+SP.
+
+*Note:* only STR and LDR support byte-access to registers.
+
+
+<<<
+== Instruction set
+
+These subsections document various sets of instructions supported by the VM:
+
+- Mnemonics used by the assembler.
+- Operand order and encoding.
+- Action performed by the instruction and its effect on the CPU state.
+
+A few common notes:
+
+- Opcode byte values are not presented here. Instead, preprocesor macros from the source code are
+  used. Refer to the source code to get the opcode values.
+- `RD` is the destination <<reg-ref,register reference>>. `RS` is the source register reference.
+- `RA` and `RB` are simply register references.
+- `imm5`, `imm8`, `imm32` are <<imm,immediate values>>.
+
+
+[.landscape]
+<<<
+=== Data instructions
+
+.Data movement instruction encodings
+[%header,cols="2,3,7*1",stripes=even]
+|===
+^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
+
+|MOV RD, imm32
+|Copy value _imm32_ to _RD_
+|`MOV_VR`
+^|RD
+4+^|imm32
+^|--
+
+|MOV RD, RS
+|Copy value _RS_ to _RD_
+|`MOV_VR`
+^|RD
+^|RS
+4+^|--
+
+|STR [imm32], RS
+|Copy value of _RS_ to _[imm32]_
+|`STR_RV0`
+4+^|imm32
+^|RS
+^|--
+
+|STR [RD], RS
+|Copy value of _RS_ to _[RD]_
+|`STR_RI0`
+^|RD
+^|RS
+4+^|--
+
+|STR [RD+imm8], RS
+|Copy value of _RS_ to _[RD+imm8]_
+|`STR_RI8`
+^|RD
+^|imm8
+^|RS
+3+^|--
+
+|STR [RD+imm32], RS
+|Copy value of _RS_ to _[RD+imm32]_
+|`STR_RI32`
+^|RD
+4+^|imm32
+^|RS
+
+|STR [RD+RO], RS
+|Copy value of _RS_ to _[RD+RO]_
+|`STR_RIR`
+^|RD
+^|RO
+^|RS
+3+^|--
+
+|LDR RD, [imm32]
+|Copy value from _[imm32]_ to RD
+|`LDR_RV0`
+^|RD
+4+^|imm32
+^|--
+
+|LDR RD, [RS]
+|Copy value from _[RS]_ to RD
+|`LDR_RI0`
+^|RD
+^|RS
+4+^|--
+
+|LDR RD, [RS+imm8]
+|Copy value from _[RS+imm8]_ to RD
+|`LDR_RI8`
+^|RD
+^|RS
+^|imm8
+3+^|--
+
+|LDR RD, [RS+imm32]
+|Copy value from _[RS+imm32]_ to RD
+|`LDR_RI32`
+^|RD
+^|RS
+4+^|imm32
+
+|LDR RD, [RS+RO]
+|Copy value from _[RS+RO]_ to RD
+|`LDR_RIR`
+^|RD
+^|RS
+^|RO
+3+^|--
+|===
+
+Note 1: *square brackets []* denote a memory address to read from (LDR) or write to (STR).
+
+Note 2: STR and LDR support byte-access to RS and RD, respectively. If register access size is 8
+bits, 8 bits are copied; otherwise, 32 bits are copied.
+
+<<<
+=== ALU instructions
+
+Arithmetic and logic instructions:
+
+1. Calculate the result of an arithmetic or logic operation.
+2. Save the result in a register (not all instructions do this).
+3. Set the CPU flags according to the result.
+
+.Arithmetic and logic instruction encodings
+[%header,cols="2,3,6*1",stripes=even]
+|===
+^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5
+
+|ADD RD, RS
+|RD = RD + RS
+|`ADD_RR`
+^|RD
+^|RS
+3+^|--
+
+|ADD RD, imm32
+|RD = RD + imm32
+|`ADD_RV`
+^|RD
+4+^|imm32
+
+|SUB RD, RS
+|RD = RD – RS
+|`SUB_RR`
+^|RD
+^|RS
+3+^|--
+
+|SUB RD, imm32
+|RD = RD – imm32
+|`SUB_RV`
+^|RD
+4+^|imm32
+
+|MUL RD, RS
+|RD = RD * RS
+|`MUL_RR`
+^|RD
+^|RS
+3+^|--
+
+|MUL RD, imm32
+|RD = RD * imm32
+|`MUL_RV`
+^|RD
+4+^|imm32
+
+|DIV RD, RS
+|RD = RD / RS (unsigned)
+|`DIV_RR`
+^|RD
+^|RS
+3+^|--
+
+|DIV RD, imm32
+|RD = RD / imm32 (unsigned)
+|`DIV_RV`
+^|RD
+4+^|imm32
+
+|IDIV RD, RS
+|RD = RD / RS (signed)
+|`IDIV_RR`
+^|RD
+^|RS
+3+^|--
+
+|IDIV RD, imm32
+|RD = RD / imm32 (signed)
+|`IDIV_RV`
+^|RD
+4+^|imm32
+
+|AND RD, RS
+|RD = RD & RS
+|`AND_RR`
+^|RD
+^|RS
+3+^|--
+
+|AND RD, imm32
+|RD = RD & imm32
+|`AND_RV`
+^|RD
+4+^|imm32
+
+|OR RD, RS
+|RD = RD \| RS
+|`OR_RR`
+^|RD
+^|RS
+3+^|--
+
+|OR RD, imm32
+|RD = RD \| imm32
+|`OR_RV`
+^|RD
+4+^|imm32
+
+|XOR RD, RS
+|RD = RD ^ RS
+|`XOR_RR`
+^|RD
+^|RS
+3+^|--
+
+|XOR RD, imm32
+|RD = RD ^ imm32
+|`XOR_RV`
+^|RD
+4+^|imm32
+
+|NOT RD
+|RD = ~RD
+|`NOT_RV`
+^|RD
+4+^|--
+
+|SHL RD, RS
+|RD = RD << RS
+|`SHL_RR`
+^|RD
+^|RS
+3+^|--
+
+|SHL RD, imm32
+|RD = RD << imm32
+|`SHL_RV`
+^|RD
+4+^|imm32
+
+|SHR RD, RS
+|RD = RD >> RS
+|`SHR_RR`
+^|RD
+^|RS
+3+^|--
+
+|SHR RD, imm32
+|RD = RD >> imm32
+|`SHR_RV`
+^|RD
+4+^|imm32
+
+|ROL RD, RS
+|RD = ROL(RD, RS)
+|`ROL_RR`
+^|RD
+^|RS
+3+^|--
+
+|ROL RD, imm32
+|RD = ROL(RD, imm32)
+|`ROL_RV`
+^|RD
+4+^|imm32
+
+|ROR RD, RS
+|RD = ROR(RD, RS)
+|`ROR_RR`
+^|RD
+^|RS
+3+^|--
+
+|ROR RD, imm32
+|RD = ROR(RD, imm32)
+|`ROR_RV`
+^|RD
+4+^|imm32
+
+|CMP RB, RA
+|RB – RA, set flags
+|`CMP_RR`
+^|RB
+^|RA
+3+^|--
+
+|TST RB, RA
+|RB & RA, set flags
+|`TST_RR`
+^|RB
+^|RA
+3+^|--
+
+|TST RA, imm32
+|RA & imm32, set flags
+|`TST_RV`
+^|RA
+4+^|imm32
+|===
+
+.Effect of ALU instructions on CPU flags
+[%header,cols="2,2,3,1,2"]
+|===
+^|Instruction ^|Carry ^|Overflow ^|Zero ^|Sign
+
+|ADD (`D + S = R`)
+|Set if R >= 2^32^.
+|Set if the operands had the same sign, but the sign of the result is different.
+
+ _This indicates signed overflow. For example, adding two large negative numers may result in a
+ positive number due to signed overflow._
+
+.15+|Set if R = 0.
+.15+|Set if bit 31 of R is set.
+
+|SUB (`D - S = R`)
+|Set if S is less than D.
+
+ _0 means borrow occurred. 1 means no borrow occurred._
+
+|Set if the operands had different signs, and the sign of the result is different from the sign of
+ the first operand.
+
+ _This indicates that the result has been wrapped around and its signed value is wrong._
+
+|MUL (`D * S = R`)
+|Set if bits 32..63 of R are non-zero.
+.11+|Always reset.
+
+|DIV (`D / S = R`)
+.6+|Always reset.
+
+|IDIV (`D / S = R`)
+
+|AND (`D & S = R`)
+
+|OR (`D \| S = R`)
+
+|XOR (`D ^ S = R`)
+
+|NOT (`D = ~D`)
+
+|SHL (`D << S = R`)
+|Set to the last bit shifted out from MSB.
+
+|SHR (`D >> S = R`)
+|Set to the last bit shifted out from LSB.
+
+|ROL (`R = ROL(RD, RS)`)
+.2+|Set to the last bit rotated out.
+
+|ROR (`R = ROR(RD, RS)`)
+
+|CMP (`D - S`)
+2+|See instruction SUB.
+
+|TST (`D & S`)
+2+|Always reset.
+|===
+
+[.portrait]
+<<<
+==== Difference between DIV and IDIV
+
+DIV does unsigned divison, while IDIV does signed divison. The difference:
+
+- DIV (unsigned division) treats the operands as unsigned, ignoring the sign bits. For example,
+  unsigned division of –11 (`0xFFFF_FFF5`) and 2 (`0x0000_0002`) results in
+  2&nbsp;147&nbsp;483&nbsp;643 (`0x7FFF_FFFB`).
+- IDIV (signed division) respects the signs of the operands. For example, signed division of the
+  same operands (–11 and 2) results in –5.
+
+==== Use of flags after SUB and CMP
+
+:xor: (+)
+
+The sign (S), overflow (V) and zero (Z) flags are used to determine the numeric relationship
+between the operands of SUB and CMP.
+
+If S{xor}V _(XOR of S and V)_ is **0**:
+
+- Sign is reset, overflow is reset. The signed value of the result is correct, and it's
+  non-negative. Therefore, the first operand is **greater than or equal to** the second operand.
+- Sign is set, overflow is set. The result is negative, but it's signed value is incorrect. So the
+  actual result must be positive or zero. Same thing.
+
+If S{xor}V is **1**:
+
+- Sign is set, overflow is reset. The signed value of the result is correct, and it's negative.
+  Therefore, the first operand is **strictly less than** the second operand.
+- Sign is reset, overflow is set. The result is non-negative, but it's signed value is incorrect.
+  So the actual result must be negative. Same thing.
+
+Together with the zero flag, which is set if the result of subtraction is zero, meaning the
+operands are equal, the XOR of sign and overflow covers all the possible relationships between the
+operands:
+
+- Greater than or equal -- S{xor}V is 0.
+- Strictly greater than -- Z is reset _and_ S{xor}V is 0.
+- Strictly less than -- S{xor}V is 1.
+- Less than or equal -- Z is set _or_ S{xor}V is 1.
+
+[.landscape]
+<<<
+=== Flow control instructions
+
+.Flow control instruction encodings
+[%header,cols="2,3,5*1",stripes=even]
+|===
+^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4
+
+|JMP +imm8
+|Unconditional jump to PC+imm8
+|`JMPR_V8`
+^|imm8
+3+^|--
+
+|JMP imm32
+|Unconditional jump to imm32
+|`JMPA_V32`
+4+^|imm32
+
+|JMP RA
+|Unconditional jump to RA
+|`JMPA_R`
+^|RA
+3+^|--
+
+|JEQ / JZ +imm8
+|Jump to PC+imm8 if Z = 1
+|`JEQR_V8`
+^|imm8
+3+^|--
+
+|JEQ / JZ imm32
+|Jump to imm32 if Z = 1
+|`JEQA_V32`
+4+^|imm32
+
+|JEQ / JZ RA
+|Jump to RA if Z = 1
+|`JEQA_R`
+^|RA
+3+^|--
+
+|JNE / JNZ +imm8
+|Jump to PC+imm8 if Z = 0
+|`JNER_V8`
+^|imm8
+3+^|--
+
+|JNE / JNZ imm32
+|Jump to imm32 if Z = 0
+|`JNEA_V32`
+4+^|imm32
+
+|JNE / JNZ RA
+|Jump to RA if Z = 0
+|`JNEA_R`
+^|RA
+3+^|--
+
+|JGT +imm8
+|Jump to PC+imm8 if Z = 0 and (S ^ V) = 0
+|`JGTR_V8`
+^|imm8
+3+^|--
+
+|JGT imm32
+|Jump to imm32 if Z = 0 and (S ^ V) = 0
+|`JGTA_V32`
+4+^|imm32
+
+|JGT RA
+|Jump to RA if Z = 0 and (S ^ V) = 0
+|`JGTA_R`
+^|RA
+3+^|--
+
+|JGE +imm8
+|Jump to PC+imm8 if (S ^ V) = 0
+|`JGER_V8`
+^|imm8
+3+^|--
+
+|JGE imm32
+|Jump to imm32 if (S ^ V) = 0
+|`JGEA_V32`
+4+^|imm32
+
+|JGE RA
+|Jump to RA if (S ^ V) = 0
+|`JGEA_R`
+^|RA
+3+^|--
+
+|JLT +imm8
+|Jump to PC+imm8 if (S ^ V) = 1
+|`JLTR_V8`
+^|imm8
+3+^|--
+
+|JLT imm32
+|Jump to imm32 if (S ^ V) = 1
+|`JLTA_V32`
+4+^|imm32
+
+|JLT RA
+|Jump to RA if (S ^ V) = 1
+|`JLTA_R`
+^|RA
+3+^|--
+
+|JLE +imm8
+|Jump to PC+imm8 if Z = 1 or (S ^ V) = 1
+|`JLER_V8`
+^|imm8
+3+^|--
+
+|JLE imm32
+|Jump to imm32 if Z = 1 or (S ^ V) = 1
+|`JLEA_V32`
+4+^|imm32
+
+|JLE RA
+|Jump to RA if Z = 1 or (S ^ V) = 1
+|`JLEA_R`
+^|RA
+3+^|--
+
+|CALL imm32
+|Push PC, jump to imm32
+|`CALLA_V32`
+4+^|imm32
+
+|Call RA
+|Push PC, jump to RA
+|`CALLA_R`
+^|RA
+3+^|--
+
+|RET
+|Pop PC
+|`RET`
+4+^|--
+|===
+
+*Note:* mnemonics JZ and JNZ are aliases of JEQ and JNE, respectively
+
+<<<
+=== Stack manipulation instructions
+
+.Stack manipulation instruction encodings
+[%header,cols="2,3,5*1",stripes=even]
+|===
+^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4
+
+|PUSH imm32
+|Push _imm32_ to stack
+|`PUSH_V32`
+4+^|imm32
+
+|PUSH RA
+|Push _RA_ to stack
+|`PUSH_R`
+^|RA
+3+^|--
+
+|POP RA
+|Pop u32 from stack into _RA_
+|`POP_R`
+^|RA
+3+^|--
+|===
+
+<<<
+=== Other instructions
+
+.Other instruction encodings
+[%header,cols="2,3,2*1",stripes=even]
+|===
+^|Instruction ^|Action ^|Byte 0 ^|Byte 1
+
+|NOP
+|No-operation
+|`NOP`
+^|--
+
+|HALT
+|Halt until an interrupt happens
+|`HALT`
+^|--
+
+|INT imm8
+|Raise interrupt line _imm8_
+|`INT`
+^|imm8
+
+|IRET
+|Return from an interrupt service routine
+|`IRET`
+^|--
+|===
