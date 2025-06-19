@@ -1,4 +1,4 @@
-= FCVM deripherals
+= FCVM peripherals
 Yuri Tretyakov
 :sectnums:
 :toc:
@@ -17,7 +17,7 @@ devices, which are connected to the VM.
 
 === Registers
 
-The bus controller exposes a memory-mapped read-only region, consisting of registers, for
+The bus controller exposes a read-only memory-mapped region, composed of _registers_, for
 communication with the guest program.
 
 The MMIO registers convey the following information:
@@ -67,6 +67,7 @@ The MMIO registers convey the following information:
 
 ==== Slot status register
 
+.Slot status register encoding
 [#reg-slot-status]
 [%noheader,cols="16*",stripes=even]
 |===
@@ -84,6 +85,7 @@ The MMIO registers convey the following information:
 
 ==== Slot device descriptor
 
+.Slot device descriptor encoding
 [#reg-dev-desc]
 [%header,cols="2,3,2,16*1",stripes=even]
 |===
@@ -129,3 +131,5 @@ The MMIO registers convey the following information:
 |IRQ
 |Interrupt request line assigned to the device.
 |===
+
+These fields are valid only if the device is connected to the slot.
