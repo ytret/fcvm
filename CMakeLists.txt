@@ -51,8 +51,13 @@ target_compile_options(fcvm PRIVATE
 target_include_directories(fcvm PUBLIC inc src)
 
 
-set(FCVM_ASM_DIR ${PROJECT_SOURCE_DIR}/tools/installed/bin)
-set(FCVM_ASM ${FCVM_ASM_DIR}/asm-rust)
+###########
+## Tools ##
+###########
+# Note: this must be at the root CMakeLists.txt, so that all sub-dirs see it.
+set(FCVM_TOOLS_DIR ${CMAKE_CURRENT_BINARY_DIR}/tools/bin CACHE PATH
+    "Directory where fcvm tools are published.")
+add_subdirectory(tools)
 
 
 add_subdirectory(tests)

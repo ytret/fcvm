@@ -1,14 +1,14 @@
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/hello-world.bin
-    COMMAND ${FCVM_ASM}
+    COMMAND ${FCVM_TOOLS_DIR}/asm-rust
             ${CMAKE_CURRENT_LIST_DIR}/hello-world.asm
             --output ${CMAKE_CURRENT_BINARY_DIR}/hello-world.bin
     DEPENDS ${CMAKE_CURRENT_LIST_DIR}/hello-world.asm
-    COMMENT "Assembling hello-world.asm using ${FCVM_ASM}"
+    COMMENT "Assembling hello-world.asm using ${FCVM_ASM_BIN}"
     VERBATIM
 )
 add_custom_target(hello_world_bin
-    DEPENDS hello-world.bin
+    DEPENDS hello-world.bin asm_rust
 )
 
 add_executable(ex_hello_world
