@@ -142,7 +142,7 @@ TEST_F(MemCtlTest, MapStartR2ToEndR1) {
     EXPECT_EQ(err, VM_ERR_NONE);
 }
 
-TEST_F(MemCtlTest, MapWithOverlapFails1) {
+TEST_F(MemCtlTest, MapWithOverlapR2StartsInR1Fails1) {
     vm_err_t err;
     mmio_region_t mmio_reg;
     memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
@@ -159,7 +159,7 @@ TEST_F(MemCtlTest, MapWithOverlapFails1) {
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
-TEST_F(MemCtlTest, MapWithOverlapFails2) {
+TEST_F(MemCtlTest, MapWithOverlapR2StartsInR1Fails2) {
     vm_err_t err;
     mmio_region_t mmio_reg;
     memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
@@ -175,7 +175,7 @@ TEST_F(MemCtlTest, MapWithOverlapFails2) {
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
-TEST_F(MemCtlTest, MapWithOverlapFails3) {
+TEST_F(MemCtlTest, MapRegionStartingAtExistingRegionStartFails) {
     vm_err_t err;
     mmio_region_t mmio_reg;
     memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
@@ -192,7 +192,7 @@ TEST_F(MemCtlTest, MapWithOverlapFails3) {
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
-TEST_F(MemCtlTest, MapWithOverlapFails4) {
+TEST_F(MemCtlTest, MapRegionEndingInExistingRegionFails1) {
     vm_err_t err;
     mmio_region_t mmio_reg;
     memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
@@ -209,7 +209,7 @@ TEST_F(MemCtlTest, MapWithOverlapFails4) {
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
-TEST_F(MemCtlTest, MapWithOverlapFails5) {
+TEST_F(MemCtlTest, MapRegionEndingInExistingRegionFails2) {
     vm_err_t err;
     mmio_region_t mmio_reg;
     memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
