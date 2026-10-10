@@ -1,135 +1,292 @@
-= FCVM peripherals
+= FCVM reference manual: Peripherals
 Yuri Tretyakov
-:sectnums:
+:doctype: book
+// Revision information. docs/build-docs.sh overrides both attributes with values
+// derived from git. A bare asciidoctor run, without that script, shows the
+// document as unreleased and omits the revision date.
+:revnumber: unreleased
+:version-label: Rev
+:docnumber: RM0002
 :toc:
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:table-caption: Table
+:figure-caption: Figure
+:xrefstyle: short
 
-<<<
-== Overview
+== The FCVM bus controller
 
-This document describes the peripherals of FCVM:
+A device is not visible to the guest program directly. It is connected to the bus
+controller, which gives it a memory-mapped region and an interrupt request line.
+The guest program discovers the connected devices by reading the registers of the
+bus controller.
 
-- Bus controller.
+This chapter describes how devices are connected and how the guest program
+enumerates them. It does not describe the individual devices.
 
-== Bus controller
+=== Overview
 
-The bus controller is responsible for enumeration, memory-mapping and interrupt line allocation for
-devices, which are connected to the VM.
+The bus controller provides:
 
-=== Registers
+* 32 device slots, numbered 0 to 31.
+* A read-only register region in memory, used by the guest program to enumerate the
+  connected devices.
+* Automatic assignment of a memory-mapped region to every connected device.
+* Automatic assignment of an interrupt request line to every connected device.
 
-The bus controller exposes a read-only memory-mapped region, composed of _registers_, for
-communication with the guest program.
+.Bus controller parameters
+[#bus-params]
+[%header,cols="2,2,5"]
+|===
+|Parameter |Value |Description
+|Device slots |32 (0 to 31) |Maximum number of devices that can be connected at the
+same time. Defined as `BUS_MAX_DEVS` in `inc/fcvm/busctl.h`.
+|Register region |`0xF000_0000` to `0xF000_0184` |Address range of the bus controller
+registers. The end address is exclusive. The start address is `BUS_MMIO_START`.
+|Register region size |388 bytes |4 bytes of status plus 12 bytes per device slot.
+|Device region range |`0x0000_0000` to `0xF000_0000` |Address range from which the
+memory-mapped regions of the devices are taken. The end address is exclusive. The
+start address is `BUS_DEV_MAP_START`.
+|Interrupt request lines |0 to 31 |Assigned to devices in connection order. Line
+_n_ corresponds to IVT entry 32 + _n_.
+|===
 
-The MMIO registers convey the following information:
+=== Device connection
 
-- Status of each device slot (a device is connected to it or not).
-- Connected device descriptors.
+Devices are connected by the host that runs the virtual machine, not by the guest
+program. When a device is connected, the bus controller:
+
+. Selects the lowest-numbered free slot.
+. Assigns the device the first free memory-mapped region at or above
+  `0x0000_0000`, sized as requested by the device.
+. Assigns the device the lowest unused interrupt request line.
+
+A failed connection consumes no resources: if any of the steps above fails, the
+device is not connected, and the next connection attempt is given the same slot,
+region and interrupt line.
+
+.Device connection errors
+[#connect-errors]
+[%header,cols="2,3,5"]
+|===
+|Condition |Error |Description
+|No free slot |`VM_ERR_BUS_NO_FREE_SLOT` |All 32 slots are used.
+|Region does not fit |`VM_ERR_BUS_NO_FREE_MEM` |The requested region does not fit
+below `0xF000_0000`. Regions are packed from `0x0000_0000` upwards, so this means
+that the regions of the already connected devices leave no room.
+|Region not available |`VM_ERR_MEM_USED` |The requested region overlaps an already
+mapped region, including the bus controller registers.
+|Region limit reached |`VM_ERR_MEM_MAX_REGIONS` |The memory controller has no free
+region descriptor left. The bus controller registers occupy one of the 33, leaving
+32 for the devices.
+|===
+
+WARNING: The IVT occupies the first 1 KiB of the address space (addresses
+`0x0000_0000` to `0x0000_03FF`), and the bus controller assigns device regions from
+`0x0000_0000` upwards. The first device connected to the bus must therefore provide
+the memory for the IVT: its region has to cover the whole IVT, and its memory
+interface has to serve the IVT reads. Otherwise the CPU cannot read the vector of
+an exception or interrupt, and raising one causes a bad memory exception; if that
+vector cannot be read either, the CPU ends up in a triple fault.
+
+=== Bus controller registers
+
+The bus controller registers are read-only. They report the state of the bus and
+the resources that were assigned to each device; writing to them is not possible
+and there is no way to connect or disconnect a device from the guest program.
+
+==== Register map
 
 .Register map
-[%header,cols="1,5,1"]
+[#reg-map]
+[%header,cols="2,3,1,5"]
 |===
-^|Offset ^|Register name ^|Size (bytes)
+|Offset |Register |Size (bytes) |Description
+|`0x00` |<<reg-slot-status,Slot status register>> |4 |Occupancy of the 32 device
+slots.
+|`0x04 + 0x0C*x` |<<reg-dev-desc,Slot device descriptor>> |12 |Resources assigned
+to the device in slot _x_, where _x_ is 0 to 31.
+|===
 
-|0   |<<reg-slot-status,Slot status register>> |4
-|4   |<<reg-dev-desc,Slot 0 device descriptor>> |12
-|16  |Slot 1 device descriptor  |12
-|28  |Slot 2 device descriptor  |12
-|40  |Slot 3 device descriptor  |12
-|52  |Slot 4 device descriptor  |12
-|64  |Slot 5 device descriptor  |12
-|76  |Slot 6 device descriptor  |12
-|88  |Slot 7 device descriptor  |12
-|100 |Slot 8 device descriptor  |12
-|112 |Slot 9 device descriptor  |12
-|124 |Slot 10 device descriptor |12
-|136 |Slot 11 device descriptor |12
-|148 |Slot 12 device descriptor |12
-|160 |Slot 13 device descriptor |12
-|172 |Slot 14 device descriptor |12
-|184 |Slot 15 device descriptor |12
-|196 |Slot 16 device descriptor |12
-|208 |Slot 17 device descriptor |12
-|220 |Slot 18 device descriptor |12
-|232 |Slot 19 device descriptor |12
-|244 |Slot 20 device descriptor |12
-|256 |Slot 21 device descriptor |12
-|268 |Slot 22 device descriptor |12
-|280 |Slot 23 device descriptor |12
-|292 |Slot 24 device descriptor |12
-|304 |Slot 25 device descriptor |12
-|316 |Slot 26 device descriptor |12
-|328 |Slot 27 device descriptor |12
-|340 |Slot 28 device descriptor |12
-|352 |Slot 29 device descriptor |12
-|364 |Slot 30 device descriptor |12
-|376 |Slot 31 device descriptor |12
+All offsets in this chapter are relative to the start of the register region,
+`0xF000_0000`. The slot device descriptor of slot _x_ occupies the region offsets
+`0x04 + 0x0C*x` to `0x0F + 0x0C*x`, so the last descriptor, of slot 31, ends at
+offset `0x183`.
+
+==== Register access rules
+
+The registers are accessed with 32-bit reads, using the `LDR` instruction of the
+instruction set manual. The region does not support byte accesses, and it is not
+writable.
+
+.Register access rules
+[#reg-access]
+[%header,cols="3,5"]
 |===
+|Access |Result
+|32-bit read of a register |The value of the register.
+|32-bit read at any other offset |Bad memory exception.
+|8-bit read |Bad memory exception. The region does not implement byte accesses.
+|Any write |Bad memory exception. The region is read-only.
+|===
+
+A bad memory exception is IVT entry 1; see the instruction set manual for the
+exception and interrupt model.
 
 ==== Slot status register
 
-.Slot status register encoding
+Address offset: `0x00` +
+Reset value: `0x0000_0000`
+
+The slot status register reports which slots are occupied. Bit _x_ corresponds to
+slot _x_.
+
+.Slot status register
 [#reg-slot-status]
-[%noheader,cols="16*",stripes=even]
+[cols="16*"]
 |===
 ^h|31 ^h|30 ^h|29 ^h|28 ^h|27 ^h|26 ^h|25 ^h|24 ^h|23 ^h|22 ^h|21 ^h|20 ^h|19 ^h|18 ^h|17 ^h|16
 ^|S31 ^|S30 ^|S29 ^|S28 ^|S27 ^|S26 ^|S25 ^|S24 ^|S23 ^|S22 ^|S21 ^|S20 ^|S19 ^|S18 ^|S17 ^|S16
-^h|15 ^h|14 ^h|13 ^h|12 ^h|11 ^h|10 ^h|9  ^h|8  ^h|7  ^h|6  ^h|5  ^h|4  ^h|3  ^h|2  ^h|1  ^h|0
-^|S15 ^|S14 ^|S13 ^|S12 ^|S11 ^|S10 ^|S9  ^|S8  ^|S7  ^|S6  ^|S5  ^|S4  ^|S3  ^|S2  ^|S1  ^|S0
+^h|15 ^h|14 ^h|13 ^h|12 ^h|11 ^h|10 ^h|9 ^h|8 ^h|7 ^h|6 ^h|5 ^h|4 ^h|3 ^h|2 ^h|1 ^h|0
+^|S15 ^|S14 ^|S13 ^|S12 ^|S11 ^|S10 ^|S9 ^|S8 ^|S7 ^|S6 ^|S5 ^|S4 ^|S3 ^|S2 ^|S1 ^|S0
 |===
 
-[cols="2,10",frame=none,grid=none]
+.Slot status register fields
+[#reg-slot-status-fields]
+[%header,cols="1,1,5"]
 |===
-|S__x__
-|Set if a device is registered at the slot _x_.
+|Bits |Field |Description
+|31:0 |S31 to S0 |One bit per device slot. S__x__ is set if a device is connected
+to slot _x_, and cleared if the slot is free.
 |===
 
 ==== Slot device descriptor
 
-.Slot device descriptor encoding
+The slot device descriptor describes the resources that were assigned to the
+device in a slot. Every slot has a descriptor, whether or not a device is connected
+to it; the descriptor of a free slot reads as all zeros. The descriptor is three
+32-bit words long, at the region offsets `0x04 + 0x0C*x`, `0x08 + 0x0C*x` and
+`0x0C + 0x0C*x`, where _x_ is the slot number.
+
+.Slot device descriptor word map
 [#reg-dev-desc]
-[%header,cols="2,3,2,16*1",stripes=even]
+[%header,cols="2,3,1,5"]
 |===
-^|Offset ^|Name ^|Size 16+^|Encoding
+|Offset |Word |Size (bytes) |Description
+|`0x04 + 0x0C*x` |<<reg-dev-desc-start,Mapped region start>> |4 |First byte of the
+memory-mapped region of the device.
+|`0x08 + 0x0C*x` |<<reg-dev-desc-end,Mapped region end>> |4 |End of the
+memory-mapped region of the device, exclusive.
+|`0x0C + 0x0C*x` |<<reg-dev-desc-class-irq,Device class and IRQ line>> |4 |Class of
+the device and the interrupt request line assigned to it.
+|===
 
-.4+^|0
-.4+|Mapped region start
-.4+|4 bytes
-^|31 ^|30 ^|29 ^|28 ^|27 ^|26 ^|25 ^|24 ^|23 ^|22 ^|21 ^|20 ^|19 ^|18 ^|17 ^|16
-16+^|START[31..16]
-^|15 ^|14 ^|13 ^|12 ^|11 ^|10 ^|9  ^|8  ^|7  ^|6  ^|5  ^|4  ^|3  ^|2  ^|1  ^|0
-16+^|START[15..0]
+===== Mapped region start
 
-.4+^|4
-.4+|Mapped region start
-.4+|4 bytes
-^|31 ^|30 ^|29 ^|28 ^|27 ^|26 ^|25 ^|24 ^|23 ^|22 ^|21 ^|20 ^|19 ^|18 ^|17 ^|16
-16+^|END[31..16]
-^|15 ^|14 ^|13 ^|12 ^|11 ^|10 ^|9  ^|8  ^|7  ^|6  ^|5  ^|4  ^|3  ^|2  ^|1  ^|0
-16+^|END[15..0]
+Address offset: `0x04 + 0x0C*x` +
+Reset value: `0x0000_0000`
 
-.4+^|8
-.4+|IRQ line and device class
-.4+|4 bytes
-^|31 ^|30 ^|29 ^|28 ^|27 ^|26 ^|25 ^|24 ^|23 ^|22 ^|21 ^|20 ^|19 ^|18 ^|17 ^|16
+START is the address of the first byte of the memory-mapped region that the bus
+controller assigned to the device.
+
+.Mapped region start
+[#reg-dev-desc-start]
+[cols="16*"]
+|===
+^h|31 ^h|30 ^h|29 ^h|28 ^h|27 ^h|26 ^h|25 ^h|24 ^h|23 ^h|22 ^h|21 ^h|20 ^h|19 ^h|18 ^h|17 ^h|16
+16+^|START[31:16]
+^h|15 ^h|14 ^h|13 ^h|12 ^h|11 ^h|10 ^h|9 ^h|8 ^h|7 ^h|6 ^h|5 ^h|4 ^h|3 ^h|2 ^h|1 ^h|0
+16+^|START[15:0]
+|===
+
+.Mapped region start fields
+[#reg-dev-desc-start-fields]
+[%header,cols="1,1,5"]
+|===
+|Bits |Field |Description
+|31:0 |START |Address of the first byte of the region assigned to the device.
+|===
+
+===== Mapped region end
+
+Address offset: `0x08 + 0x0C*x` +
+Reset value: `0x0000_0000`
+
+END is the end of the memory-mapped region that the bus controller assigned to the
+device. The end address is exclusive: the region covers the addresses START to
+END - 1.
+
+.Mapped region end
+[#reg-dev-desc-end]
+[cols="16*"]
+|===
+^h|31 ^h|30 ^h|29 ^h|28 ^h|27 ^h|26 ^h|25 ^h|24 ^h|23 ^h|22 ^h|21 ^h|20 ^h|19 ^h|18 ^h|17 ^h|16
+16+^|END[31:16]
+^h|15 ^h|14 ^h|13 ^h|12 ^h|11 ^h|10 ^h|9 ^h|8 ^h|7 ^h|6 ^h|5 ^h|4 ^h|3 ^h|2 ^h|1 ^h|0
+16+^|END[15:0]
+|===
+
+.Mapped region end fields
+[#reg-dev-desc-end-fields]
+[%header,cols="1,1,5"]
+|===
+|Bits |Field |Description
+|31:0 |END |End address, exclusive, of the region assigned to the device.
+|===
+
+===== Device class and IRQ line
+
+Address offset: `0x0C + 0x0C*x` +
+Reset value: `0x0000_0000`
+
+CLASS identifies the type of the device, and IRQ is the interrupt request line that
+was assigned to it.
+
+.Device class and IRQ line
+[#reg-dev-desc-class-irq]
+[cols="16*"]
+|===
+^h|31 ^h|30 ^h|29 ^h|28 ^h|27 ^h|26 ^h|25 ^h|24 ^h|23 ^h|22 ^h|21 ^h|20 ^h|19 ^h|18 ^h|17 ^h|16
 16+^|Reserved
-^|15 ^|14 ^|13 ^|12 ^|11 ^|10 ^|9  ^|8  ^|7  ^|6  ^|5  ^|4  ^|3  ^|2  ^|1  ^|0
+^h|15 ^h|14 ^h|13 ^h|12 ^h|11 ^h|10 ^h|9 ^h|8 ^h|7 ^h|6 ^h|5 ^h|4 ^h|3 ^h|2 ^h|1 ^h|0
 8+^|CLASS
 8+^|IRQ
 |===
 
-[cols="2,10",frame=none,grid=none]
+.Device class and IRQ line fields
+[#reg-dev-desc-class-irq-fields]
+[%header,cols="1,1,5"]
 |===
-|START
-|Address of the first byte of the memory-mapped region assigned to the connected device.
-
-|END
-|Address of the last byte plus one of the memory-mapped region.
-
-|CLASS
-|Connected device class.
-
-|IRQ
-|Interrupt request line assigned to the device.
+|Bits |Field |Description
+|31:16 |Reserved |Reserved. Reads as zero.
+|15:8 |CLASS |Class of the device. Interpreted by the guest program; the bus
+controller does not use it.
+|7:0 |IRQ |Interrupt request line assigned to the device. Raising this line makes
+the CPU vector through IVT entry 32 + IRQ.
 |===
 
-These fields are valid only if the device is connected to the slot.
+=== Enumerating connected devices
+
+A guest program enumerates the connected devices by reading the slot status
+register, and then reading the descriptor of every slot whose status bit is set.
+
+.Device enumeration
+----
+status = load32(0xF0000000)          ; slot status register
+
+for x in 0 to 31
+    if status & (1 << x)             ; device is connected to slot x
+        base  = 0xF0000004 + 12 * x  ; slot device descriptor
+        start = load32(base + 0)     ; first byte of the device region
+        end   = load32(base + 4)     ; end of the device region, exclusive
+        word  = load32(base + 8)
+        class = (word >> 8) & 0xFF
+        irq   = word & 0xFF
+----
+
+Each device occupies exactly one slot and is assigned exactly one memory-mapped
+region and one interrupt request line. A device cannot be disconnected, so its
+assignment does not change while the virtual machine runs, and a snapshot and a
+restore preserve the slots, the regions and the interrupt lines of the connected
+devices.
