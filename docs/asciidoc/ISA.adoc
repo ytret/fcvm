@@ -1,749 +1,1752 @@
-= FCVM Instruction Set
+= FCVM reference manual: Instruction set architecture
 Yuri Tretyakov
-:sectnums:
+:doctype: book
+// Revision information. docs/build-docs.sh overrides both attributes with values
+// derived from git. A bare asciidoctor run, without that script, shows the
+// document as unreleased and omits the revision date.
+:revnumber: unreleased
+:version-label: Rev
+:docnumber: RM0001
 :toc:
+:toclevels: 4
+:sectnums:
+:sectnumlevels: 4
+:table-caption: Table
+:figure-caption: Figure
+:xrefstyle: short
 
-<<<
-== Overview
+== The FCVM processor
 
-This document describes the instruction set architecture (ISA) of FCVM:
+The FCVM CPU is a 32-bit load/store machine with a small, variable-length
+instruction set: 8 general-purpose 32-bit registers, a 32-bit stack pointer, a
+single flat address space with memory-mapped devices, and maskable interrupts
+vectored through a table at address `0x00000000`. It supports only little-endian
+data, and it has no floating-point unit, no memory management unit and no
+instruction cache.
 
-- Instruction list with description of each instruction variant.
-- Instruction encoding.
+This chapter describes the programming model of the CPU: its registers and flags,
+its memory model, the instruction execution cycle, and how faults and interrupts
+are handled.
 
-Data movement:
+=== Programming model
 
-- *MOV* -- move values between registers.
-- *STR* -- write from a register to memory.
-- *LDR* -- read from memory to a register.
+The CPU is a 32-bit load/store machine. All computations are performed on 32-bit
+values held in registers; memory is accessed only by the `LDR` and `STR`
+instructions.
 
-Arithmetic and logic:
+==== General-purpose registers
 
-- *ADD* -- add values.
-- *SUB* -- subtract values.
-- *MUL* -- multiply values.
-- *DIV* -- unsigned division.
-- *IDIV* -- signed division.
-- *AND* -- logic AND on values.
-- *OR* -- logic OR on values.
-- *XOR* -- logic XOR on values.
-- *NOT* -- logic NOT on a register.
-- *SHL* -- left bit shift on a register.
-- *SHR* -- right bit shift on a register.
-- *ROL* -- left bit rotate on a register.
-- *ROR* -- right bit rotate on a register.
-- *CMP* -- compare values and set flags.
-- *TST* -- bit test on a register.
+The CPU has eight general-purpose 32-bit registers, `R0` to `R7`. All of them are
+equivalent: any register can be used as a source or as a destination operand of any
+instruction. There is no dedicated accumulator or index register.
 
-Flow control:
+==== Stack pointer
 
-- *JMP* -- unconditional jump.
-- *JEQ, JZ* -- jump if equal or zero.
-- *JNE, JNZ* -- jump if not equal or not zero.
-- *JGT* -- jump if greater.
-- *JGE* -- jump if greater or equal.
-- *JLT* -- jump if less.
-- *JLE* -- jump if less or equal.
-- *CALL* -- call a subroutine.
-- *RET* -- return from a subroutine.
+The stack pointer (`SP`) is a dedicated 32-bit register. The stack grows downwards:
+`PUSH` subtracts 4 from `SP` before storing a 32-bit value, and `POP` reads a 32-bit
+value and then adds 4 to `SP`. The stack is not bounded by the ISA; see
+<<stack-overflow>> for the two conditions that are reported as a stack overflow.
 
-Stack manipulation:
+`SP` can be referenced by any instruction that takes a register operand, using
+register code `0x08`.
 
-- *PUSH* -- push a value onto stack.
-- *POP* -- pop a value from stack.
+NOTE: The CPU does not initialize `SP` when it leaves the reset state. Software must
+set `SP` to a valid stack address (and leave room for it in memory) before it uses
+`PUSH`, `POP`, `CALL`, `RET`, `INT` or `IRET`.
 
-Other:
+==== Program counter
 
-- *NOP* -- no-operation.
-- *HALT* -- halt CPU until an interrupt.
-- *INT* -- raise an interrupt.
-- *IRET* -- return from an interrupt service routine.
+The program counter (`PC`) is a dedicated 32-bit register that holds the address of
+the next instruction to be fetched. `PC` is updated implicitly by every instruction
+and can be modified explicitly by the branch, call and return instructions.
 
+`PC` cannot be used as an operand. Register codes `0x00` to `0x08` address the
+general-purpose registers and `SP`; there is no register code for `PC`.
 
-<<<
+.Processor registers
+[#registers]
+[%header,cols="1,1,1,1,3"]
+|===
+|Register |Code |Width |Reset value |Description
+|`R0`--`R7` |`0x00`--`0x07` |32 bits |`0x0000_0000` |General-purpose registers.
+|`SP` |`0x08` |32 bits |`0x0000_0000` |Stack pointer. Decremented by `PUSH`,
+incremented by `POP`.
+|`PC` |-- |32 bits |Value of IVT entry 0 |Program counter. Not addressable as an
+operand.
+|===
+
+==== Flags
+
+The CPU keeps four flags in a status byte: zero (`Z`), sign (`S`), carry (`C`) and
+overflow (`V`). The arithmetic and logic instructions update the flags; the branch
+instructions read them. The flags are not directly readable or writable by any
+instruction.
+
+.Flags
+[#flags]
+[%header,cols="1,1,4"]
+|===
+|Bit |Name |Description
+|7:4 |Reserved |Reserved. Always zero.
+|3 |`V` |Overflow. Set when a signed arithmetic operation overflowed.
+|2 |`C` |Carry. Set when an unsigned addition or subtraction produced a carry or no
+borrow, and set by the shift instructions to the last bit shifted out.
+|1 |`S` |Sign. Set to bit 31 of the result of the last flag-setting operation.
+|0 |`Z` |Zero. Set when the result of the last flag-setting operation was zero.
+|===
+
+At reset, all flags are reset.
+
+[[memory-model]]
+=== Memory model
+
+The CPU has a single flat address space of `2^32^` bytes, addressed by 32-bit
+values. All data is little-endian: in a 32-bit value, byte 0 (the least significant
+byte) is stored at the lowest address.
+
+The interrupt vector table occupies the first 1024 bytes of the address space, at
+addresses `0x0000_0000` to `0x0000_03FF`. The rest of the address space is populated
+by memory-mapped regions registered with the memory controller. Devices are mapped
+into this space by the bus controller; refer to the peripherals manual for the
+device memory map.
+
+The CPU imposes no alignment requirement on instructions or data. Any alignment or
+access-size restriction is imposed by the memory-mapped region that is accessed: the
+region must be mapped and must support the requested access width, and a 32-bit
+access must lie entirely inside the region. A violation is reported as a bad memory
+access exception (see <<exceptions>>).
+
+=== Instruction execution model
+
+The CPU executes one instruction at a time, in four steps:
+
+. Fetch the opcode byte at the address in `PC`.
+. Decode the operands of the instruction, in the order defined in
+<<instruction-set>>, advancing `PC` past each decoded operand.
+. Execute the operation.
+. Continue with the next instruction, unless the instruction changed `PC`.
+
+The following rules apply:
+
+* Instructions are variable-length: an instruction consists of the opcode byte
+  followed by its operands (see <<instruction-encoding>>).
+* At the start of the execute step, `PC` holds the address of the instruction that
+  follows the current one. Relative branches are an exception: the displacement of
+  `+imm8` is relative to the address of the branch instruction itself, not to `PC`.
+* The CPU checks for pending interrupts before it fetches an instruction, or while
+  it is halted. An interrupt therefore takes effect between two instructions.
+
+[[exceptions]]
+=== Exceptions
+
+An exception transfers control to a handler whose address is taken from the
+interrupt vector table (IVT). The IVT is an array of 256 32-bit entries at address
+`0x0000_0000`; the address of entry _n_ is `4 * n`.
+
+.Exception and interrupt vector table
+[#ivt]
+[%header,cols="1,2,4,1"]
+|===
+|Number |Type |Cause |Address
+|0 |Reset |CPU reset. |`0x0000_0000`
+|1 |Bad memory access |Unmapped address, unsupported access width, or a 32-bit
+access crossing the end of a region. |`0x0000_0004`
+|2 |Bad instruction |Unknown opcode, invalid register reference, invalid `imm5`, or
+invalid IRQ line number. |`0x0000_0008`
+|3 |Division by zero |`DIV` or `IDIV` with a zero divisor. |`0x0000_000C`
+|4 |Stack overflow |`SP` underflow or overflow on a stack operation; see
+<<stack-overflow>>. |`0x0000_0010`
+|5--31 |Reserved |Reserved for future exceptions. |`0x0000_0014`--`0x0000_007C`
+|32--63 |Interrupt |Device interrupt on IRQ line 0--31. |`0x0000_0080`--`0x0000_00FC`
+|64--255 |Reserved |Reserved. |`0x0000_0100`--`0x0000_03FC`
+|===
+
+When an exception or interrupt is taken, the CPU:
+
+. Pushes `PC` onto the stack, unless the entry number is 0 (reset, which does not
+  push).
+. Loads `PC` with the 32-bit handler address from the corresponding IVT entry.
+
+The value pushed onto the stack depends on the source:
+
+* For an interrupt, the pushed `PC` is the address of the instruction that would
+  have been executed next. Returning from the handler resumes the interrupted
+  program.
+* For an exception, the pushed `PC` is the address of the faulting instruction, so
+  executing `IRET` retries the instruction. A handler that does not want to retry
+  must modify the saved value (or the stack pointer) accordingly.
+
+The CPU counts every exception. If it takes a third exception without a reset in
+between, it enters the triple-fault state and resets the CPU.
+
+[[interrupts]]
+=== Interrupts
+
+The CPU has 32 interrupt request (IRQ) lines, numbered 0 to 31. Each line maps to
+IVT entry `32 + line`, that is, entries 32 to 63.
+
+An IRQ line is set to the pending state by a device, by the bus controller, or by
+the `INT` instruction. The pending state is a single bit per line; raising a line
+that is already pending has no additional effect.
+
+The CPU services interrupts as follows:
+
+* Pending IRQs are checked before an instruction is fetched, or while the CPU is
+  halted.
+* When more than one line is pending, the lowest-numbered line is serviced first.
+* A serviced line is cleared automatically. The handler is responsible for clearing
+  the request at the device.
+* The CPU pushes `PC` and jumps to the handler address. `IRET` returns from the
+  handler by popping `PC`.
+
+Interrupts are not masked by the CPU. Software that must not be interrupted has to
+use other means of synchronisation, for example disabling the interrupt source at
+the device.
+
+[[instruction-encoding]]
 == Instruction encoding
 
-All instructions are encoded as following:
+This chapter describes how instructions are encoded. The operand list of each
+individual instruction is given in <<instruction-set>>.
 
-.Instruction encoding
-[%header,cols="3*3,1"]
+=== Instruction format
+
+Every instruction begins with a one-byte opcode, followed by zero or more encoded
+operands:
+
+.Instruction format
+[#instr-format]
+[%header,cols="1,1,4"]
 |===
-^|Item 0            ^|Item 1               ^|Item 2                 |...
- |Instruction opcode |First encoded operand |Second encoded operand |...
- |Always one byte    |One or more bytes     |One or more bytes      |...
+|Field |Size |Description
+|Opcode |1 byte |Identifies the operation and the operand layout. See
+<<opcode-map>>.
+|Operands |0--6 bytes |Immediate values and register references, in the order listed
+in the instruction description. See <<operand-encoding>>.
 |===
 
-- *Instruction opcode* uniquely identifies the operation to be performed by the VM CPU and involved
-  operands.
-- Instruction opcode is always 1 byte in size.
-- Operand size depends on the type of the operand.
+An instruction is between 1 and 7 bytes long. No padding or alignment is used.
 
-There are two types of *encoded operands*:
+=== Opcode map
 
-- Immediate value (a raw integer).
-- Register reference (a register or a part of it).
+The three most significant bits of the opcode (bits 7:5) select the instruction
+class. The remaining bits select the variant within the class.
 
-*Immediate values* take up 1 byte or 4 bytes:
+.Opcode map
+[#opcode-map]
+[%header,cols="1,1,1,3"]
+|===
+|Bits 7:5 |Class |Opcode range |Instruction groups
+|`000` |Reserved |`0x00`--`0x1F` |Reserved. Opcode `0x00` is never valid and raises
+a bad instruction exception.
+|`001` |Data movement |`0x20`--`0x3F` |`MOV`, `STR`, `LDR`.
+|`010` |Arithmetic and logic |`0x40`--`0x5F` |Arithmetic, logic, shift, rotate,
+compare and test instructions.
+|`011` |Flow control |`0x60`--`0x7F` |Branches, conditional branches, `CALL`, `RET`.
+|`100` |Stack |`0x80`--`0x9F` |`PUSH`, `POP`.
+|`101` |Miscellaneous |`0xA0`--`0xBF` |`NOP`, `HALT`, `INT`, `IRET`.
+|`110`--`111` |Reserved |`0xC0`--`0xFF` |Reserved.
+|===
+
+Within the flow control class, opcodes are allocated in blocks of four, one block
+per branch condition. Within a block, the two least significant bits select the
+target operand:
+
+.Encoding of flow control operands
+[#flow-operand-form]
+[%header,cols="1,3"]
+|===
+|Bits 1:0 |Target operand
+|`00` |Relative: signed 8-bit displacement (`+imm8`).
+|`01` |Absolute: 32-bit immediate address (`imm32`).
+|`10` |Register: the contents of a register reference (`RD`).
+|`11` |Not used.
+|===
+
+`RET` does not follow this pattern: it has no operands and occupies the last opcode
+of the class.
+
+NOTE: Opcode values are not listed in this manual. Byte 0 of every encoding table
+names the `CPU_OP_*` macro that defines the opcode; the numeric values of those
+macros are given in `inc/fcvm/cpu_instr_descs.h`.
+
+[[operand-encoding]]
+=== Operand encoding
+
+Two kinds of operands exist: immediate values and register references. The operand
+types of an instruction are fixed by its opcode; the decoder does not inspect
+operand data to decide how to decode it.
+
+==== Immediate operands
 
 .Immediate operand types
-[#imm]
-[%header,cols="1,1,2"]
+[#imm-operands]
+[%header,cols="1,1,3"]
 |===
-|Name  |Description  |Size
-|imm5  |5-bit value  |1 byte, lower 5 bits are used
-|imm8  |8-bit value  |1 byte
-|imm32 |32-bit value |4 bytes, little endian
+|Notation |Size |Description
+|`imm5` |1 byte |5-bit unsigned value, `0` to `31`. Bits 7:5 must be zero; a
+non-zero value raises a bad instruction exception.
+|`imm8` |1 byte |8-bit value. Interpreted as unsigned, or as a signed displacement
+when the instruction specifies `+imm8`.
+|`imm32` |4 bytes |32-bit value, little-endian.
 |===
 
-*Register references* are always 1 byte in size:
+==== Register references
+
+A register reference is always one byte. It selects a register and an access size.
 
 .Register reference encoding
 [#reg-ref]
-[%header]
+[%header,cols="1,1,4"]
 |===
-^|Bit 7 ^|Bit 6 ^|Bit 5 ^|Bit 4 ^|Bit 3 ^|Bit 2 ^|Bit 1 ^|Bit 0
-2+a|Access size:
-
-- `0` = 32 bits
-- `1` = lower byte
-
-6+a|Register code, <<reg-code,see below>>.
+|Bits |Field |Description
+|7 |Reserved |Reserved. Must be zero; a one raises a bad instruction exception.
+|6 |Access size |`0`: 32-bit access, the whole register. `1`: 8-bit access, the lower
+byte of the register. Honoured only by `STR` and `LDR`; all other instructions
+ignore this bit and always access the full 32-bit register.
+|5:0 |Register code |Selects the register; see <<reg-code>>. Codes `0x09` to `0x3F`
+are reserved and raise a bad instruction exception.
 |===
 
-.Register code encoding
+.Register codes
 [#reg-code]
 [cols=">2h,9*^.^"]
 |===
-|Code     |`0x00` |`0x01` |`0x02` |`0x03` |`0x04` |`0x05` |`0x06` |`0x07` |`0x08`
-|Register |R0     |R1     |R2     |R3     |R4     |R5     |R6     |R7     |SP
+|Code |`0x00` |`0x01` |`0x02` |`0x03` |`0x04` |`0x05` |`0x06` |`0x07` |`0x08`
+|Register |`R0` |`R1` |`R2` |`R3` |`R4` |`R5` |`R6` |`R7` |`SP`
 |===
 
-Example 1: `0x04` (access size `0`, register code `0x04`) -- 32 bits of register R4.
+Encoding examples:
 
-Example 2: `0x48` (access size `1`, register code `0x08`) -- lower byte of register
-SP.
+* `0x04` -- access size `0`, register code `0x04`: 32 bits of `R4`.
+* `0x48` -- access size `1`, register code `0x08`: the lower byte of `SP`.
 
-*Note:* only STR and LDR support byte-access to registers.
+[[instruction-set]]
+== The FCVM instruction set
 
+This chapter lists every instruction of the FCVM ISA and describes its syntax,
+operation and effect on the flags.
 
-<<<
-== Instruction set
+Instructions are grouped by function. The grouping is for readability only: the
+opcode class (see <<opcode-map>>) determines how the CPU decodes an instruction,
+not the group in which it is presented here.
 
-These subsections document various sets of instructions supported by the VM:
+=== Instruction notation
 
-- Mnemonics used by the assembler.
-- Operand order and encoding.
-- Action performed by the instruction and its effect on the CPU state.
+<<operand-notation>> lists the operand placeholders used in instruction
+descriptions and encoding tables. Literal values, register names, mnemonics and
+file names are shown in a monospaced font; hexadecimal values are prefixed with
+`0x`, and an underscore may be used to separate digit groups (it is not part of the
+value, for example `0xFFFF_FFF5`).
 
-A few common notes:
+.Operand notation
+[#operand-notation]
+[%header,cols="1,2,4"]
+|===
+|Notation |Type |Description
+|`RD` |Register reference |First register operand. In most instructions it is the
+destination register, which is overwritten with the result.
+|`RS` |Register reference |Second register operand, used as a source of data.
+|`RO` |Register reference |Register offset used by the memory operands `[RD+RO]` and
+`[RS+RO]`.
+|`imm5` |Immediate |5-bit unsigned value. Encoded in one byte; see <<imm-operands>>.
+|`imm8` |Immediate |8-bit value. Encoded in one byte.
+|`imm32` |Immediate |32-bit value. Encoded in four bytes, little-endian.
+|`+imm8` |Displacement |Signed 8-bit displacement, relative to the address of the
+branch instruction.
+|`[addr]` |Memory operand |The 32-bit word (or byte) stored at address `addr`.
+|===
 
-- Opcode byte values are not presented here. Instead, preprocesor macros from the source code are
-  used. Refer to the source code to get the opcode values.
-- `RD` is the destination <<reg-ref,register reference>>. `RS` is the source register reference.
-- `RA` and `RB` are simply register references.
-- `imm5`, `imm8`, `imm32` are <<imm,immediate values>>.
+The register references `RD`, `RS` and `RO` may be either full 32-bit registers or
+the lower byte of a register; see <<reg-ref>> for the encoding.
 
+In the encoding tables, each column is one byte of the instruction. A cell names the
+opcode macro or the operand encoded in that byte, and `--` marks a byte that the
+instruction does not use. Bit ranges are written `m:n`, where `m` is the more
+significant bit.
+
+=== Instruction support
+
+This chapter documents the complete instruction set of the CPU. Some instructions
+cannot be assembled yet because the current assembler does not define a mnemonic
+for them, and one pair of instructions is not yet implemented by the CPU.
+
+.Instruction support levels
+[#support-levels]
+[%header,cols="1,3"]
+|===
+|Level |Meaning
+|Assembled |The CPU implements the instruction, and the assembler accepts a mnemonic
+for it.
+|CPU only |The CPU implements the instruction, but the assembler has no mnemonic for
+it yet.
+|Not implemented |The instruction is architecturally defined, but the CPU does not
+execute it. The behaviour is reserved for a future implementation.
+|===
+
+The Support paragraph of each instruction states its level, and
+<<assembler-support>> lists the assembler mnemonics and directives.
+
+=== Instruction set summary
+
+<<instr-summary>> lists all instructions. The Assembler column gives the
+mnemonic accepted by the current assembler; `--` marks an instruction that the
+assembler cannot encode yet.
+
+.Instruction set summary
+[#instr-summary]
+[%header,cols="1,2,4,2,1",stripes=even]
+|===
+|Mnemonic |Operands |Description |Flags |Assembler
+
+|`MOV` |`RD, imm32` / `RD, RS` |Move a 32-bit value into a register |-- |`mov`
+|`STR` |`[imm32], RS` / `[RD], RS` / `[RD+imm8], RS` / `[RD+imm32], RS` /
+`[RD+RO], RS` |Store a value from a register to memory |-- |`str`
+|`LDR` |`RD, [imm32]` / `RD, [RS]` / `RD, [RS+imm8]` / `RD, [RS+imm32]` /
+`RD, [RS+RO]` |Load a value from memory into a register |-- |`ldr`
+
+|`ADD` |`RD, RS` / `RD, imm32` |Add |`C` `V` `Z` `S` |`add`
+|`SUB` |`RD, RS` / `RD, imm32` |Subtract |`C` `V` `Z` `S` |`sub`
+|`MUL` |`RD, RS` / `RD, imm32` |Multiply, keeping the low 32 bits |`C` `Z` `S` |--
+|`DIV` |`RD, RS` / `RD, imm32` |Unsigned divide |`Z` `S` |--
+|`IDIV` |`RD, RS` / `RD, imm32` |Signed divide |`Z` `S` |--
+|`AND` |`RD, RS` / `RD, imm32` |Bitwise AND |`Z` `S` |`and`
+|`OR` |`RD, RS` / `RD, imm32` |Bitwise OR |`Z` `S` |--
+|`XOR` |`RD, RS` / `RD, imm32` |Bitwise exclusive OR |`Z` `S` |--
+|`NOT` |`RD` |Bitwise complement |`Z` `S` |`not`
+|`SHL` |`RD, RS` / `RD, imm5` |Logical shift left |`C` `Z` `S` |--
+|`SHR` |`RD, RS` / `RD, imm5` |Logical shift right |`C` `Z` `S` |`shr`
+|`ROL` |`RD, RS` / `RD, imm5` |Rotate left |`C` `Z` `S` |--
+|`ROR` |`RD, RS` / `RD, imm5` |Rotate right |`C` `Z` `S` |--
+|`CMP` |`RD, RS` |Compare: subtract without writing the result |`C` `V` `Z` `S` |`cmp`
+|`TST` |`RD, RS` / `RD, imm32` |Test bits: AND without writing the result |`Z` `S` |`tst`
+
+|`JMP` |`+imm8` / `imm32` / `RD` |Unconditional branch |-- |`jmpr`, `jmpa`
+|`JEQ`, `JZ` |`+imm8` / `imm32` / `RD` |Branch if equal (`Z` = 1) |-- |`jeqr`
+|`JNE`, `JNZ` |`+imm8` / `imm32` / `RD` |Branch if not equal (`Z` = 0) |-- |`jner`
+|`JGT` |`+imm8` / `imm32` / `RD` |Branch if greater, signed |-- |--
+|`JGE` |`+imm8` / `imm32` / `RD` |Branch if greater or equal, signed |-- |--
+|`JLT` |`+imm8` / `imm32` / `RD` |Branch if less, signed |-- |--
+|`JLE` |`+imm8` / `imm32` / `RD` |Branch if less or equal, signed |-- |--
+
+|`CALL` |`imm32` / `RD` |Call a subroutine |-- |`call`
+|`RET` |-- |Return from a subroutine |-- |`ret`
+
+|`PUSH` |`imm32` / `RD` |Push a 32-bit value onto the stack |-- |--
+|`POP` |`RD` |Pop a 32-bit value from the stack |-- |--
+
+|`NOP` |-- |No operation |-- |--
+|`HALT` |-- |Halt until an interrupt is pending |-- |`halt`
+|`INT` |`imm8` |Raise an interrupt request on an IRQ line |-- |--
+|`IRET` |-- |Return from an interrupt or exception handler |-- |`iret`
+|===
+
+A number of instructions have two forms that differ only in the type of the second
+operand: a register (`RD, RS`) or an immediate value (`RD, imm32`). The two forms
+are separate opcodes, but they behave identically apart from the source of the
+second operand.
+
+=== Data movement instructions
+
+The data movement instructions copy values between registers and memory. None of
+them modifies the flags.
+
+Alignment and access-width requirements are imposed by the memory region that is
+accessed, not by the CPU; see <<memory-model>>. The `STR` and `LDR` instructions are
+the only instructions that honour the access-size bit of a register reference
+(<<reg-ref>>): with an 8-bit register reference, only one byte is transferred.
 
 [.landscape]
 <<<
-=== Data instructions
-
 .Data movement instruction encodings
-[%header,cols="2,3,7*1",stripes=even]
+[#data-encodings]
+[%header,cols="2,7*1",stripes=even]
 |===
-^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
-
-|MOV RD, imm32
-|Copy value _imm32_ to _RD_
-|`MOV_VR`
-^|RD
-4+^|imm32
-^|--
-
-|MOV RD, RS
-|Copy value _RS_ to _RD_
-|`MOV_VR`
-^|RD
-^|RS
-4+^|--
-
-|STR [imm32], RS
-|Copy value of _RS_ to _[imm32]_
-|`STR_RV0`
-4+^|imm32
-^|RS
-^|--
-
-|STR [RD], RS
-|Copy value of _RS_ to _[RD]_
-|`STR_RI0`
-^|RD
-^|RS
-4+^|--
-
-|STR [RD+imm8], RS
-|Copy value of _RS_ to _[RD+imm8]_
-|`STR_RI8`
-^|RD
-^|imm8
-^|RS
-3+^|--
-
-|STR [RD+imm32], RS
-|Copy value of _RS_ to _[RD+imm32]_
-|`STR_RI32`
-^|RD
-4+^|imm32
-^|RS
-
-|STR [RD+RO], RS
-|Copy value of _RS_ to _[RD+RO]_
-|`STR_RIR`
-^|RD
-^|RO
-^|RS
-3+^|--
-
-|LDR RD, [imm32]
-|Copy value from _[imm32]_ to RD
-|`LDR_RV0`
-^|RD
-4+^|imm32
-^|--
-
-|LDR RD, [RS]
-|Copy value from _[RS]_ to RD
-|`LDR_RI0`
-^|RD
-^|RS
-4+^|--
-
-|LDR RD, [RS+imm8]
-|Copy value from _[RS+imm8]_ to RD
-|`LDR_RI8`
-^|RD
-^|RS
-^|imm8
-3+^|--
-
-|LDR RD, [RS+imm32]
-|Copy value from _[RS+imm32]_ to RD
-|`LDR_RI32`
-^|RD
-^|RS
-4+^|imm32
-
-|LDR RD, [RS+RO]
-|Copy value from _[RS+RO]_ to RD
-|`LDR_RIR`
-^|RD
-^|RS
-^|RO
-3+^|--
-|===
-
-Note 1: *square brackets []* denote a memory address to read from (LDR) or write to (STR).
-
-Note 2: STR and LDR support byte-access to RS and RD, respectively. If register access size is 8
-bits, 8 bits are copied; otherwise, 32 bits are copied.
-
-<<<
-=== ALU instructions
-
-Arithmetic and logic instructions:
-
-1. Calculate the result of an arithmetic or logic operation.
-2. Save the result in a register (not all instructions do this).
-3. Set the CPU flags according to the result.
-
-.Arithmetic and logic instruction encodings
-[%header,cols="2,3,6*1",stripes=even]
-|===
-^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5
-
-|ADD RD, RS
-|RD = RD + RS
-|`ADD_RR`
-^|RD
-^|RS
-3+^|--
-
-|ADD RD, imm32
-|RD = RD + imm32
-|`ADD_RV`
-^|RD
-4+^|imm32
-
-|SUB RD, RS
-|RD = RD – RS
-|`SUB_RR`
-^|RD
-^|RS
-3+^|--
-
-|SUB RD, imm32
-|RD = RD – imm32
-|`SUB_RV`
-^|RD
-4+^|imm32
-
-|MUL RD, RS
-|RD = RD * RS
-|`MUL_RR`
-^|RD
-^|RS
-3+^|--
-
-|MUL RD, imm32
-|RD = RD * imm32
-|`MUL_RV`
-^|RD
-4+^|imm32
-
-|DIV RD, RS
-|RD = RD / RS (unsigned)
-|`DIV_RR`
-^|RD
-^|RS
-3+^|--
-
-|DIV RD, imm32
-|RD = RD / imm32 (unsigned)
-|`DIV_RV`
-^|RD
-4+^|imm32
-
-|IDIV RD, RS
-|RD = RD / RS (signed)
-|`IDIV_RR`
-^|RD
-^|RS
-3+^|--
-
-|IDIV RD, imm32
-|RD = RD / imm32 (signed)
-|`IDIV_RV`
-^|RD
-4+^|imm32
-
-|AND RD, RS
-|RD = RD & RS
-|`AND_RR`
-^|RD
-^|RS
-3+^|--
-
-|AND RD, imm32
-|RD = RD & imm32
-|`AND_RV`
-^|RD
-4+^|imm32
-
-|OR RD, RS
-|RD = RD \| RS
-|`OR_RR`
-^|RD
-^|RS
-3+^|--
-
-|OR RD, imm32
-|RD = RD \| imm32
-|`OR_RV`
-^|RD
-4+^|imm32
-
-|XOR RD, RS
-|RD = RD ^ RS
-|`XOR_RR`
-^|RD
-^|RS
-3+^|--
-
-|XOR RD, imm32
-|RD = RD ^ imm32
-|`XOR_RV`
-^|RD
-4+^|imm32
-
-|NOT RD
-|RD = ~RD
-|`NOT_RV`
-^|RD
-4+^|--
-
-|SHL RD, RS
-|RD = RD << RS
-|`SHL_RR`
-^|RD
-^|RS
-3+^|--
-
-|SHL RD, imm32
-|RD = RD << imm32
-|`SHL_RV`
-^|RD
-4+^|imm32
-
-|SHR RD, RS
-|RD = RD >> RS
-|`SHR_RR`
-^|RD
-^|RS
-3+^|--
-
-|SHR RD, imm32
-|RD = RD >> imm32
-|`SHR_RV`
-^|RD
-4+^|imm32
-
-|ROL RD, RS
-|RD = ROL(RD, RS)
-|`ROL_RR`
-^|RD
-^|RS
-3+^|--
-
-|ROL RD, imm32
-|RD = ROL(RD, imm32)
-|`ROL_RV`
-^|RD
-4+^|imm32
-
-|ROR RD, RS
-|RD = ROR(RD, RS)
-|`ROR_RR`
-^|RD
-^|RS
-3+^|--
-
-|ROR RD, imm32
-|RD = ROR(RD, imm32)
-|`ROR_RV`
-^|RD
-4+^|imm32
-
-|CMP RB, RA
-|RB – RA, set flags
-|`CMP_RR`
-^|RB
-^|RA
-3+^|--
-
-|TST RB, RA
-|RB & RA, set flags
-|`TST_RR`
-^|RB
-^|RA
-3+^|--
-
-|TST RA, imm32
-|RA & imm32, set flags
-|`TST_RV`
-^|RA
-4+^|imm32
-|===
-
-.Effect of ALU instructions on CPU flags
-[%header,cols="2,2,3,1,2"]
-|===
-^|Instruction ^|Carry ^|Overflow ^|Zero ^|Sign
-
-|ADD (`D + S = R`)
-|Set if R >= 2^32^.
-|Set if the operands had the same sign, but the sign of the result is different.
-
- _This indicates signed overflow. For example, adding two large negative numers may result in a
- positive number due to signed overflow._
-
-.15+|Set if R = 0.
-.15+|Set if bit 31 of R is set.
-
-|SUB (`D - S = R`)
-|Set if S is less than D.
-
- _0 means borrow occurred. 1 means no borrow occurred._
-
-|Set if the operands had different signs, and the sign of the result is different from the sign of
- the first operand.
-
- _This indicates that the result has been wrapped around and its signed value is wrong._
-
-|MUL (`D * S = R`)
-|Set if bits 32..63 of R are non-zero.
-.11+|Always reset.
-
-|DIV (`D / S = R`)
-.6+|Always reset.
-
-|IDIV (`D / S = R`)
-
-|AND (`D & S = R`)
-
-|OR (`D \| S = R`)
-
-|XOR (`D ^ S = R`)
-
-|NOT (`D = ~D`)
-
-|SHL (`D << S = R`)
-|Set to the last bit shifted out from MSB.
-
-|SHR (`D >> S = R`)
-|Set to the last bit shifted out from LSB.
-
-|ROL (`R = ROL(RD, RS)`)
-.2+|Set to the last bit rotated out.
-
-|ROR (`R = ROR(RD, RS)`)
-
-|CMP (`D - S`)
-2+|See instruction SUB.
-
-|TST (`D & S`)
-2+|Always reset.
+^|Instruction ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
+
+|`MOV RD, imm32` |`MOV_VR` |`RD` 4+^|`imm32` |--
+|`MOV RD, RS` |`MOV_RR` |`RD` |`RS` 4+^|--
+|`STR [imm32], RS` |`STR_RV0` 4+^|`imm32` |`RS` |--
+|`STR [RD], RS` |`STR_RI0` |`RD` |`RS` 4+^|--
+|`STR [RD+imm8], RS` |`STR_RI8` |`RD` |`imm8` |`RS` 3+^|--
+|`STR [RD+imm32], RS` |`STR_RI32` |`RD` 4+^|`imm32` |`RS`
+|`STR [RD+RO], RS` |`STR_RIR` |`RD` |`RO` |`RS` 3+^|--
+|`LDR RD, [imm32]` |`LDR_RV0` |`RD` 4+^|`imm32` |--
+|`LDR RD, [RS]` |`LDR_RI0` |`RD` |`RS` 4+^|--
+|`LDR RD, [RS+imm8]` |`LDR_RI8` |`RD` |`RS` |`imm8` 3+^|--
+|`LDR RD, [RS+imm32]` |`LDR_RI32` |`RD` |`RS` 4+^|`imm32`
+|`LDR RD, [RS+RO]` |`LDR_RIR` |`RD` |`RS` |`RO` 3+^|--
 |===
 
 [.portrait]
 <<<
-==== Difference between DIV and IDIV
+==== MOV
 
-DIV does unsigned divison, while IDIV does signed divison. The difference:
+Moves a 32-bit value into a register. The source is either an immediate value or
+another register.
 
-- DIV (unsigned division) treats the operands as unsigned, ignoring the sign bits. For example,
-  unsigned division of –11 (`0xFFFF_FFF5`) and 2 (`0x0000_0002`) results in
-  2&nbsp;147&nbsp;483&nbsp;643 (`0x7FFF_FFFB`).
-- IDIV (signed division) respects the signs of the operands. For example, signed division of the
-  same operands (–11 and 2) results in –5.
+.Syntax
+----
+MOV RD, imm32
+MOV RD, RS
+----
 
-==== Use of flags after SUB and CMP
+.Operation
+----
+RD = imm32
+RD = RS
+----
 
-:xor: (+)
+.Flags
+None.
 
-The sign (S), overflow (V) and zero (Z) flags are used to determine the numeric relationship
-between the operands of SUB and CMP.
+.Support
+Assembled; mnemonic `mov`. The assembler accepts a register, a numeric constant or
+a label as the source operand; a label is encoded as its absolute address.
 
-If S{xor}V _(XOR of S and V)_ is **0**:
+.Examples
+----
+mov     r1, 0x1000              ; r1 = 0x1000
+mov     r2, r1                  ; r2 = r1
+mov     r3, BUS_MMIO_START      ; r3 = address of the bus controller
+----
 
-- Sign is reset, overflow is reset. The signed value of the result is correct, and it's
-  non-negative. Therefore, the first operand is **greater than or equal to** the second operand.
-- Sign is set, overflow is set. The result is negative, but it's signed value is incorrect. So the
-  actual result must be positive or zero. Same thing.
+NOTE: The access-size bit of the destination register reference is ignored: `MOV`
+always writes the full 32 bits of `RD`.
 
-If S{xor}V is **1**:
+==== STR
 
-- Sign is set, overflow is reset. The signed value of the result is correct, and it's negative.
-  Therefore, the first operand is **strictly less than** the second operand.
-- Sign is reset, overflow is set. The result is non-negative, but it's signed value is incorrect.
-  So the actual result must be negative. Same thing.
+Stores the value of a register to memory. The address is formed from a base and an
+optional offset. Both the base value and the offset are 32-bit values; an 8-bit
+offset is sign-extended before it is added.
 
-Together with the zero flag, which is set if the result of subtraction is zero, meaning the
-operands are equal, the XOR of sign and overflow covers all the possible relationships between the
-operands:
+.Syntax
+----
+STR [imm32], RS
+STR [RD], RS
+STR [RD+imm8], RS
+STR [RD+imm32], RS
+STR [RD+RO], RS
+----
 
-- Greater than or equal -- S{xor}V is 0.
-- Strictly greater than -- Z is reset _and_ S{xor}V is 0.
-- Strictly less than -- S{xor}V is 1.
-- Less than or equal -- Z is set _or_ S{xor}V is 1.
+.Operation
+----
+[imm32] = RS
+[RD] = RS
+[RD + sext(imm8)] = RS
+[RD + imm32] = RS
+[RD + RO] = RS
+----
+
+.Flags
+None.
+
+.Access size
+If `RS` is an 8-bit register reference, the lower 8 bits of the register are written
+to one byte of memory. Otherwise, the full 32 bits are written as four bytes,
+little-endian.
+
+.Exceptions
+A bad memory access exception (<<exceptions>>) occurs if the address is not mapped,
+if the region does not support the requested access width, or if a 32-bit store
+crosses the end of the region.
+
+.Support
+Assembled; mnemonic `str`. The `[imm32]` and `[RD+imm32]` forms are not implemented
+by the current assembler. `[RD+imm8]` accepts the `+` and `-` operators.
+
+.Examples
+----
+str     [r1], r2                ; store r2 at the address in r1
+str     [r1+4], rb2             ; store the low byte of r2
+str     [r1+r2], r3             ; store r3 at r1 + r2
+----
+
+==== LDR
+
+Loads a value from memory into a register. The address is formed in the same way as
+for `STR`.
+
+.Syntax
+----
+LDR RD, [imm32]
+LDR RD, [RS]
+LDR RD, [RS+imm8]
+LDR RD, [RS+imm32]
+LDR RD, [RS+RO]
+----
+
+.Operation
+----
+RD = [imm32]
+RD = [RS]
+RD = [RS + sext(imm8)]
+RD = [RS + imm32]
+RD = [RS + RO]
+----
+
+.Flags
+None.
+
+.Access size
+If `RD` is an 8-bit register reference, one byte is read into the lower 8 bits of
+the register; bits 31:8 keep their previous value. Otherwise, four bytes are read
+into the full 32-bit register, little-endian.
+
+.Exceptions
+A bad memory access exception (<<exceptions>>) occurs if the address is not mapped,
+if the region does not support the requested access width, or if a 32-bit load
+crosses the end of the region.
+
+.Support
+Assembled; mnemonic `ldr`. The `[imm32]` and `[RS+imm32]` forms are not implemented
+by the current assembler.
+
+.Examples
+----
+ldr     r2, [r1]                ; r2 = word at the address in r1
+ldr     rb6, [r4]               ; low byte of r6 = byte at the address in r4
+----
+
+=== Arithmetic and logic instructions
+
+The arithmetic and logic instructions compute a result from the destination
+register and a second operand, store the result in the destination register, and
+update the flags. `CMP` and `TST` perform the same computation as `SUB` and `AND`
+respectively, but discard the result; they are used to set the flags for a
+following conditional branch.
+
+The second operand is either a register (`RD, RS`) or an immediate value
+(`RD, imm32`). Four instructions support a 5-bit immediate in their immediate form:
+`SHL`, `SHR`, `ROL` and `ROR`. The two forms of each instruction are separate
+opcodes and always access full 32-bit registers.
 
 [.landscape]
 <<<
+.Arithmetic instruction encodings
+[#alu-arith-encodings]
+[%header,cols="2,7*1",stripes=even]
+|===
+^|Instruction ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
+
+|`ADD RD, RS` |`ADD_RR` |`RD` |`RS` 4+^|--
+|`ADD RD, imm32` |`ADD_RV` |`RD` 4+^|`imm32` |--
+|`SUB RD, RS` |`SUB_RR` |`RD` |`RS` 4+^|--
+|`SUB RD, imm32` |`SUB_RV` |`RD` 4+^|`imm32` |--
+|`MUL RD, RS` |`MUL_RR` |`RD` |`RS` 4+^|--
+|`MUL RD, imm32` |`MUL_RV` |`RD` 4+^|`imm32` |--
+|`DIV RD, RS` |`DIV_RR` |`RD` |`RS` 4+^|--
+|`DIV RD, imm32` |`DIV_RV` |`RD` 4+^|`imm32` |--
+|`IDIV RD, RS` |`IDIV_RR` |`RD` |`RS` 4+^|--
+|`IDIV RD, imm32` |`IDIV_RV` |`RD` 4+^|`imm32` |--
+|===
+
+[.landscape]
+<<<
+.Logic, shift, rotate, compare and test instruction encodings
+[#alu-logic-encodings]
+[%header,cols="2,7*1",stripes=even]
+|===
+^|Instruction ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
+
+|`AND RD, RS` |`AND_RR` |`RD` |`RS` 4+^|--
+|`AND RD, imm32` |`AND_RV` |`RD` 4+^|`imm32` |--
+|`OR RD, RS` |`OR_RR` |`RD` |`RS` 4+^|--
+|`OR RD, imm32` |`OR_RV` |`RD` 4+^|`imm32` |--
+|`XOR RD, RS` |`XOR_RR` |`RD` |`RS` 4+^|--
+|`XOR RD, imm32` |`XOR_RV` |`RD` 4+^|`imm32` |--
+|`NOT RD` |`NOT_R` |`RD` 5+^|--
+|`SHL RD, RS` |`SHL_RR` |`RD` |`RS` 4+^|--
+|`SHL RD, imm5` |`SHL_RV` |`RD` |`imm5` 4+^|--
+|`SHR RD, RS` |`SHR_RR` |`RD` |`RS` 4+^|--
+|`SHR RD, imm5` |`SHR_RV` |`RD` |`imm5` 4+^|--
+|`ROL RD, RS` |`ROL_RR` |`RD` |`RS` 4+^|--
+|`ROL RD, imm5` |`ROL_RV` |`RD` |`imm5` 4+^|--
+|`ROR RD, RS` |`ROR_RR` |`RD` |`RS` 4+^|--
+|`ROR RD, imm5` |`ROR_RV` |`RD` |`imm5` 4+^|--
+|`CMP RD, RS` |`CMP_RR` |`RD` |`RS` 4+^|--
+|`TST RD, RS` |`TST_RR` |`RD` |`RS` 4+^|--
+|`TST RD, imm32` |`TST_RV` |`RD` 4+^|`imm32` |--
+|===
+
+[.portrait]
+<<<
+==== Effect on the flags
+
+<<alu-flags>> lists how each arithmetic and logic instruction updates the
+flags. `RD` denotes the first operand (the destination) and `S` the second operand,
+before the operation; `R` denotes the 32-bit result.
+
+.Effect of arithmetic and logic instructions on the flags
+[#alu-flags]
+[%header,cols="2,1,4"]
+|===
+|Instruction |Flags |Effect
+|`ADD` |`C` `V` `Z` `S` |`C` is set if the unsigned sum exceeds `2^32^ - 1`. `V` is set
+if both operands have the same sign and the result has a different sign. `Z` is set
+if `R` is zero. `S` is bit 31 of `R`.
+|`SUB` |`C` `V` `Z` `S` |`C` is set if `RD >= S`, compared as unsigned values (that
+is, no borrow occurred). `V` is set if the operands have different signs and the sign
+of the result differs from the sign of `RD`. `Z` is set if `R` is zero. `S` is bit 31
+of `R`.
+|`MUL` |`C` `Z` `S` |`C` is set if bits 32--63 of the 64-bit product are non-zero. `V`
+is always reset. `Z` is set if `R` is zero. `S` is bit 31 of `R`.
+|`DIV`, `IDIV` |`Z` `S` |`C` and `V` are always reset. `Z` is set if the quotient is
+zero. `S` is bit 31 of the quotient.
+|`AND`, `OR`, `XOR`, `NOT` |`Z` `S` |`C` and `V` are always reset. `Z` is set if `R` is
+zero. `S` is bit 31 of `R`.
+|`SHL` |`C` `Z` `S` |`C` is set to the last bit shifted out of bit 31, and reset if
+the shift count is zero. `V` is always reset. `Z` is set if `R` is zero. `S` is bit 31
+of `R`.
+|`SHR` |`C` `Z` `S` |`C` is set to the last bit shifted out of bit 0, and reset if the
+shift count is zero. `V` is always reset. `Z` is set if `R` is zero. `S` is bit 31 of
+`R`.
+|`ROL`, `ROR` |`C` `Z` `S` |Not implemented. When implemented, `C` is set to the last
+bit rotated out, `Z` is set if `R` is zero, and `S` is bit 31 of `R`.
+|`CMP` |`C` `V` `Z` `S` |Identical to `SUB`, except that `RD` is not modified.
+|`TST` |`Z` `S` |Identical to `AND`, except that `RD` is not modified.
+|===
+
+==== ADD
+
+Adds the second operand to the destination register.
+
+.Syntax
+----
+ADD RD, RS
+ADD RD, imm32
+----
+
+.Operation
+----
+RD = RD + RS
+RD = RD + imm32
+----
+
+.Flags
+`C`, `V`, `Z` and `S` are updated; see <<alu-flags>>.
+
+.Support
+Assembled; mnemonic `add`.
+
+.Examples
+----
+add     r4, 1                   ; r4 = r4 + 1
+add     r7, r2                  ; r7 = r7 + r2
+----
+
+==== SUB
+
+Subtracts the second operand from the destination register.
+
+.Syntax
+----
+SUB RD, RS
+SUB RD, imm32
+----
+
+.Operation
+----
+RD = RD - RS
+RD = RD - imm32
+----
+
+.Flags
+`C`, `V`, `Z` and `S` are updated; see <<alu-flags>>.
+
+.Support
+Assembled; mnemonic `sub`.
+
+.Examples
+----
+sub     r5, r4                  ; r5 = r5 - r4
+sub     r5, 1                   ; r5 = r5 - 1
+----
+
+==== MUL
+
+Multiplies the destination register by the second operand and keeps the low 32 bits
+of the product.
+
+.Syntax
+----
+MUL RD, RS
+MUL RD, imm32
+----
+
+.Operation
+----
+RD = (RD * RS)[31:0]
+RD = (RD * imm32)[31:0]
+----
+
+.Flags
+`C`, `Z` and `S` are updated; `V` is always reset. See <<alu-flags>>.
+
+.Support
+CPU only: the current assembler has no `mul` mnemonic.
+
+NOTE: `C` reports whether the product did not fit in 32 bits, which allows a
+multi-precision multiply to be built from 32-bit `MUL` operations.
+
+==== DIV
+
+Divides the destination register by the second operand, treating both operands as
+unsigned integers.
+
+.Syntax
+----
+DIV RD, RS
+DIV RD, imm32
+----
+
+.Operation
+----
+RD = RD / RS                    (unsigned)
+RD = RD / imm32                 (unsigned)
+----
+
+.Flags
+`Z` and `S` are updated; `C` and `V` are always reset. See <<alu-flags>>.
+
+.Exceptions
+A division by zero exception (<<exceptions>>) occurs if the divisor is zero.
+
+.Support
+CPU only: the current assembler has no `div` mnemonic.
+
+==== IDIV
+
+Divides the destination register by the second operand, treating both operands as
+signed 32-bit integers. The quotient is truncated towards zero.
+
+.Syntax
+----
+IDIV RD, RS
+IDIV RD, imm32
+----
+
+.Operation
+----
+RD = RD / RS                    (signed)
+RD = RD / imm32                 (signed)
+----
+
+.Flags
+`Z` and `S` are updated; `C` and `V` are always reset. See <<alu-flags>>.
+
+.Exceptions
+A division by zero exception (<<exceptions>>) occurs if the divisor is zero.
+
+.Support
+CPU only: the current assembler has no `idiv` mnemonic.
+
+===== Difference between DIV and IDIV
+
+`DIV` treats the operands as unsigned values and ignores their sign bits. `IDIV`
+respects the signs of the operands and produces a signed quotient.
+
+* Unsigned division of the operands `-11` (`0xFFFF_FFF5`) and `2` (`0x0000_0002`)
+  produces `2_147_483_643` (`0x7FFF_FFFB`), because `0xFFFF_FFF5` is interpreted as
+  `4_294_967_285`.
+* Signed division of the same operands produces `-5`.
+
+==== AND
+
+Computes the bitwise AND of the destination register and the second operand.
+
+.Syntax
+----
+AND RD, RS
+AND RD, imm32
+----
+
+.Operation
+----
+RD = RD & RS
+RD = RD & imm32
+----
+
+.Flags
+`Z` and `S` are updated; `C` and `V` are always reset. See <<alu-flags>>.
+
+.Support
+Assembled; mnemonic `and`.
+
+.Examples
+----
+and     r3, 0xFF                ; keep the low byte of r3
+and     r1, r2                  ; r1 = r1 & r2
+----
+
+==== OR
+
+Computes the bitwise OR of the destination register and the second operand.
+
+.Syntax
+----
+OR RD, RS
+OR RD, imm32
+----
+
+.Operation
+----
+RD = RD | RS
+RD = RD | imm32
+----
+
+.Flags
+`Z` and `S` are updated; `C` and `V` are always reset. See <<alu-flags>>.
+
+.Support
+CPU only: the current assembler has no `or` mnemonic.
+
+==== XOR
+
+Computes the bitwise exclusive OR of the destination register and the second
+operand.
+
+.Syntax
+----
+XOR RD, RS
+XOR RD, imm32
+----
+
+.Operation
+----
+RD = RD ^ RS
+RD = RD ^ imm32
+----
+
+.Flags
+`Z` and `S` are updated; `C` and `V` are always reset. See <<alu-flags>>.
+
+.Support
+CPU only: the current assembler has no `xor` mnemonic.
+
+==== NOT
+
+Computes the bitwise complement of the destination register.
+
+.Syntax
+----
+NOT RD
+----
+
+.Operation
+----
+RD = ~RD
+----
+
+.Flags
+`Z` and `S` are updated; `C` and `V` are always reset. See <<alu-flags>>.
+
+.Support
+Assembled; mnemonic `not`.
+
+.Examples
+----
+not     r1                      ; r1 = ~r1
+----
+
+==== SHL
+
+Shifts the destination register to the left by the number of bits given by the
+second operand. Zeroes are shifted in at the least significant end. Bits shifted out
+of bit 31 are discarded.
+
+.Syntax
+----
+SHL RD, RS
+SHL RD, imm5
+----
+
+.Operation
+----
+RD = RD << (RS & 31)
+RD = RD << (imm5 & 31)
+----
+
+.Flags
+`C`, `Z` and `S` are updated; `V` is always reset. `C` is set to the last bit shifted
+out of bit 31, and is reset if the shift count is zero. See <<alu-flags>>.
+
+.Support
+CPU only: the current assembler has no `shl` mnemonic.
+
+NOTE: The shift count is masked to its low five bits, so both the register form and
+the `imm5` form shift by a count in the range 0 to 31, and a count of 32 shifts by 0.
+
+==== SHR
+
+Shifts the destination register to the right by the number of bits given by the
+second operand. Zeroes are shifted in at the most significant end; the shift is
+logical, regardless of the sign flag.
+
+.Syntax
+----
+SHR RD, RS
+SHR RD, imm5
+----
+
+.Operation
+----
+RD = RD >> (RS & 31)
+RD = RD >> (imm5 & 31)
+----
+
+.Flags
+`C`, `Z` and `S` are updated; `V` is always reset. `C` is set to the last bit shifted
+out of bit 0, and is reset if the shift count is zero. See <<alu-flags>>.
+
+.Support
+Assembled; mnemonic `shr`. The assembler accepts an immediate value, which must fit
+in five bits.
+
+.Examples
+----
+shr     r3, 8                   ; r3 = r3 >> 8
+shr     r5, r6                  ; r5 = r5 >> (r6 & 31)
+----
+
+==== ROL
+
+Rotates the destination register to the left by the number of bits given by the
+second operand. Bits shifted out of bit 31 re-enter at bit 0.
+
+.Syntax
+----
+ROL RD, RS
+ROL RD, imm5
+----
+
+.Operation
+----
+RD = ROL(RD, RS & 31)
+RD = ROL(RD, imm5 & 31)
+----
+
+.Flags
+`C`, `Z` and `S` are defined; `V` is always reset. When implemented, `C` is set to the
+last bit rotated out. See <<alu-flags>>.
+
+.Support
+Not implemented: the current CPU does not execute `ROL`; using it aborts the VM. The
+assembler has no `rol` mnemonic either.
+
+==== ROR
+
+Rotates the destination register to the right by the number of bits given by the
+second operand. Bits shifted out of bit 0 re-enter at bit 31.
+
+.Syntax
+----
+ROR RD, RS
+ROR RD, imm5
+----
+
+.Operation
+----
+RD = ROR(RD, RS & 31)
+RD = ROR(RD, imm5 & 31)
+----
+
+.Flags
+`C`, `Z` and `S` are defined; `V` is always reset. When implemented, `C` is set to the
+last bit rotated out. See <<alu-flags>>.
+
+.Support
+Not implemented: the current CPU does not execute `ROR`; using it aborts the VM. The
+assembler has no `ror` mnemonic either.
+
+==== CMP
+
+Compares the destination register with the second operand by subtracting the second
+operand from the first and updating the flags. The destination register is not
+modified.
+
+.Syntax
+----
+CMP RD, RS
+----
+
+.Operation
+----
+RD - RS                         (flags only)
+----
+
+.Flags
+`C`, `V`, `Z` and `S` are updated as for `SUB`; see <<alu-flags>> and
+<<condition-flags>>.
+
+.Support
+Assembled; mnemonic `cmp`.
+
+.Examples
+----
+cmp     r3, r4                  ; compare r3 with r4
+jeqr    equal                   ; branch if r3 = r4
+----
+
+==== TST
+
+Tests the destination register against the second operand by computing their bitwise
+AND and updating the flags. The destination register is not modified.
+
+.Syntax
+----
+TST RD, RS
+TST RD, imm32
+----
+
+.Operation
+----
+RD & RS                         (flags only)
+RD & imm32                      (flags only)
+----
+
+.Flags
+`Z` and `S` are updated as for `AND`; `C` and `V` are always reset. See
+<<alu-flags>>.
+
+.Support
+Assembled; mnemonic `tst`.
+
+.Examples
+----
+tst     r2, 2                   ; test bit 1 of r2
+jeqr    bit_is_set              ; branch if the bit is set
+----
+
 === Flow control instructions
 
-.Flow control instruction encodings
-[%header,cols="2,3,5*1",stripes=even]
-|===
-^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4
+The flow control instructions change the program counter. Every branch condition has
+three forms that differ in how the target address is computed: a relative
+displacement, an absolute 32-bit address, and a register. `CALL` and `RET` manage
+subroutine calls; `CALL` uses the stack, `RET` reads it back.
 
-|JMP +imm8
-|Unconditional jump to PC+imm8
-|`JMPR_V8`
-^|imm8
-3+^|--
+None of the flow control instructions modifies the flags.
 
-|JMP imm32
-|Unconditional jump to imm32
-|`JMPA_V32`
-4+^|imm32
-
-|JMP RA
-|Unconditional jump to RA
-|`JMPA_R`
-^|RA
-3+^|--
-
-|JEQ / JZ +imm8
-|Jump to PC+imm8 if Z = 1
-|`JEQR_V8`
-^|imm8
-3+^|--
-
-|JEQ / JZ imm32
-|Jump to imm32 if Z = 1
-|`JEQA_V32`
-4+^|imm32
-
-|JEQ / JZ RA
-|Jump to RA if Z = 1
-|`JEQA_R`
-^|RA
-3+^|--
-
-|JNE / JNZ +imm8
-|Jump to PC+imm8 if Z = 0
-|`JNER_V8`
-^|imm8
-3+^|--
-
-|JNE / JNZ imm32
-|Jump to imm32 if Z = 0
-|`JNEA_V32`
-4+^|imm32
-
-|JNE / JNZ RA
-|Jump to RA if Z = 0
-|`JNEA_R`
-^|RA
-3+^|--
-
-|JGT +imm8
-|Jump to PC+imm8 if Z = 0 and (S ^ V) = 0
-|`JGTR_V8`
-^|imm8
-3+^|--
-
-|JGT imm32
-|Jump to imm32 if Z = 0 and (S ^ V) = 0
-|`JGTA_V32`
-4+^|imm32
-
-|JGT RA
-|Jump to RA if Z = 0 and (S ^ V) = 0
-|`JGTA_R`
-^|RA
-3+^|--
-
-|JGE +imm8
-|Jump to PC+imm8 if (S ^ V) = 0
-|`JGER_V8`
-^|imm8
-3+^|--
-
-|JGE imm32
-|Jump to imm32 if (S ^ V) = 0
-|`JGEA_V32`
-4+^|imm32
-
-|JGE RA
-|Jump to RA if (S ^ V) = 0
-|`JGEA_R`
-^|RA
-3+^|--
-
-|JLT +imm8
-|Jump to PC+imm8 if (S ^ V) = 1
-|`JLTR_V8`
-^|imm8
-3+^|--
-
-|JLT imm32
-|Jump to imm32 if (S ^ V) = 1
-|`JLTA_V32`
-4+^|imm32
-
-|JLT RA
-|Jump to RA if (S ^ V) = 1
-|`JLTA_R`
-^|RA
-3+^|--
-
-|JLE +imm8
-|Jump to PC+imm8 if Z = 1 or (S ^ V) = 1
-|`JLER_V8`
-^|imm8
-3+^|--
-
-|JLE imm32
-|Jump to imm32 if Z = 1 or (S ^ V) = 1
-|`JLEA_V32`
-4+^|imm32
-
-|JLE RA
-|Jump to RA if Z = 1 or (S ^ V) = 1
-|`JLEA_R`
-^|RA
-3+^|--
-
-|CALL imm32
-|Push PC, jump to imm32
-|`CALLA_V32`
-4+^|imm32
-
-|Call RA
-|Push PC, jump to RA
-|`CALLA_R`
-^|RA
-3+^|--
-
-|RET
-|Pop PC
-|`RET`
-4+^|--
-|===
-
-*Note:* mnemonics JZ and JNZ are aliases of JEQ and JNE, respectively
-
+[.landscape]
 <<<
-=== Stack manipulation instructions
-
-.Stack manipulation instruction encodings
-[%header,cols="2,3,5*1",stripes=even]
+.Branch instruction encodings
+[#branch-encodings]
+[%header,cols="2,7*1",stripes=even]
 |===
-^|Instruction ^|Action ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4
+^|Instruction ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
 
-|PUSH imm32
-|Push _imm32_ to stack
-|`PUSH_V32`
-4+^|imm32
-
-|PUSH RA
-|Push _RA_ to stack
-|`PUSH_R`
-^|RA
-3+^|--
-
-|POP RA
-|Pop u32 from stack into _RA_
-|`POP_R`
-^|RA
-3+^|--
+|`JMP +imm8` |`JMPR_V8` |`+imm8` 5+^|--
+|`JMP imm32` |`JMPA_V32` 4+^|`imm32` 2+^|--
+|`JMP RD` |`JMPA_R` |`RD` 5+^|--
+|`JEQ / JZ +imm8` |`JEQR_V8` |`+imm8` 5+^|--
+|`JEQ / JZ imm32` |`JEQA_V32` 4+^|`imm32` 2+^|--
+|`JEQ / JZ RD` |`JEQA_R` |`RD` 5+^|--
+|`JNE / JNZ +imm8` |`JNER_V8` |`+imm8` 5+^|--
+|`JNE / JNZ imm32` |`JNEA_V32` 4+^|`imm32` 2+^|--
+|`JNE / JNZ RD` |`JNEA_R` |`RD` 5+^|--
 |===
 
+[.portrait]
 <<<
-=== Other instructions
+[[condition-flags]]
+==== Branch conditions
 
-.Other instruction encodings
-[%header,cols="2,3,2*1",stripes=even]
+The conditional branch instructions test the `Z`, `S` and `V` flags. The `C` flag is
+not used by any branch instruction, and the ISA defines no unsigned conditional
+branch: comparisons performed by `CMP` and a conditional branch are always signed.
+
+For a subtraction `RD - S = R`, the exclusive OR of the sign and overflow flags
+(`S ^ V`) indicates whether the signed comparison of `RD` and `S` is correct:
+
+* If `S ^ V = 0`, the result is correct and non-negative, so `RD` is greater than or
+  equal to `S`. This covers two cases: `S = 0, V = 0` (the sign of the result is
+  correct and reset) and `S = 1, V = 1` (the result would be negative but the
+  subtraction overflowed, so the true result is positive).
+* If `S ^ V = 1`, the result is negative, so `RD` is strictly less than `S`. This
+  covers `S = 1, V = 0` (the sign of the result is correct and set) and
+  `S = 0, V = 1` (the result would be positive but the subtraction overflowed, so the
+  true result is negative).
+
+Together with the zero flag, which is set when `RD = S`, this covers every possible
+relationship between signed operands.
+
+.Signed comparison conditions
+[#comparison-conditions]
+[%header,cols="1,2,2,3"]
 |===
-^|Instruction ^|Action ^|Byte 0 ^|Byte 1
-
-|NOP
-|No-operation
-|`NOP`
-^|--
-
-|HALT
-|Halt until an interrupt happens
-|`HALT`
-^|--
-
-|INT imm8
-|Raise interrupt line _imm8_
-|`INT`
-^|imm8
-
-|IRET
-|Return from an interrupt service routine
-|`IRET`
-^|--
+|Condition |Instruction |Test |Relationship after `CMP RD, RS`
+|Equal |`JEQ`, `JZ` |`Z = 1` |`RD = RS`
+|Not equal |`JNE`, `JNZ` |`Z = 0` |`RD != RS`
+|Greater than |`JGT` |`Z = 0` and `S ^ V = 0` |`RD > RS`
+|Greater or equal |`JGE` |`S ^ V = 0` |`RD >= RS`
+|Less than |`JLT` |`S ^ V = 1` |`RD < RS`
+|Less or equal |`JLE` |`Z = 1` or `S ^ V = 1` |`RD <= RS`
 |===
+
+`CALL` and `RET` have no condition; they use the stack to save and restore the
+return address.
+
+[.landscape]
+<<<
+.Comparison branch and subroutine instruction encodings
+[#branch-compare-encodings]
+[%header,cols="2,7*1",stripes=even]
+|===
+^|Instruction ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
+
+|`JGT +imm8` |`JGTR_V8` |`+imm8` 5+^|--
+|`JGT imm32` |`JGTA_V32` 4+^|`imm32` 2+^|--
+|`JGT RD` |`JGTA_R` |`RD` 5+^|--
+|`JGE +imm8` |`JGER_V8` |`+imm8` 5+^|--
+|`JGE imm32` |`JGEA_V32` 4+^|`imm32` 2+^|--
+|`JGE RD` |`JGEA_R` |`RD` 5+^|--
+|`JLT +imm8` |`JLTR_V8` |`+imm8` 5+^|--
+|`JLT imm32` |`JLTA_V32` 4+^|`imm32` 2+^|--
+|`JLT RD` |`JLTA_R` |`RD` 5+^|--
+|`JLE +imm8` |`JLER_V8` |`+imm8` 5+^|--
+|`JLE imm32` |`JLEA_V32` 4+^|`imm32` 2+^|--
+|`JLE RD` |`JLEA_R` |`RD` 5+^|--
+|`CALL imm32` |`CALLA_V32` 4+^|`imm32` 2+^|--
+|`CALL RD` |`CALLA_R` |`RD` 5+^|--
+|`RET` |`RET` 6+^|--
+|===
+
+[.portrait]
+<<<
+==== JMP
+
+Transfers control unconditionally to the target address.
+
+.Syntax
+----
+JMP +imm8
+JMP imm32
+JMP RD
+----
+
+.Operation
+----
+PC = branch_address + sext(imm8)
+PC = imm32
+PC = RD
+----
+
+In the relative form, the displacement is relative to the address of the `JMP`
+instruction, not to the address of the following instruction. The displacement is
+sign-extended, so it ranges from `-128` to `+127`.
+
+.Flags
+None.
+
+.Support
+Assembled; mnemonics `jmpr` (relative) and `jmpa` (absolute or register). `jmpr`
+takes a label, not a raw displacement.
+
+.Examples
+----
+jmpr    loop                    ; branch back to 'loop'
+jmpa    0x400                   ; branch to absolute address 0x400
+jmpa    r3                      ; branch to the address in r3
+----
+
+==== JEQ / JZ
+
+Transfers control to the target address if the zero flag is set.
+
+.Syntax
+----
+JEQ +imm8
+JEQ imm32
+JEQ RD
+----
+
+.Operation
+----
+if Z = 1: PC = target
+----
+
+The relative form is relative to the address of the branch instruction; see `JMP`.
+`JZ` is an alias of `JEQ`.
+
+.Flags
+None; the flags are read, not modified.
+
+.Support
+Assembled; mnemonic `jeqr`, which takes a label and uses the relative form. The
+absolute and register forms are not implemented by the current assembler.
+
+.Examples
+----
+cmp     r3, r4
+jeqr    equal                   ; branch if r3 = r4
+----
+
+==== JNE / JNZ
+
+Transfers control to the target address if the zero flag is reset.
+
+.Syntax
+----
+JNE +imm8
+JNE imm32
+JNE RD
+----
+
+.Operation
+----
+if Z = 0: PC = target
+----
+
+`JNZ` is an alias of `JNE`.
+
+.Flags
+None; the flags are read, not modified.
+
+.Support
+Assembled; mnemonic `jner`, which takes a label and uses the relative form. The
+absolute and register forms are not implemented by the current assembler.
+
+.Examples
+----
+sub     r5, 1
+jner    copy_str                ; repeat until r5 becomes zero
+----
+
+==== JGT
+
+Transfers control to the target address if the destination operand of a preceding
+`CMP` is greater than the second operand, comparing them as signed integers.
+
+.Syntax
+----
+JGT +imm8
+JGT imm32
+JGT RD
+----
+
+.Operation
+----
+if Z = 0 and (S ^ V) = 0: PC = target
+----
+
+.Flags
+None; the flags are read, not modified.
+
+.Support
+CPU only: the current assembler has no `jgt` mnemonic.
+
+==== JGE
+
+Transfers control to the target address if the destination operand of a preceding
+`CMP` is greater than or equal to the second operand, comparing them as signed
+integers.
+
+.Syntax
+----
+JGE +imm8
+JGE imm32
+JGE RD
+----
+
+.Operation
+----
+if S ^ V = 0: PC = target
+----
+
+.Flags
+None; the flags are read, not modified.
+
+.Support
+CPU only: the current assembler has no `jge` mnemonic.
+
+==== JLT
+
+Transfers control to the target address if the destination operand of a preceding
+`CMP` is less than the second operand, comparing them as signed integers.
+
+.Syntax
+----
+JLT +imm8
+JLT imm32
+JLT RD
+----
+
+.Operation
+----
+if S ^ V = 1: PC = target
+----
+
+.Flags
+None; the flags are read, not modified.
+
+.Support
+CPU only: the current assembler has no `jlt` mnemonic.
+
+==== JLE
+
+Transfers control to the target address if the destination operand of a preceding
+`CMP` is less than or equal to the second operand, comparing them as signed
+integers.
+
+.Syntax
+----
+JLE +imm8
+JLE imm32
+JLE RD
+----
+
+.Operation
+----
+if Z = 1 or (S ^ V) = 1: PC = target
+----
+
+.Flags
+None; the flags are read, not modified.
+
+.Support
+CPU only: the current assembler has no `jle` mnemonic.
+
+==== CALL
+
+Calls a subroutine. The address of the instruction following the `CALL` is pushed
+onto the stack, and control is transferred to the target address.
+
+.Syntax
+----
+CALL imm32
+CALL RD
+----
+
+.Operation
+----
+SP = SP - 4
+[SP] = address of the next instruction
+PC = imm32
+PC = RD
+----
+
+.Flags
+None.
+
+.Exceptions
+A stack overflow exception (<<stack-overflow>>) occurs if `SP` is less than 4 when
+the return address is pushed.
+
+.Support
+Assembled; mnemonic `call`. Both forms are supported, and a label can be used as the
+target of the immediate form.
+
+.Examples
+----
+call    print_str               ; call the subroutine at 'print_str'
+call    r5                      ; call the subroutine at the address in r5
+----
+
+==== RET
+
+Returns from a subroutine. The top 32-bit value of the stack is loaded into `PC`.
+
+.Syntax
+----
+RET
+----
+
+.Operation
+----
+PC = [SP]
+SP = SP + 4
+----
+
+.Flags
+None.
+
+.Exceptions
+A stack overflow exception (<<stack-overflow>>) occurs if `SP` is greater than
+`0xFFFF_FFFC` after the pop.
+
+.Support
+Assembled; mnemonic `ret`.
+
+.Examples
+----
+ret                             ; return to the caller
+----
+
+=== Stack instructions
+
+The stack instructions move 32-bit values between a register (or an immediate value)
+and the stack. `PUSH` decrements `SP` and writes a value; `POP` reads a value and
+increments `SP`. The stack pointer therefore holds the address of the topmost
+occupied word.
+
+The access-size bit of a register reference is ignored by both instructions: the
+full 32-bit register is transferred.
+
+.Stack instruction encodings
+[#stack-encodings]
+[%header,cols="2,7*1",stripes=even]
+|===
+^|Instruction ^|Byte 0 ^|Byte 1 ^|Byte 2 ^|Byte 3 ^|Byte 4 ^|Byte 5 ^|Byte 6
+
+|`PUSH imm32` |`PUSH_V32` 4+^|`imm32` 2+^|--
+|`PUSH RD` |`PUSH_R` |`RD` 5+^|--
+|`POP RD` |`POP_R` |`RD` 5+^|--
+|===
+
+[[stack-overflow]]
+==== Stack overflow
+
+The stack is limited only by the address space, and the CPU does not track its
+bounds. Two conditions are nevertheless reported as a stack overflow exception
+(<<exceptions>>):
+
+* `SP` is less than 4 when a value is pushed. The push is not performed.
+* `SP` is greater than `0xFFFF_FFFC` after a value is popped.
+
+An overflowing stack is therefore only detected at the ends of the address space.
+Software must ensure that `SP` points to a suitable region of memory before using
+the stack.
+
+==== PUSH
+
+Pushes a 32-bit value onto the stack.
+
+.Syntax
+----
+PUSH imm32
+PUSH RD
+----
+
+.Operation
+----
+SP = SP - 4
+[SP] = imm32
+[SP] = RD
+----
+
+The value is stored as four bytes, little-endian.
+
+.Flags
+None.
+
+.Exceptions
+A stack overflow exception occurs if `SP` is less than 4.
+
+.Support
+CPU only: the current assembler has no `push` mnemonic.
+
+==== POP
+
+Pops a 32-bit value from the stack into a register.
+
+.Syntax
+----
+POP RD
+----
+
+.Operation
+----
+RD = [SP]
+SP = SP + 4
+----
+
+.Flags
+None.
+
+.Exceptions
+A stack overflow exception occurs if `SP` is greater than `0xFFFF_FFFC`.
+
+.Support
+CPU only: the current assembler has no `pop` mnemonic.
+
+=== Miscellaneous instructions
+
+The miscellaneous instructions have no operands, or a single 8-bit immediate, and
+do not modify the flags.
+
+.Miscellaneous instruction encodings
+[#misc-encodings]
+[%header,cols="2,1,1",stripes=even]
+|===
+^|Instruction ^|Byte 0 ^|Byte 1
+
+|`NOP` |`NOP` |--
+|`HALT` |`HALT` |--
+|`INT imm8` |`INT_V8` |`imm8`
+|`IRET` |`IRET` |--
+|===
+
+==== NOP
+
+Performs no operation. Execution continues with the next instruction.
+
+.Syntax
+----
+NOP
+----
+
+.Flags
+None.
+
+.Support
+CPU only: the current assembler has no `nop` mnemonic. A label on its own line
+assembles to zero bytes and can be used as a placeholder.
+
+==== HALT
+
+Halts the CPU. Execution resumes when an interrupt request becomes pending; the CPU
+then services the interrupt in the usual way.
+
+.Syntax
+----
+HALT
+----
+
+.Flags
+None.
+
+.Support
+Assembled; mnemonic `halt`.
+
+.Examples
+----
+halt
+jmpr    halt                    ; remain halted
+----
+
+==== INT
+
+Raises an interrupt request on an IRQ line, as if a device had raised it. The
+interrupt is serviced according to <<interrupts>>.
+
+.Syntax
+----
+INT imm8
+----
+
+.Operation
+----
+irq_line[imm8] = pending
+----
+
+.Flags
+None.
+
+.Exceptions
+A bad instruction exception (<<exceptions>>) occurs if `imm8` is greater than 31.
+
+.Support
+CPU only: the current assembler has no `int` mnemonic.
+
+NOTE: `imm8` is an IRQ line number, not an IVT entry number. IRQ line 0 corresponds
+to IVT entry 32, and line 31 to entry 63.
+
+==== IRET
+
+Returns from an interrupt or exception handler. The top 32-bit value of the stack is
+loaded into `PC`. Unlike `RET`, `IRET` does not otherwise change the CPU state.
+
+.Syntax
+----
+IRET
+----
+
+.Operation
+----
+PC = [SP]
+SP = SP + 4
+----
+
+.Flags
+None.
+
+.Exceptions
+A stack overflow exception (<<stack-overflow>>) occurs if `SP` is greater than
+`0xFFFF_FFFC` after the pop.
+
+.Support
+Assembled; mnemonic `iret`.
+
+.Examples
+----
+isr:
+        ; ...
+        iret                    ; return to the interrupted program
+----
+
+[appendix]
+[[assembler-support]]
+== Assembler support and directives
+
+This appendix summarises what the Rust assembler in `tools/asm-rust` currently
+accepts. It is provided because the assembler implements a subset of the ISA
+described in <<instruction-set>>.
+
+=== Supported mnemonics
+
+.Mnemonics accepted by the current assembler
+[%header,cols="1,2,3"]
+|===
+|Mnemonic |Operands |Notes
+|`mov` |`RD, RS`; `RD, imm32`; `RD, label` |A label is encoded as its absolute
+address. `RD` may be a byte register (`rbN`), but the access size is ignored.
+|`str` |`[RD], RS`; `[RD+imm8], RS`; `[RD-imm8], RS`; `[RD+RO], RS` |`RD`/`RO` may be
+byte registers. The `[imm32]` and `[RD+imm32]` forms are not implemented.
+|`ldr` |`RD, [RS]`; `RD, [RS+imm8]`; `RD, [RS-imm8]`; `RD, [RS+RO]` |Same restrictions
+as `str`.
+|`add` |`RD, RS`; `RD, imm32` |
+|`sub` |`RD, RS`; `RD, imm32` |
+|`and` |`RD, RS`; `RD, imm32` |
+|`not` |`RD` |
+|`shr` |`RD, RS`; `RD, imm5` |The immediate must fit in five bits.
+|`cmp` |`RD, RS` |
+|`tst` |`RD, RS`; `RD, imm32` |
+|`jmpr` |`label` |Relative branch; the label must be within `-128` to `+127` bytes.
+|`jmpa` |`imm32`; `RD` |Absolute or register branch.
+|`jeqr` |`label` |Relative branch if equal.
+|`jner` |`label` |Relative branch if not equal.
+|`call` |`imm32`; `RD` |A label can be used as the target of the immediate form.
+|`ret` |-- |
+|`halt` |-- |
+|`iret` |-- |
+|===
+
+Instructions that are implemented by the CPU but have no assembler mnemonic:
+`MUL`, `DIV`, `IDIV`, `OR`, `XOR`, `SHL`, `ROL`, `ROR`, `JGT`, `JGE`, `JLT`, `JLE`,
+`PUSH`, `POP`, `NOP` and `INT`.
+
+=== Registers
+
+The assembler accepts register names without a leading `%` or `$`, and is not
+case-sensitive about them:
+
+* `r0` to `r7` select full 32-bit registers.
+* `rb0` to `rb7` select the lower byte of a register (access size 1).
+* `sp` selects the stack pointer. It is currently tokenised as a label rather than
+  as a register, so it cannot be used as an operand.
+
+=== Directives
+
+.Directives
+[%header,cols="1,2,3"]
+|===
+|Directive |Operands |Description
+|`.set` |`NAME, value` |Defines a constant. `value` may be a number, a string, a
+label, or another constant.
+|`.origin` |`imm32` |Advances the location counter to the given address, filling the
+gap with zero bytes.
+|`.skip` |`imm32` |Declared but not implemented: using it aborts the assembler.
+|`.strd` |`label` |Emits a 32-bit word containing the absolute address of `label`.
+|`.strb` |`imm8` |Emits a single byte.
+|`.strs` |`"text"` |Emits the characters of `text` followed by a terminating zero
+byte.
+|===
+
+=== Assembly syntax
+
+* Instructions, directives and labels are written one per line.
+* A label is an identifier followed by a colon, for example `start:`.
+* Comments begin with `;` and extend to the end of the line.
+* Numbers may be written in decimal (`4096`) or hexadecimal (`0x1000`).
+* Mnemonics must be written in lower case. Register names, constants and labels are
+  case-insensitive.

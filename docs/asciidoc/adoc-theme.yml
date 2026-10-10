@@ -1,20 +1,132 @@
+# FCVM manual theme.
+#
+# Gives the AsciiDoc manuals a layout in the style of an STM32 reference manual:
+# sans-serif body text, dark blue headings, a light blue table header, bold
+# left-aligned table captions, and running headers with the chapter title.
+
 extends: default
 
-base-font-family: Helvetica
+base:
+  font-family: Helvetica
+  font-size: 10
+  font-color: 1A1A1A
+  line-height: 1.35
+  border-color: BFCBD9
 
-base-font-size: 10
-caption-font-size: 10
-heading-h1-font-size: 20
-heading-h2-font-size: 16
-heading-h3-font-size: 13
+page:
+  margin: [0.55in, 0.67in, 0.67in, 0.67in]
+
+heading:
+  font-color: 0B3C6E
+  font-style: bold
+  h1-font-size: 22
+  h2-font-size: 17
+  h3-font-size: 13
+  h4-font-size: 11
+  h5-font-size: 10
+  h6-font-size: 10
+  h2-border-bottom-width: 0.75
+  h2-border-bottom-color: 0B3C6E
+  h2-padding-bottom: 3
+
+title-page:
+  text-align: left
+  title:
+    top: 35%
+    font-size: 26
+    font-color: 0B3C6E
+    line-height: 1.1
+  subtitle:
+    font-size: 14
+    font-style: normal
+    font-color: 333333
+  authors:
+    margin-top: 24
+    font-size: 12
+  revision:
+    margin-top: 12
+    font-size: 11
+    font-color: 333333
+
+caption:
+  align: left
+  font-size: 9
+  font-style: bold
+
+table:
+  font-size: 9
+  border-color: BFCBD9
+  grid-color: BFCBD9
+  cell-padding: 2.5
+  head:
+    background-color: DCE6F1
+    font-color: 0B3C6E
+    font-style: bold
+    border-bottom-width: 1
+    border-bottom-color: 0B3C6E
+  foot:
+    background-color: EEF3F9
+  body:
+    stripe-background-color: F4F7FB
+
+admonition:
+  border-color: BFCBD9
+  border-width: 0.75
+  padding: [4, 8, 4, 8]
+  label:
+    font-style: bold
+    text-transform: uppercase
+
+code:
+  font-color: 1A1A1A
+  background-color: F4F7FB
+  border-color: BFCBD9
+
+codespan:
+  font-color: 1A1A1A
+
+header:
+  height: 24
+  title-style: basic
+  font-size: 8
+  font-color: 5A6B7F
+  line-height: 1
+  border-color: BFCBD9
+  border-width: 0.25
+  recto:
+    left:
+      content: '{docnumber}'
+    center:
+      content: ''
+    right:
+      content: '{chapter-title}'
+  verso:
+    left:
+      content: '{chapter-title}'
+    center:
+      content: ''
+    right:
+      content: '{docnumber}'
+
+footer:
+  font-size: 8
+  font-color: 5A6B7F
+  line-height: 1
+  border-color: BFCBD9
+  border-width: 0.25
+  recto:
+    left:
+      content: ''
+    center:
+      content: '{page-number} of {page-count}'
+    right:
+      content: ''
+  verso:
+    left:
+      content: ''
+    center:
+      content: '{page-number} of {page-count}'
+    right:
+      content: ''
 
 running-content-start-at: 2
-footer:
-  verso:
-    left-content:
-    center-content: '{page-number} of {page-count}'
-    right-content:
-  recto:
-    left-content:
-    center-content: '{page-number} of {page-count}'
-    right-content:
