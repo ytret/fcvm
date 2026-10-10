@@ -19,6 +19,13 @@ else()
     message(FATAL_ERROR "Unrecognized value of FCVM_ASM_BUILD_TYPE: ${FCVM_ASM_BUILD_TYPE}")
 endif()
 
+# Re-run cargo when any source file changes. CONFIGURE_DEPENDS makes CMake
+# re-glob when the build system is refreshed, so new files are picked up
+# without a manual reconfigure.
+file(GLOB FCVM_ASM_SOURCES CONFIGURE_DEPENDS
+    ${CMAKE_CURRENT_LIST_DIR}/src/*.rs
+)
+
 add_custom_command(
     OUTPUT ${FCVM_ASM_BIN}
     COMMAND ${CMAKE_COMMAND} -E env
@@ -29,6 +36,7 @@ add_custom_command(
             ${FCVM_ASM_CARGO_DIR}/${FCVM_ASM_CARGO_PROFILE}/asm-rust
             ${FCVM_ASM_BIN}
     DEPENDS ${CMAKE_CURRENT_LIST_DIR}/Cargo.toml
+            ${FCVM_ASM_SOURCES}
     COMMENT "Building asm-rust assembler"
     VERBATIM
     USES_TERMINAL
