@@ -212,6 +212,7 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     D_ASSERT(err == VM_ERR_NONE);
     busctl->next_irq_line++;
     busctl->next_region_at = map_end;
+    busctl->num_devs++;
     return err;
 }
 

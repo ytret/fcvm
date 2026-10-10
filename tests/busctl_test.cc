@@ -96,6 +96,8 @@ TEST_F(BusCtlTest, RegisterDevice) {
     EXPECT_EQ(dev_ctx->dev_class, req.dev_class);
     EXPECT_EQ(dev_ctx->mmio.ctx, &mem_ctx);
     EXPECT_EQ(dev_ctx->mmio.end - dev_ctx->mmio.start, req.region_size);
+
+    EXPECT_EQ(busctl->num_devs, 1);
 }
 
 TEST_F(BusCtlTest, RegisterMaxDevices) {
