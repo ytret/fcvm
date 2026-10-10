@@ -103,15 +103,25 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     D_ASSERT(mmio->start < mmio->end);
     vm_err_t err = VM_ERR_NONE;
 
-    // FIXME: there are two iterations over the mapped_regions array, but it
-    // could be one if we checked both the start and end in a single iteration.
-    if (memctl_find_reg_by_addr(memctl, mmio->start, NULL) == VM_ERR_NONE) {
-        err = VM_ERR_MEM_USED;
-        return err;
+    bool overlaps = false;
+    for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
+        if (memctl->used_regions[idx]) {
+            mmio_region_t reg = memctl->mapped_regions[idx];
+
+            const vm_addr_t existing_start = reg.start;
+            const vm_addr_t existing_end = reg.end;
+            const vm_addr_t new_start = mmio->start;
+            const vm_addr_t new_end = mmio->end;
+
+            if ((existing_start <= new_start && new_start < existing_end) ||
+                (existing_start < new_end && new_end <= existing_end) ||
+                (new_start < existing_start && existing_end < new_end)) {
+                overlaps = true;
+                break;
+            }
+        }
     }
-    // The end is exclusive, that's why we check if `end - 1`, the last byte of
-    // this region, not `end`, is contained in another region.
-    if (memctl_find_reg_by_addr(memctl, mmio->end - 1, NULL) == VM_ERR_NONE) {
+    if (overlaps) {
         err = VM_ERR_MEM_USED;
         return err;
     }

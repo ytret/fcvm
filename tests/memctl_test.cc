@@ -226,6 +226,40 @@ TEST_F(MemCtlTest, MapRegionEndingInExistingRegionFails2) {
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
 
+TEST_F(MemCtlTest, MapRegionCoveringExistingRegionFails) {
+    vm_err_t err;
+    mmio_region_t mmio_reg;
+    memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
+
+    //   [ R1 ]
+    // [   R2   ]
+    mmio_reg.start = 1024;
+    mmio_reg.end = mmio_reg.start + 10;
+    err = memctl_map_region(memctl, &mmio_reg);
+    EXPECT_EQ(err, VM_ERR_NONE);
+    mmio_reg.start -= 10;
+    mmio_reg.end += 10;
+    err = memctl_map_region(memctl, &mmio_reg);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
+}
+
+TEST_F(MemCtlTest, MapRegionFullyInsideExistingRegionFails) {
+    vm_err_t err;
+    mmio_region_t mmio_reg;
+    memcpy(&mmio_reg, &mmio1_reg, sizeof(mmio_reg));
+
+    // [   R1   ]
+    //   [ R2 ]
+    mmio_reg.start = 1024;
+    mmio_reg.end = mmio_reg.start + 512;
+    err = memctl_map_region(memctl, &mmio_reg);
+    EXPECT_EQ(err, VM_ERR_NONE);
+    mmio_reg.start += 10;
+    mmio_reg.end -= 10;
+    err = memctl_map_region(memctl, &mmio_reg);
+    EXPECT_EQ(err, VM_ERR_MEM_USED);
+}
+
 TEST_F(MemCtlTest, NoRegionReadU8Fails) {
     uint8_t val = 0x12;
     vm_err_t err = memctl->intf.read_u8(memctl, 0x0000'0000, &val);
