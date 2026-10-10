@@ -2,3 +2,5 @@
 /build*/
 /.cache/
 /tools/installed
+
+flake.local.nix
