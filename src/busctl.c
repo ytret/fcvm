@@ -136,7 +136,14 @@ busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
     // Restore the busctl context.
     busctl_ctx_t *busctl = busctl_new_in_reg(memctl, intctl, bus_mmio);
     D_ASSERT(offset + sizeof(*busctl) <= max_size);
-    memcpy(busctl, &buf[offset], sizeof(*busctl));
+    D_ASSERT((uintptr_t)(v_buf + offset) % _Alignof(busctl_ctx_t) == 0);
+    const busctl_ctx_t *const saved_busctl = v_buf + offset;
+    memcpy(busctl->used_slots, saved_busctl->used_slots,
+           sizeof(busctl->used_slots));
+    memcpy(busctl->devs, saved_busctl->devs, sizeof(busctl->devs));
+    busctl->num_devs = saved_busctl->num_devs;
+    busctl->next_region_at = saved_busctl->next_region_at;
+    busctl->next_irq_line = saved_busctl->next_irq_line;
     offset += sizeof(*busctl);
 
     // Restore the devices.

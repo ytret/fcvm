@@ -8,6 +8,8 @@ struct TestDevice {
     static constexpr uint8_t dev_class = 0x02;
     static constexpr vm_addr_t region_size = 4;
 
+    static size_t restore_called;
+
     uint32_t contained_dword = 0xDEADBEEF;
 
     dev_desc_t build_req() {
@@ -18,8 +20,8 @@ struct TestDevice {
                        .read_u32 = read_u32,
                        .write_u8 = nullptr,
                        .write_u32 = write_u32},
-            .f_snapshot_size = nullptr,
-            .f_snapshot = nullptr,
+            .f_snapshot_size = snapshot_size,
+            .f_snapshot = snapshot,
         };
     }
 
@@ -38,6 +40,46 @@ struct TestDevice {
         *out_err = VM_ERR_NONE;
     }
 
+    static size_t snapshot_size(const void *dev_ctx) {
+        (void)dev_ctx;
+        return sizeof(contained_dword);
+    }
+
+    static size_t snapshot(const void *dev_ctx, void *v_buf, size_t max_size) {
+        const TestDevice *dev = reinterpret_cast<const TestDevice *>(dev_ctx);
+        if (max_size < snapshot_size(dev_ctx)) {
+            fprintf(stderr,
+                    "%s failed: buffer size %zu is not enough, need at least "
+                    "%zu bytes\n",
+                    __func__, max_size, snapshot_size(dev_ctx));
+            abort();
+        }
+        memcpy(v_buf, &dev->contained_dword, sizeof(contained_dword));
+        return sizeof(contained_dword);
+    }
+
+    static size_t restore(busctl_dev_ctx_t *dev_ctx, const void *v_buf,
+                          size_t max_size) {
+        if (max_size < sizeof(contained_dword)) {
+            fprintf(stderr,
+                    "%s failed: buffer size %zu is not enough, need at least "
+                    "%zu bytes\n",
+                    __func__, max_size, sizeof(TestDevice::contained_dword));
+            abort();
+        }
+
+        restore_called++;
+
+        TestDevice *dev = new TestDevice;
+        memcpy(&dev->contained_dword, v_buf, sizeof(dev->contained_dword));
+
+        dev_ctx->snapshot_ctx = dev;
+        dev_ctx->f_snapshot_size = snapshot_size;
+        dev_ctx->f_snapshot = snapshot;
+
+        return sizeof(contained_dword);
+    }
+
   private:
     static vm_err_t read_u32(void *v_ctx, vm_addr_t addr, uint32_t *out_u32) {
         TestDevice *dev = reinterpret_cast<TestDevice *>(v_ctx);
@@ -54,6 +96,8 @@ struct TestDevice {
     }
 };
 
+size_t TestDevice::restore_called = 0;
+
 class BusCtlTest : public testing::Test {
   protected:
     BusCtlTest() {
@@ -61,6 +105,7 @@ class BusCtlTest : public testing::Test {
         memctl = memctl_new();
         busctl = busctl_new(memctl, intctl);
     }
+
     ~BusCtlTest() {
         busctl_free(busctl);
         memctl_free(memctl);
@@ -300,4 +345,61 @@ TEST_F(BusCtlTest, MMIORegDevDesc) {
     EXPECT_EQ(desc[1], dev_ctx->mmio.end);
     // DWORD #3 - device class and IRQ line.
     EXPECT_EQ(desc[2], (dev_ctx->dev_class << 8) | dev_ctx->irq_line);
+}
+
+static size_t restore_dev(uint8_t dev_class, busctl_dev_ctx_t *ctx, void *v_buf,
+                          size_t max_size) {
+    switch (dev_class) {
+    case TestDevice::dev_class:
+        return TestDevice::restore(ctx, v_buf, max_size);
+    default:
+        fprintf(stderr, "%s: unrecognized dev_class value %hhu\n", __func__,
+                dev_class);
+        abort();
+    }
+}
+
+TEST_F(BusCtlTest, SnapshotRestoreWithDevice) {
+    static_assert(SN_BUSCTL_CTX_VER == 1);
+    TestDevice::restore_called = 0;
+
+    // Prepare the device.
+    TestDevice test_dev;
+    dev_desc_t req = test_dev.build_req();
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    vm_err_t err = busctl_connect_dev(busctl, &req, &test_dev, &dev_ctx);
+    EXPECT_EQ(err, VM_ERR_NONE);
+    ASSERT_NE(dev_ctx, nullptr);
+
+    // Remember the context.
+    uint8_t bus_slot = dev_ctx->bus_slot;
+    uint8_t dev_class = dev_ctx->dev_class;
+    uint8_t irq_line = dev_ctx->irq_line;
+
+    // Take the VM snapshot.
+    size_t snapshot_size = busctl_snapshot_size(busctl);
+    uint8_t *snapshot_buf = new uint8_t[snapshot_size];
+    size_t used_size = busctl_snapshot(busctl, snapshot_buf, snapshot_size);
+    EXPECT_EQ(used_size, snapshot_size);
+
+    // Restore the VM.
+    size_t rest_size = 0;
+    busctl_ctx_t *rest_busctl = busctl_restore(
+        memctl, intctl, restore_dev, snapshot_buf, used_size, &rest_size);
+    EXPECT_EQ(rest_size, used_size);
+
+    ASSERT_NE(rest_busctl, nullptr);
+    EXPECT_EQ(rest_busctl->memctl, memctl);
+    EXPECT_EQ(rest_busctl->intctl, intctl);
+    EXPECT_EQ(rest_busctl->used_slots[bus_slot], true);
+    EXPECT_EQ(rest_busctl->num_devs, 1);
+
+    // The device must be restored.
+    EXPECT_EQ(TestDevice::restore_called, 1);
+    busctl_dev_ctx_t *rest_dev_ctx = &rest_busctl->devs[bus_slot];
+    EXPECT_EQ(rest_dev_ctx->bus_slot, bus_slot);
+    EXPECT_EQ(rest_dev_ctx->dev_class, dev_class);
+    EXPECT_EQ(rest_dev_ctx->irq_line, irq_line);
+
+    delete[] snapshot_buf;
 }
