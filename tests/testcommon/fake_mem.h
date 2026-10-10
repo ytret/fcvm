@@ -29,7 +29,6 @@ class FakeMem {
                           void *v_buf, size_t max_size);
 
   private:
-    static std::map<void *, FakeMem *> _ctx_to_this;
     static std::map<void *, FakeMem *> _mmio_ctx_to_this;
 
     static FakeMem *find_obj_by_mmio_ctx(void *ctx);
