@@ -191,8 +191,12 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     uint8_t irq_line = busctl->next_irq_line;
     static_assert(BUS_MAX_DEVS < UINT8_MAX,
                   "cannot support this much devices because of the IRQ limit");
-    vm_addr_t map_start = busctl->next_region_at;
-    vm_addr_t map_end = map_start + desc->region_size;
+    const vm_addr_t map_start = busctl->next_region_at;
+    if (desc->region_size - 1 > VM_MAX_ADDR - map_start) {
+        err = VM_ERR_BUS_NO_FREE_MEM;
+        return err;
+    }
+    const vm_addr_t map_end = map_start + desc->region_size;
     if (map_end >= BUS_DEV_MAP_END) {
         err = VM_ERR_BUS_NO_FREE_MEM;
         return err;
