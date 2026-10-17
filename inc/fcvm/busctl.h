@@ -46,9 +46,9 @@ extern "C" {
  * For the bit format of each register, see the docs spreadsheet.
  */
 /// Start address of the bus MMIO region.
-#define BUS_MMIO_START 0xF0000000
-/// End address (exclusive) of the bus MMIO region.
-#define BUS_MMIO_END   (BUS_MMIO_START + BUS_MMIO_SIZE)
+#define BUS_MMIO_START    0xF0000000
+/// End address (inclusive) of the bus MMIO region.
+#define BUS_MMIO_END_INCL (BUS_MMIO_START + BUS_MMIO_SIZE - 1)
 
 /// Byte offset of the first device descriptor.
 #define BUS_MMIO_DEV_DESC_START 4

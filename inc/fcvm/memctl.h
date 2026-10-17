@@ -21,7 +21,7 @@ extern "C" {
 
 typedef struct {
     vm_addr_t start;
-    vm_addr_t end; // exclusive
+    vm_addr_t end_incl;
 
     void *ctx;
     mem_if_t mem_if;

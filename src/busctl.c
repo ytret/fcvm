@@ -36,7 +36,7 @@ busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
 
     // Map the bus MMIO.
     busctl->bus_mmio.start = BUS_MMIO_START;
-    busctl->bus_mmio.end = BUS_MMIO_END;
+    busctl->bus_mmio.end_incl = BUS_MMIO_END_INCL;
     busctl->bus_mmio.ctx = busctl;
     busctl->bus_mmio.mem_if.read_u8 = NULL;
     busctl->bus_mmio.mem_if.read_u32 = prv_busctl_mmio_read_u32;
@@ -196,7 +196,7 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     // Map the region.
     mmio_region_t mmio = {
         .start = map_start,
-        .end = map_end,
+        .end_incl = map_end - 1,
         .ctx = ctx,
         .mem_if = desc->mem_if,
     };
@@ -263,7 +263,8 @@ static vm_err_t prv_busctl_mmio_read_u32(void *v_ctx, vm_addr_t offset,
                 *out_val = busctl->devs[slot].mmio.start;
             } else if (item == 1) {
                 // Mapped region end.
-                *out_val = busctl->devs[slot].mmio.end;
+                // FIXME: ABI break: should this return an inclusive end addr?
+                *out_val = busctl->devs[slot].mmio.end_incl + 1;
             } else if (item == 2) {
                 // Device class and IRQ line.
                 *out_val = (busctl->devs[slot].dev_class << 8) |

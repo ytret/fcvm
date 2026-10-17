@@ -100,7 +100,7 @@ memctl_ctx_t *memctl_restore(const void *v_buf, size_t max_size,
 vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     D_ASSERT(memctl);
     D_ASSERT(mmio);
-    D_ASSERT(mmio->start < mmio->end);
+    D_ASSERT(mmio->start <= mmio->end_incl);
     vm_err_t err = VM_ERR_NONE;
 
     bool overlaps = false;
@@ -109,12 +109,12 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
             mmio_region_t reg = memctl->mapped_regions[idx];
 
             const vm_addr_t existing_start = reg.start;
-            const vm_addr_t existing_end = reg.end;
+            const vm_addr_t existing_end = reg.end_incl;
             const vm_addr_t new_start = mmio->start;
-            const vm_addr_t new_end = mmio->end;
+            const vm_addr_t new_end = mmio->end_incl;
 
-            if ((existing_start <= new_start && new_start < existing_end) ||
-                (existing_start < new_end && new_end <= existing_end) ||
+            if ((existing_start <= new_start && new_start <= existing_end) ||
+                (existing_start <= new_end && new_end <= existing_end) ||
                 (new_start < existing_start && existing_end < new_end)) {
                 overlaps = true;
                 break;
@@ -146,7 +146,7 @@ vm_err_t memctl_find_reg_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
     for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
         if (memctl->used_regions[idx]) {
             mmio_region_t reg = memctl->mapped_regions[idx];
-            if (reg.start <= addr && addr < reg.end) {
+            if (reg.start <= addr && addr <= reg.end_incl) {
                 if (out_reg) { *out_reg = &memctl->mapped_regions[idx]; }
                 err = VM_ERR_NONE;
                 break;
@@ -185,7 +185,7 @@ vm_err_t memctl_read_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t *out) {
     err = memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err == VM_ERR_NONE) {
         if (reg->mem_if.read_u32) {
-            if (addr + 4 <= reg->end) {
+            if (addr + 3 <= reg->end_incl) {
                 vm_addr_t rel_addr = addr - reg->start;
                 err = reg->mem_if.read_u32(reg->ctx, rel_addr, out);
             } else {
@@ -227,7 +227,7 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
     err = memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err == VM_ERR_NONE) {
         if (reg->mem_if.write_u32) {
-            if (addr + 4 <= reg->end) {
+            if (addr + 3 <= reg->end_incl) {
                 vm_addr_t rel_addr = addr - reg->start;
                 err = reg->mem_if.write_u32(reg->ctx, rel_addr, val);
             } else {

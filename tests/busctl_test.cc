@@ -140,7 +140,8 @@ TEST_F(BusCtlTest, RegisterDevice) {
     ASSERT_NE(dev_ctx, nullptr);
     EXPECT_EQ(dev_ctx->dev_class, req.dev_class);
     EXPECT_EQ(dev_ctx->mmio.ctx, &mem_ctx);
-    EXPECT_EQ(dev_ctx->mmio.end - dev_ctx->mmio.start, req.region_size);
+    EXPECT_EQ(dev_ctx->mmio.end_incl - dev_ctx->mmio.start + 1,
+              req.region_size);
 
     EXPECT_EQ(busctl->num_devs, 1);
 }
@@ -341,8 +342,8 @@ TEST_F(BusCtlTest, MMIORegDevDesc) {
 
     // DWORD #1 - mapped region start.
     EXPECT_EQ(desc[0], dev_ctx->mmio.start);
-    // DWORD #2 - mapped region end.
-    EXPECT_EQ(desc[1], dev_ctx->mmio.end);
+    // DWORD #2 - mapped region end (exclusive).
+    EXPECT_EQ(desc[1], dev_ctx->mmio.end_incl + 1);
     // DWORD #3 - device class and IRQ line.
     EXPECT_EQ(desc[2], (dev_ctx->dev_class << 8) | dev_ctx->irq_line);
 }

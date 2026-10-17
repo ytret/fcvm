@@ -77,7 +77,7 @@ class MemCtlTest : public testing::Test {
         mmio1_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE, true);
         mmio1_reg = {
             .start = TEST_MMIO1_START,
-            .end = TEST_MMIO1_START + TEST_MMIO1_SIZE,
+            .end_incl = TEST_MMIO1_START + TEST_MMIO1_SIZE - 1,
             .ctx = &mmio1_dev->mem_if,
             .mem_if = mmio1_dev->mem_if,
         };
@@ -85,7 +85,7 @@ class MemCtlTest : public testing::Test {
         mmio2_dev = new FakeMem(0x0000'0000, TEST_MMIO2_SIZE, true);
         mmio2_reg = {
             .start = TEST_MMIO2_START,
-            .end = TEST_MMIO2_START + TEST_MMIO2_SIZE,
+            .end_incl = TEST_MMIO2_START + TEST_MMIO2_SIZE - 1,
             .ctx = &mmio2_dev->mem_if,
             .mem_if = mmio2_dev->mem_if,
         };
@@ -93,7 +93,7 @@ class MemCtlTest : public testing::Test {
         mmio3_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE, true);
         mmio3_reg = {
             .start = TEST_MMIO3_START,
-            .end = TEST_MMIO3_START + TEST_MMIO3_SIZE,
+            .end_incl = TEST_MMIO3_START + TEST_MMIO3_SIZE - 1,
             .ctx = &mmio2_dev->mem_if,
             .mem_if = mmio2_dev->mem_if,
         };
@@ -105,7 +105,7 @@ class MemCtlTest : public testing::Test {
         mmio_az_dev = new AllZeroMem(0x0000'0000, TEST_MMIO_AZ_SIZE);
         mmio_az_reg = {
             .start = TEST_MMIO_AZ_START,
-            .end = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE,
+            .end_incl = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE - 1,
             .ctx = &mmio_az_dev->mem_if,
             .mem_if = mmio_az_dev->mem_if,
         };
@@ -176,11 +176,11 @@ TEST_F(MemCtlTest, MapEndR2ToStartR1) {
     //        [  R1  ]
     // [  R2  ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
-    mmio_reg.end = mmio_reg.start;
-    mmio_reg.start = mmio_reg.end - 10;
+    mmio_reg.end_incl = mmio_reg.start - 1;
+    mmio_reg.start = mmio_reg.end_incl - 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
 }
@@ -193,11 +193,11 @@ TEST_F(MemCtlTest, MapStartR2ToEndR1) {
     // [  R1  ]
     //        [  R2  ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
-    mmio_reg.start = mmio_reg.end;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.start = mmio_reg.end_incl + 1;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
 }
@@ -210,11 +210,11 @@ TEST_F(MemCtlTest, MapWithOverlapR2StartsInR1Fails1) {
     // [  R1  ]
     //   [  R2  ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start += 5;
-    mmio_reg.end += 5;
+    mmio_reg.end_incl += 5;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
@@ -227,7 +227,7 @@ TEST_F(MemCtlTest, MapWithOverlapR2StartsInR1Fails2) {
     // [  R1  ]
     //   [ R2 ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start += 5;
@@ -243,11 +243,11 @@ TEST_F(MemCtlTest, MapRegionStartingAtExistingRegionStartFails) {
     // [  R1  ]
     // [   R2   ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start = mmio_reg.start;
-    mmio_reg.end += 10;
+    mmio_reg.end_incl += 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
@@ -260,11 +260,11 @@ TEST_F(MemCtlTest, MapRegionEndingInExistingRegionFails1) {
     //   [  R1  ]
     // [  R2  ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start -= 5;
-    mmio_reg.end -= 5;
+    mmio_reg.end_incl -= 5;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
@@ -277,11 +277,11 @@ TEST_F(MemCtlTest, MapRegionEndingInExistingRegionFails2) {
     //   [  R1  ]
     // [   R2   ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start -= 10;
-    mmio_reg.end = mmio_reg.end;
+    mmio_reg.end_incl = mmio_reg.end_incl;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
@@ -294,11 +294,11 @@ TEST_F(MemCtlTest, MapRegionCoveringExistingRegionFails) {
     //   [ R1 ]
     // [   R2   ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 10;
+    mmio_reg.end_incl = mmio_reg.start + 9;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start -= 10;
-    mmio_reg.end += 10;
+    mmio_reg.end_incl += 10;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
@@ -311,11 +311,11 @@ TEST_F(MemCtlTest, MapRegionFullyInsideExistingRegionFails) {
     // [   R1   ]
     //   [ R2 ]
     mmio_reg.start = 1024;
-    mmio_reg.end = mmio_reg.start + 512;
+    mmio_reg.end_incl = mmio_reg.start + 511;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_NONE);
     mmio_reg.start += 10;
-    mmio_reg.end -= 10;
+    mmio_reg.end_incl -= 10;
     err = memctl_map_region(memctl, &mmio_reg);
     EXPECT_EQ(err, VM_ERR_MEM_USED);
 }
@@ -582,8 +582,8 @@ TEST_F(MemCtlTest, SnapshotRestore) {
 
         EXPECT_EQ(rest_memctl->mapped_regions[idx].start,
                   memctl->mapped_regions[idx].start);
-        EXPECT_EQ(rest_memctl->mapped_regions[idx].end,
-                  memctl->mapped_regions[idx].end);
+        EXPECT_EQ(rest_memctl->mapped_regions[idx].end_incl,
+                  memctl->mapped_regions[idx].end_incl);
 
         EXPECT_EQ(rest_memctl->mapped_regions[idx].ctx, nullptr);
         EXPECT_EQ(rest_memctl->mapped_regions[idx].mem_if.read_u8, nullptr);
