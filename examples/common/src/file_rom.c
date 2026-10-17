@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,7 +38,8 @@ file_rom_ctx_t *file_rom_new(const char *path) {
     ctx->desc.f_snapshot_size = file_rom_snapshot_size;
     ctx->desc.f_snapshot = file_rom_snapshot;
 
-    fprintf(stderr, "file_rom: loaded %s (%ld bytes)\n", path, file_size);
+    fprintf(stderr, "file_rom: loaded %s (%" PRId64 " bytes)\n", path,
+            file_size);
     return ctx;
 }
 
@@ -105,7 +107,8 @@ static off_t prv_get_file_size(const char *path) {
         return -1;
     }
     if (st.st_size < 0) {
-        fprintf(stderr, "file_rom: st_size is negative: %ld\n", st.st_size);
+        fprintf(stderr, "file_rom: st_size is negative: %" PRId64 "\n",
+                st.st_size);
         return -1;
     }
     return st.st_size;
