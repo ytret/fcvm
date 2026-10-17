@@ -73,6 +73,9 @@ struct TestDevice {
         TestDevice *dev = new TestDevice;
         memcpy(&dev->contained_dword, v_buf, sizeof(dev->contained_dword));
 
+        dev_ctx->mmio.ctx = dev;
+        dev_ctx->mmio.mem_if.read_u32 = read_u32;
+        dev_ctx->mmio.mem_if.write_u32 = write_u32;
         dev_ctx->snapshot_ctx = dev;
         dev_ctx->f_snapshot_size = snapshot_size;
         dev_ctx->f_snapshot = snapshot;
@@ -469,6 +472,8 @@ TEST_F(BusCtlTest, SnapshotRestoreWithDevice) {
     uint8_t bus_slot = dev_ctx->bus_slot;
     uint8_t dev_class = dev_ctx->dev_class;
     uint8_t irq_line = dev_ctx->irq_line;
+    vm_addr_t dev_mmio_start = dev_ctx->mmio.start;
+    vm_addr_t dev_mmio_end_incl = dev_ctx->mmio.end_incl;
 
     // Take the VM snapshot.
     size_t snapshot_size = busctl_snapshot_size(busctl);
@@ -494,6 +499,11 @@ TEST_F(BusCtlTest, SnapshotRestoreWithDevice) {
     EXPECT_EQ(rest_dev_ctx->bus_slot, bus_slot);
     EXPECT_EQ(rest_dev_ctx->dev_class, dev_class);
     EXPECT_EQ(rest_dev_ctx->irq_line, irq_line);
+
+    // Check device MMIO region state.
+    EXPECT_NE(rest_dev_ctx->mmio.ctx, nullptr);
+    EXPECT_EQ(rest_dev_ctx->mmio.start, dev_mmio_start);
+    EXPECT_EQ(rest_dev_ctx->mmio.end_incl, dev_mmio_end_incl);
 
     delete[] snapshot_buf;
 }
