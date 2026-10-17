@@ -558,6 +558,27 @@ TEST_F(MemCtlTest, ReadBeyondAddrSpaceEndFails) {
     }
 }
 
+TEST_F(MemCtlTest, WriteBeyondAddrSpaceEndFails) {
+    vm_addr_t rel_addr;
+    uint32_t write_dword = 0;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio_az_reg);
+    ASSERT_EQ(err, VM_ERR_NONE);
+
+    // Write to the last dword.
+    rel_addr = TEST_MMIO_AZ_SIZE - 4;
+    err = memctl_write_u32(memctl, TEST_MMIO_AZ_START + rel_addr, write_dword);
+    EXPECT_EQ(err, VM_ERR_NONE);
+
+    // Writing a dword anywhere from [end-3, end) should fail.
+    for (vm_addr_t i = 0; i < 3; i++) {
+        const vm_addr_t addr = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE - i;
+        err = memctl_write_u32(memctl, addr, write_dword);
+        EXPECT_EQ(err, VM_ERR_BAD_MEM)
+            << std::format("while writing address 0x{:08x}", addr);
+    }
+}
+
 TEST_F(MemCtlTest, SnapshotRestore) {
     static_assert(SN_MEMCTL_CTX_VER == 1);
 
