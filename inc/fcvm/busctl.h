@@ -131,13 +131,13 @@ busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl);
  * @param memctl Memory controller used for mapping connected devices.
  * @param intctl Interrupt controller, IRQ lines of which are assigned to
  *               connected deviecs.
- * @param in_reg MMIO region in @a memctl that will be used for the bus MMIO
+ * @param in_rgn MMIO region in @a memctl that will be used for the bus MMIO
  *               operations.
  *
  * @returns A newly allocated #busctl_ctx_t structure, never `NULL`.
  */
-busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
-                                mmio_region_t *in_reg);
+busctl_ctx_t *busctl_new_in_rgn(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                                mmio_region_t *in_rgn);
 
 /**
  * Frees memory used by the @a busctl structure.

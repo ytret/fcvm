@@ -80,7 +80,7 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio);
  * written to @a *out_reg (if it's not NULL), #VM_ERR_BAD_MEM if no
  * containing region was found and @a *out_reg was not written
  */
-vm_err_t memctl_find_reg_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
+vm_err_t memctl_find_rgn_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
                                  mmio_region_t **out_reg);
 
 vm_err_t memctl_read_u8(void *memctl_ctx, vm_addr_t addr, uint8_t *out);

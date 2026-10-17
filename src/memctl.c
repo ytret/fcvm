@@ -11,7 +11,7 @@
 
 #include <fcvm/memctl.h>
 
-static bool prv_memctl_find_free_reg(memctl_ctx_t *memctl, size_t *out_idx);
+static bool prv_memctl_find_free_rgn(memctl_ctx_t *memctl, size_t *out_idx);
 
 memctl_ctx_t *memctl_new(void) {
     memctl_ctx_t *memctl = malloc(sizeof(*memctl));
@@ -52,12 +52,12 @@ size_t memctl_snapshot(const memctl_ctx_t *memctl, void *v_buf,
     memctl_copy.intf.write_u8 = NULL;
     memctl_copy.intf.write_u32 = NULL;
     for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {
-        mmio_region_t *reg = &memctl_copy.mapped_regions[idx];
-        reg->ctx = NULL;
-        reg->mem_if.read_u8 = NULL;
-        reg->mem_if.read_u32 = NULL;
-        reg->mem_if.write_u8 = NULL;
-        reg->mem_if.write_u32 = NULL;
+        mmio_region_t *rgn = &memctl_copy.mapped_regions[idx];
+        rgn->ctx = NULL;
+        rgn->mem_if.read_u8 = NULL;
+        rgn->mem_if.read_u32 = NULL;
+        rgn->mem_if.write_u8 = NULL;
+        rgn->mem_if.write_u32 = NULL;
     }
 
     // Write the memctl context.
@@ -127,7 +127,7 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     }
 
     size_t idx;
-    if (!prv_memctl_find_free_reg(memctl, &idx)) {
+    if (!prv_memctl_find_free_rgn(memctl, &idx)) {
         err = VM_ERR_MEM_MAX_REGIONS;
         return err;
     }
@@ -138,8 +138,8 @@ vm_err_t memctl_map_region(memctl_ctx_t *memctl, const mmio_region_t *mmio) {
     return err;
 }
 
-vm_err_t memctl_find_reg_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
-                                 mmio_region_t **out_reg) {
+vm_err_t memctl_find_rgn_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
+                                 mmio_region_t **out_rgn) {
     D_ASSERT(memctl);
     vm_err_t err = VM_ERR_BAD_MEM;
 
@@ -147,7 +147,7 @@ vm_err_t memctl_find_reg_by_addr(memctl_ctx_t *memctl, vm_addr_t addr,
         if (memctl->used_regions[idx]) {
             mmio_region_t reg = memctl->mapped_regions[idx];
             if (reg.start <= addr && addr <= reg.end_incl) {
-                if (out_reg) { *out_reg = &memctl->mapped_regions[idx]; }
+                if (out_rgn) { *out_rgn = &memctl->mapped_regions[idx]; }
                 err = VM_ERR_NONE;
                 break;
             }
@@ -162,12 +162,12 @@ vm_err_t memctl_read_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t *out) {
     memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
     vm_err_t err = VM_ERR_NONE;
 
-    mmio_region_t *reg;
-    err = memctl_find_reg_by_addr(memctl, addr, &reg);
+    mmio_region_t *rgn;
+    err = memctl_find_rgn_by_addr(memctl, addr, &rgn);
     if (err == VM_ERR_NONE) {
-        if (reg->mem_if.read_u8) {
-            vm_addr_t rel_addr = addr - reg->start;
-            err = reg->mem_if.read_u8(reg->ctx, rel_addr, out);
+        if (rgn->mem_if.read_u8) {
+            vm_addr_t rel_addr = addr - rgn->start;
+            err = rgn->mem_if.read_u8(rgn->ctx, rel_addr, out);
         } else {
             err = VM_ERR_MEM_BAD_OP;
         }
@@ -181,13 +181,13 @@ vm_err_t memctl_read_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t *out) {
     memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
     vm_err_t err = VM_ERR_NONE;
 
-    mmio_region_t *reg;
-    err = memctl_find_reg_by_addr(memctl, addr, &reg);
+    mmio_region_t *rgn;
+    err = memctl_find_rgn_by_addr(memctl, addr, &rgn);
     if (err == VM_ERR_NONE) {
-        if (reg->mem_if.read_u32) {
-            if (reg->end_incl > addr && reg->end_incl - addr >= 3) {
-                vm_addr_t rel_addr = addr - reg->start;
-                err = reg->mem_if.read_u32(reg->ctx, rel_addr, out);
+        if (rgn->mem_if.read_u32) {
+            if (rgn->end_incl > addr && rgn->end_incl - addr >= 3) {
+                vm_addr_t rel_addr = addr - rgn->start;
+                err = rgn->mem_if.read_u32(rgn->ctx, rel_addr, out);
             } else {
                 err = VM_ERR_BAD_MEM;
             }
@@ -204,12 +204,12 @@ vm_err_t memctl_write_u8(void *v_memctl_ctx, vm_addr_t addr, uint8_t val) {
     memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
     vm_err_t err = VM_ERR_NONE;
 
-    mmio_region_t *reg;
-    err = memctl_find_reg_by_addr(memctl, addr, &reg);
+    mmio_region_t *rgn;
+    err = memctl_find_rgn_by_addr(memctl, addr, &rgn);
     if (err == VM_ERR_NONE) {
-        if (reg->mem_if.write_u8) {
-            vm_addr_t rel_addr = addr - reg->start;
-            err = reg->mem_if.write_u8(reg->ctx, rel_addr, val);
+        if (rgn->mem_if.write_u8) {
+            vm_addr_t rel_addr = addr - rgn->start;
+            err = rgn->mem_if.write_u8(rgn->ctx, rel_addr, val);
         } else {
             err = VM_ERR_MEM_BAD_OP;
         }
@@ -223,13 +223,13 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
     memctl_ctx_t *memctl = (memctl_ctx_t *)v_memctl_ctx;
     vm_err_t err = VM_ERR_NONE;
 
-    mmio_region_t *reg;
-    err = memctl_find_reg_by_addr(memctl, addr, &reg);
+    mmio_region_t *rgn;
+    err = memctl_find_rgn_by_addr(memctl, addr, &rgn);
     if (err == VM_ERR_NONE) {
-        if (reg->mem_if.write_u32) {
-            if (reg->end_incl > addr && reg->end_incl - addr >= 3) {
-                vm_addr_t rel_addr = addr - reg->start;
-                err = reg->mem_if.write_u32(reg->ctx, rel_addr, val);
+        if (rgn->mem_if.write_u32) {
+            if (rgn->end_incl > addr && rgn->end_incl - addr >= 3) {
+                vm_addr_t rel_addr = addr - rgn->start;
+                err = rgn->mem_if.write_u32(rgn->ctx, rel_addr, val);
             } else {
                 err = VM_ERR_BAD_MEM;
             }
@@ -249,7 +249,7 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
  *          `false` if no unused index was found and @a *out_idx was not
  *          changed.
  */
-static bool prv_memctl_find_free_reg(memctl_ctx_t *memctl, size_t *out_idx) {
+static bool prv_memctl_find_free_rgn(memctl_ctx_t *memctl, size_t *out_idx) {
     D_ASSERT(memctl);
     D_ASSERT(out_idx);
     for (size_t idx = 0; idx < MEMCTL_MAX_REGIONS; idx++) {

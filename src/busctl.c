@@ -17,11 +17,11 @@ static vm_err_t prv_busctl_mmio_read_u32(void *ctx, vm_addr_t addr,
                                          uint32_t *out_val);
 
 busctl_ctx_t *busctl_new(memctl_ctx_t *memctl, intctl_ctx_t *intctl) {
-    return busctl_new_in_reg(memctl, intctl, NULL);
+    return busctl_new_in_rgn(memctl, intctl, NULL);
 }
 
-busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
-                                mmio_region_t *in_reg) {
+busctl_ctx_t *busctl_new_in_rgn(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
+                                mmio_region_t *in_rgn) {
     D_ASSERT(memctl);
     D_ASSERT(intctl);
 
@@ -42,8 +42,8 @@ busctl_ctx_t *busctl_new_in_reg(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
     busctl->bus_mmio.mem_if.read_u32 = prv_busctl_mmio_read_u32;
     busctl->bus_mmio.mem_if.write_u8 = NULL;
     busctl->bus_mmio.mem_if.write_u32 = NULL;
-    if (in_reg) {
-        memcpy(in_reg, &busctl->bus_mmio, sizeof(mmio_region_t));
+    if (in_rgn) {
+        memcpy(in_rgn, &busctl->bus_mmio, sizeof(mmio_region_t));
     } else {
         vm_err_t err = memctl_map_region(memctl, &busctl->bus_mmio);
         D_ASSERTMF(err == VM_ERR_NONE,
@@ -129,12 +129,12 @@ busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
 
     // Find the busctl MMIO region in the memory controller.
     mmio_region_t *bus_mmio = NULL;
-    vm_err_t err = memctl_find_reg_by_addr(memctl, BUS_MMIO_START, &bus_mmio);
+    vm_err_t err = memctl_find_rgn_by_addr(memctl, BUS_MMIO_START, &bus_mmio);
     D_ASSERT(err == VM_ERR_NONE);
     D_ASSERT(bus_mmio);
 
     // Restore the busctl context.
-    busctl_ctx_t *busctl = busctl_new_in_reg(memctl, intctl, bus_mmio);
+    busctl_ctx_t *busctl = busctl_new_in_rgn(memctl, intctl, bus_mmio);
     D_ASSERT(offset + sizeof(*busctl) <= max_size);
     busctl_ctx_t saved_busctl;
     memcpy(&saved_busctl, v_buf + offset, sizeof(busctl_ctx_t));
@@ -155,12 +155,12 @@ busctl_ctx_t *busctl_restore(memctl_ctx_t *memctl, intctl_ctx_t *intctl,
                                     max_size - offset);
 
             // Restore the ctx and mem interface in memctl.
-            mmio_region_t *memctl_reg = NULL;
-            vm_err_t err = memctl_find_reg_by_addr(
-                memctl, busctl->devs[idx].mmio.start, &memctl_reg);
+            mmio_region_t *memctl_rgn = NULL;
+            vm_err_t err = memctl_find_rgn_by_addr(
+                memctl, busctl->devs[idx].mmio.start, &memctl_rgn);
             D_ASSERT(err == VM_ERR_NONE);
-            D_ASSERT(memctl_reg);
-            memcpy(memctl_reg, &busctl->devs[idx].mmio, sizeof(*memctl_reg));
+            D_ASSERT(memctl_rgn);
+            memcpy(memctl_rgn, &busctl->devs[idx].mmio, sizeof(*memctl_rgn));
         }
     }
 
