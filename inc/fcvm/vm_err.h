@@ -36,6 +36,8 @@ typedef enum {
     /// Bus controller cannot map a memory region of the requested size for the
     /// device.
     VM_ERR_BUS_NO_FREE_MEM,
+    /// Bus controller cannot process a bad device descriptor.
+    VM_ERR_BUS_BAD_DESC,
 
     /// Memory controller cannot map a region because the region limit has been
     /// reached.

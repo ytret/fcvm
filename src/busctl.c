@@ -174,6 +174,11 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
     D_ASSERT(desc);
     vm_err_t err = VM_ERR_NONE;
 
+    if (desc->region_size == 0) {
+        err = VM_ERR_BUS_BAD_DESC;
+        return err;
+    }
+
     // Find a free device slot.
     size_t slot;
     if (!prv_busctl_find_free_slot(busctl, &slot)) {

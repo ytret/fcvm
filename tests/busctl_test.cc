@@ -178,6 +178,28 @@ TEST_F(BusCtlTest, RegisterMaxDevices) {
     ASSERT_EQ(err, VM_ERR_BUS_NO_FREE_SLOT);
 }
 
+TEST_F(BusCtlTest, RegisterZeroSizeMMIOFails) {
+    uint32_t mem_ctx = 0xDEADBEEF;
+    mem_if_t mem_if = {
+        .read_u8 = NULL,
+        .read_u32 = NULL,
+        .write_u8 = NULL,
+        .write_u32 = NULL,
+    };
+    dev_desc_t req = {
+        .dev_class = 0xAA,
+        .region_size = 0,
+        .mem_if = mem_if,
+        .f_snapshot_size = nullptr,
+        .f_snapshot = nullptr,
+    };
+
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
+    EXPECT_EQ(err, VM_ERR_BUS_BAD_DESC);
+    EXPECT_EQ(busctl->num_devs, 0);
+}
+
 TEST_F(BusCtlTest, TestDeviceReadWriteU8Fails) {
     TestDevice test_dev;
     vm_err_t err;
