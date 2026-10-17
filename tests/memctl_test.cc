@@ -1,3 +1,4 @@
+#include <format>
 #include <gtest/gtest.h>
 
 #include "testcommon/fake_mem.h"
