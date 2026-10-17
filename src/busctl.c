@@ -197,7 +197,7 @@ vm_err_t busctl_connect_dev(busctl_ctx_t *busctl, const dev_desc_t *desc,
         return err;
     }
     const vm_addr_t map_end = map_start + desc->region_size;
-    if (map_end >= BUS_DEV_MAP_END) {
+    if (map_end > BUS_DEV_MAP_END) {
         err = VM_ERR_BUS_NO_FREE_MEM;
         return err;
     }

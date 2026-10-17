@@ -202,6 +202,7 @@ TEST_F(BusCtlTest, RegisterZeroSizeMMIOFails) {
 
 TEST_F(BusCtlTest, RegisterMMIOExceedingAddressSpaceEndBoundary) {
     // Register a precondition device, MMIO size 0x100.
+    // FIXME: not needed when BUS_DEV_MAP_START is not 0?
     uint32_t mem_ctx = 0xDEADBEEF;
     mem_if_t mem_if = {
         .read_u8 = NULL,
@@ -226,6 +227,48 @@ TEST_F(BusCtlTest, RegisterMMIOExceedingAddressSpaceEndBoundary) {
     const busctl_dev_ctx_t *dev2_ctx = nullptr;
     err = busctl_connect_dev(busctl, &req2, &mem_ctx, &dev2_ctx);
     ASSERT_EQ(err, VM_ERR_BUS_NO_FREE_MEM);
+}
+
+TEST_F(BusCtlTest, RegisterMaxMMIOSizeWorks) {
+    uint32_t mem_ctx = 0xDEADBEEF;
+    mem_if_t mem_if = {
+        .read_u8 = NULL,
+        .read_u32 = NULL,
+        .write_u8 = NULL,
+        .write_u32 = NULL,
+    };
+    const dev_desc_t req = {
+        .dev_class = 0xAA,
+        .region_size = BUS_DEV_MAP_END - BUS_DEV_MAP_START,
+        .mem_if = mem_if,
+        .f_snapshot_size = nullptr,
+        .f_snapshot = nullptr,
+    };
+
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
+    EXPECT_EQ(err, VM_ERR_NONE);
+}
+
+TEST_F(BusCtlTest, RegisterTooBigMMIOSizeFails) {
+    uint32_t mem_ctx = 0xDEADBEEF;
+    mem_if_t mem_if = {
+        .read_u8 = NULL,
+        .read_u32 = NULL,
+        .write_u8 = NULL,
+        .write_u32 = NULL,
+    };
+    const dev_desc_t req = {
+        .dev_class = 0xAA,
+        .region_size = BUS_DEV_MAP_END - BUS_DEV_MAP_START + 1,
+        .mem_if = mem_if,
+        .f_snapshot_size = nullptr,
+        .f_snapshot = nullptr,
+    };
+
+    const busctl_dev_ctx_t *dev_ctx = nullptr;
+    vm_err_t err = busctl_connect_dev(busctl, &req, &mem_ctx, &dev_ctx);
+    EXPECT_EQ(err, VM_ERR_BUS_NO_FREE_MEM);
 }
 
 TEST_F(BusCtlTest, TestDeviceReadWriteU8Fails) {
