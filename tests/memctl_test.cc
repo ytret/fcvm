@@ -15,7 +15,7 @@
 #define TEST_MMIO3_SIZE  TEST_MMIO1_SIZE
 
 #define TEST_MMIO_AZ_START 0
-#define TEST_MMIO_AZ_SIZE  0xFFFFFFFF
+#define TEST_MMIO_AZ_SIZE  0xFFFF'FFFF
 
 // Region 2 should not start at 0, because it's used to test reads/writes to a
 // region that doesn't start at 0.
@@ -78,7 +78,7 @@ class MemCtlTest : public testing::Test {
         mmio1_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE, true);
         mmio1_reg = {
             .start = TEST_MMIO1_START,
-            .end_incl = TEST_MMIO1_START + TEST_MMIO1_SIZE - 1,
+            .end_incl = TEST_MMIO1_START + TEST_MMIO1_SIZE,
             .ctx = &mmio1_dev->mem_if,
             .mem_if = mmio1_dev->mem_if,
         };
@@ -86,7 +86,7 @@ class MemCtlTest : public testing::Test {
         mmio2_dev = new FakeMem(0x0000'0000, TEST_MMIO2_SIZE, true);
         mmio2_reg = {
             .start = TEST_MMIO2_START,
-            .end_incl = TEST_MMIO2_START + TEST_MMIO2_SIZE - 1,
+            .end_incl = TEST_MMIO2_START + TEST_MMIO2_SIZE,
             .ctx = &mmio2_dev->mem_if,
             .mem_if = mmio2_dev->mem_if,
         };
@@ -94,7 +94,7 @@ class MemCtlTest : public testing::Test {
         mmio3_dev = new FakeMem(0x0000'0000, TEST_MMIO1_SIZE, true);
         mmio3_reg = {
             .start = TEST_MMIO3_START,
-            .end_incl = TEST_MMIO3_START + TEST_MMIO3_SIZE - 1,
+            .end_incl = TEST_MMIO3_START + TEST_MMIO3_SIZE,
             .ctx = &mmio2_dev->mem_if,
             .mem_if = mmio2_dev->mem_if,
         };
@@ -106,7 +106,7 @@ class MemCtlTest : public testing::Test {
         mmio_az_dev = new AllZeroMem(0x0000'0000, TEST_MMIO_AZ_SIZE);
         mmio_az_reg = {
             .start = TEST_MMIO_AZ_START,
-            .end_incl = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE - 1,
+            .end_incl = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE,
             .ctx = &mmio_az_dev->mem_if,
             .mem_if = mmio_az_dev->mem_if,
         };
