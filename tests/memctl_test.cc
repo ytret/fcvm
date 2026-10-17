@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <fcvm/memctl.h>
 #include "testcommon/fake_mem.h"
+#include <fcvm/memctl.h>
 
 #define TEST_MMIO1_START 0x0000'0000
 #define TEST_MMIO1_SIZE  8
@@ -13,9 +13,58 @@
 #define TEST_MMIO3_START TEST_MMIO1_START
 #define TEST_MMIO3_SIZE  TEST_MMIO1_SIZE
 
+#define TEST_MMIO_AZ_START 0
+#define TEST_MMIO_AZ_SIZE  0xFFFFFFFF
+
 // Region 2 should not start at 0, because it's used to test reads/writes to a
 // region that doesn't start at 0.
 static_assert(TEST_MMIO2_START > 0);
+
+class AllZeroMem {
+  public:
+    static constexpr uint8_t dev_class = 0x02;
+
+    vm_addr_t base;
+    vm_addr_t end;
+    mem_if_t mem_if;
+
+    AllZeroMem(vm_addr_t abase, vm_addr_t aend) {
+        base = abase;
+        end = aend;
+
+        mem_if.read_u8 = nullptr;
+        mem_if.read_u32 = read_u32;
+        mem_if.write_u8 = nullptr;
+        mem_if.write_u32 = write_u32;
+    }
+
+    dev_desc_t dev_desc() const {
+        return dev_desc_t{
+            .dev_class = dev_class,
+            .region_size = end - base,
+            .mem_if = mem_if,
+            .f_snapshot_size = nullptr,
+            .f_snapshot = nullptr,
+        };
+    }
+
+  private:
+    static vm_err_t read_u32(void *ctx, vm_addr_t addr, uint32_t *out) {
+        // Always read 0.
+        (void)ctx;
+        (void)addr;
+        *out = 0;
+        return VM_ERR_NONE;
+    }
+
+    static vm_err_t write_u32(void *ctx, vm_addr_t addr, uint32_t val) {
+        // Ignore without an error.
+        (void)ctx;
+        (void)addr;
+        (void)val;
+        return VM_ERR_NONE;
+    }
+};
 
 class MemCtlTest : public testing::Test {
   protected:
@@ -52,6 +101,14 @@ class MemCtlTest : public testing::Test {
         mmio3_reg.mem_if.write_u8 = nullptr;
         mmio3_reg.mem_if.read_u32 = nullptr;
         mmio3_reg.mem_if.write_u32 = nullptr;
+
+        mmio_az_dev = new AllZeroMem(0x0000'0000, TEST_MMIO_AZ_SIZE);
+        mmio_az_reg = {
+            .start = TEST_MMIO_AZ_START,
+            .end = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE,
+            .ctx = &mmio_az_dev->mem_if,
+            .mem_if = mmio_az_dev->mem_if,
+        };
     }
     ~MemCtlTest() {
         memctl_free(memctl);
@@ -77,6 +134,9 @@ class MemCtlTest : public testing::Test {
     FakeMem *mmio3_dev;
     mmio_region_t mmio3_reg;
     /// @}
+
+    AllZeroMem *mmio_az_dev;
+    mmio_region_t mmio_az_reg;
 };
 
 TEST_F(MemCtlTest, InitNoRegions) {
@@ -454,6 +514,48 @@ TEST_F(MemCtlTest, Region3CannotReadWriteU32) {
     rel_addr = TEST_MMIO3_SIZE / 2;
     memctl_write_u32(memctl, TEST_MMIO3_START + rel_addr, dword);
     EXPECT_EQ(err, VM_ERR_MEM_BAD_OP);
+}
+
+TEST_F(MemCtlTest, RegionReadBeyondEndFails) {
+    vm_addr_t rel_addr;
+    uint32_t act_dword;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio2_reg);
+    ASSERT_EQ(err, VM_ERR_NONE);
+
+    // Read from the end dword.
+    rel_addr = TEST_MMIO2_SIZE - 4;
+    err = memctl_read_u32(memctl, TEST_MMIO2_START + rel_addr, &act_dword);
+    EXPECT_EQ(err, VM_ERR_NONE);
+
+    // Reading a dword anywhere from [end-3, end) should fail.
+    for (vm_addr_t i = 0; i < 3; i++) {
+        const vm_addr_t addr = TEST_MMIO2_START + TEST_MMIO2_SIZE - i;
+        err = memctl_read_u32(memctl, addr, &act_dword);
+        EXPECT_EQ(err, VM_ERR_BAD_MEM)
+            << std::format("while reading address 0x{:08x}", addr);
+    }
+}
+
+TEST_F(MemCtlTest, ReadBeyondAddrSpaceEndFails) {
+    vm_addr_t rel_addr;
+    uint32_t act_dword;
+
+    vm_err_t err = memctl_map_region(memctl, &mmio_az_reg);
+    ASSERT_EQ(err, VM_ERR_NONE);
+
+    // Read from the end dword.
+    rel_addr = TEST_MMIO_AZ_SIZE - 4;
+    err = memctl_read_u32(memctl, TEST_MMIO_AZ_START + rel_addr, &act_dword);
+    EXPECT_EQ(err, VM_ERR_NONE);
+
+    // Reading a dword anywhere from [end-3, end) should fail.
+    for (vm_addr_t i = 0; i < 3; i++) {
+        const vm_addr_t addr = TEST_MMIO_AZ_START + TEST_MMIO_AZ_SIZE - i;
+        err = memctl_read_u32(memctl, addr, &act_dword);
+        EXPECT_EQ(err, VM_ERR_BAD_MEM)
+            << std::format("while reading address 0x{:08x}", addr);
+    }
 }
 
 TEST_F(MemCtlTest, SnapshotRestore) {
