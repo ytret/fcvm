@@ -227,7 +227,7 @@ vm_err_t memctl_write_u32(void *v_memctl_ctx, vm_addr_t addr, uint32_t val) {
     err = memctl_find_reg_by_addr(memctl, addr, &reg);
     if (err == VM_ERR_NONE) {
         if (reg->mem_if.write_u32) {
-            if (addr + 3 <= reg->end_incl) {
+            if (reg->end_incl > addr && reg->end_incl - addr >= 3) {
                 vm_addr_t rel_addr = addr - reg->start;
                 err = reg->mem_if.write_u32(reg->ctx, rel_addr, val);
             } else {
